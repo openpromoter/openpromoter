@@ -144,17 +144,15 @@ export async function completeStripeOAuth(workspaceId: string, code: string, act
   if (!env.PLATFORM_STRIPE_SECRET_KEY) throw new Error("PLATFORM_STRIPE_SECRET_KEY is not set");
   const platform = stripeClient(env.PLATFORM_STRIPE_SECRET_KEY);
   const res = await platform.oauth.token({ grant_type: "authorization_code", code });
-  // the access token acts as the account's secret key, so the endpoint lives on their account
-  const ep = res.access_token
-    ? await registerEndpoint(stripeClient(res.access_token), workspaceId)
-    : { endpointId: null, secret: null, error: "Stripe returned no access token" };
+  // Stripe forbids webhooks on a connected account: its events reach the platform's Connect webhook
+  // (api/webhooks/stripe-connect), which picks the workspace by account id
   const values = {
     mode: "oauth" as const,
     accountId: res.stripe_user_id ?? null,
     secretEnc: res.access_token ? encrypt(res.access_token) : null,
     livemode: !!res.livemode,
-    ...(ep.secret ? { webhookSecretEnc: encrypt(ep.secret), webhookEndpointId: ep.endpointId } : {}),
   };
+  const webhookError = env.STRIPE_CONNECT_WEBHOOK_SECRET ? null : "STRIPE_CONNECT_WEBHOOK_SECRET is not set";
   await db()
     .insert(billingConnection)
     .values({ id: createId("bcn"), workspaceId, provider: "stripe", ...values })
@@ -164,9 +162,9 @@ export async function completeStripeOAuth(workspaceId: string, code: string, act
     actor,
     "billing.connect_oauth",
     { type: "billing_connection", id: "stripe" },
-    { webhook: !!ep.secret, webhookError: ep.error },
+    { webhook: !webhookError },
   );
-  return { webhookError: ep.secret ? null : ep.error };
+  return { webhookError };
 }
 
 /** Import products, prices, customers and subscriptions; back-fill referrals from customer metadata. */

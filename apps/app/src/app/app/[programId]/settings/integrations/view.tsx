@@ -195,6 +195,8 @@ export function IntegrationsView({
           <CardBody className="flex flex-col gap-3">
             <CopyField value={urls[p]} />
             <form
+              // remount after a save: the reset form would otherwise show the Sandbox switch off for a test connection
+              key={`${p}:${status[p]?.livemode ?? "none"}`}
               className="flex gap-2"
               action={(f) =>
                 run(() => connectProviderAction(programId, p, String(f.get("secret")), !!f.get("sandbox")))
@@ -238,6 +240,7 @@ export function IntegrationsView({
         />
         <CardBody>
           <form
+            key={`paypal:${status.paypal?.livemode ?? "none"}`}
             className="grid gap-3 sm:grid-cols-[1fr_1fr_auto_auto]"
             action={(f) =>
               run(() =>
@@ -265,7 +268,13 @@ export function IntegrationsView({
               required
             />
             <label className="flex items-center gap-2 text-xs text-muted">
-              <Switch name="sandbox" value="on" aria-label="Sandbox" /> Sandbox
+              <Switch
+                name="sandbox"
+                value="on"
+                aria-label="Sandbox"
+                defaultChecked={status.paypal ? !status.paypal.livemode : false}
+              />{" "}
+              Sandbox
             </label>
             <Button type="submit" loading={pending} disabled={!canBilling}>
               Save
@@ -281,6 +290,7 @@ export function IntegrationsView({
         />
         <CardBody>
           <form
+            key={`wise:${status.wise?.livemode ?? "none"}`}
             className="grid gap-3 sm:grid-cols-[1fr_140px_120px_auto_auto]"
             action={(f) =>
               run(() =>
@@ -316,7 +326,13 @@ export function IntegrationsView({
               disabled={!canBilling}
             />
             <label className="flex items-center gap-2 text-xs text-muted">
-              <Switch name="sandbox" value="on" aria-label="Sandbox" /> Sandbox
+              <Switch
+                name="sandbox"
+                value="on"
+                aria-label="Sandbox"
+                defaultChecked={status.wise ? !status.wise.livemode : false}
+              />{" "}
+              Sandbox
             </label>
             <Button type="submit" loading={pending} disabled={!canBilling}>
               Save
