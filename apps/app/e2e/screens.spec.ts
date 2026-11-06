@@ -68,10 +68,8 @@ for (const [device, viewport] of [
         await page.goto(p === "/partners/__first__" ? first! : `${base}${p}`);
         await page.waitForLoadState("load");
         await page.waitForTimeout(800);
-        await page.screenshot({
-          path: `${OUT}/app-${name}-${device}-${scheme}.png`,
-          fullPage: device === "desktop",
-        });
+        // the app scrolls inside its own panel, so a full-page capture leaves a blank strip: take the window
+        await page.screenshot({ path: `${OUT}/app-${name}-${device}-${scheme}.png` });
       }
       for (const [name, url] of [
         ["program-page", "/p/acme-analytics"],
@@ -83,10 +81,7 @@ for (const [device, viewport] of [
         await page.goto(url);
         await page.waitForLoadState("load");
         await page.waitForTimeout(500);
-        await page.screenshot({
-          path: `${OUT}/app-${name}-${device}-${scheme}.png`,
-          fullPage: device === "desktop",
-        });
+        await page.screenshot({ path: `${OUT}/app-${name}-${device}-${scheme}.png` });
       }
       await ctx.close();
     });

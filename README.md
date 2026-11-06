@@ -5,9 +5,9 @@
 **The open-source alternative to Rewardful and FirstPromoter.**
 The affiliate and referral program for SaaS that runs itself. Connect Stripe and OpenPromoter designs the program, recruits partners, stops fraud, writes their marketing and prepares their payouts.
 
-[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-0B7A60)](LICENSE)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-2442F5)](LICENSE)
 [![Self-host](https://img.shields.io/badge/self--host-docker%20compose%20up-15191A)](#quick-start)
-[![Payout fees](https://img.shields.io/badge/payout%20fees-0%25-0B7A60)](#pricing)
+[![Payout fees](https://img.shields.io/badge/payout%20fees-0%25-2442F5)](#pricing)
 [![MCP](https://img.shields.io/badge/MCP-openpromoter--mcp-15191A)](packages/mcp)
 
 [Website](https://openpromoter.com) · [Docs](https://openpromoter.com/docs) · [Self-hosting](https://openpromoter.com/docs/self-hosting) · [API](https://openpromoter.com/docs/api)
@@ -44,7 +44,7 @@ Before exposing it on a real domain, set `APP_URL`, `BETTER_AUTH_SECRET`, `ENCRY
 4. **Install**: one script tag, the npm SDK or a prompt you paste into Claude Code or Cursor.
 5. **Invite partners**: the recruiter has already ranked your happiest paying customers.
 
-The end-to-end test (`pnpm e2e`) runs this whole flow in about 6 seconds. It goes from signup to a paid partner and a refund clawback.
+The end-to-end test (`pnpm e2e`) runs this whole flow in about 15 seconds. It goes from signup to a paid partner and a refund clawback.
 
 ## Features
 
@@ -61,7 +61,7 @@ The end-to-end test (`pnpm e2e`) runs this whole flow in about 6 seconds. It goe
 - Weekly **Autopilot**: it re-engages idle partners, promotes top partners, pauses risky ones, proposes boosts, approves clean applications and prepares payouts.
 - One-sentence **campaign builder** for bounties, contests and boosts.
 - **Content kit** with banners and a plain-English **assistant** over your data.
-- Fraud scoring covers self-referral, same network, duplicate accounts, coupon leaking, paid-search brand bidding, click spam, bots, refunds after payout, fast churn, shared payout accounts and self-recruiting in two-tier programs. Auto-hold above a score you choose.
+- Fraud scoring checks for self-referral, shared networks, duplicate accounts and coupon leaks. It also catches paid-search brand bidding, click spam, bots, refunds after payout, fast churn, shared payout accounts and self-recruiting in two-tier programs. Commissions above a risk score you choose are held.
 
 **Partners**
 - Applications with custom questions and auto-approve rules.
@@ -103,7 +103,7 @@ The end-to-end test (`pnpm e2e`) runs this whole flow in about 6 seconds. It goe
 
 ## Pricing
 
-Self-host: free with every feature and no limits. Cloud: free up to $1k/month partner revenue and $29, $79 or $199 flat per month above that. **No percentage of payouts on any plan.**
+Self-host: free with every feature and no limits. Cloud: free up to $1k/month partner revenue and $29, $79 or $199 flat per month above that, with AI included. **No percentage of payouts on any plan.**
 
 ## Agents
 
@@ -132,7 +132,6 @@ Architecture: [ARCHITECTURE.md](ARCHITECTURE.md).
 - No Stripe payment-method fingerprint matching in fraud checks yet.
 - PayPal unclaimed payouts are not re-queued automatically.
 - Page copy is English only; the i18n catalog covers the app shell.
-- Rate limits are in-memory per instance (fine for one container; use sticky sessions or add a shared store for many replicas).
 
 ## License
 
