@@ -2,6 +2,18 @@
   "name": "openpromoter",
   "version": "0.1.0",
   "description": "TypeScript SDK for OpenPromoter, the open-source affiliate and referral platform",
+  "keywords": [
+    "affiliate",
+    "referral",
+    "partners",
+    "stripe",
+    "openpromoter"
+  ],
+  "homepage": "https://openpromoter.com",
+  "bugs": {
+    "url": "https://github.com/openpromoter/openpromoter/issues"
+  },
+  "author": "DevDiggers (https://devdiggers.com)",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -17,13 +29,6 @@
   "files": [
     "dist",
     "README.md"
-  ],
-  "keywords": [
-    "affiliate",
-    "referral",
-    "partners",
-    "stripe",
-    "openpromoter"
   ],
   "repository": {
     "type": "git",

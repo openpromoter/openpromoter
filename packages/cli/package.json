@@ -2,6 +2,21 @@
   "name": "openpromoter-cli",
   "version": "0.1.0",
   "description": "Command line for OpenPromoter: partners, commissions, payouts and agent-skill install",
+  "keywords": [
+    "affiliate",
+    "affiliate-program",
+    "referral-program",
+    "cli",
+    "stripe",
+    "saas",
+    "payouts",
+    "openpromoter"
+  ],
+  "homepage": "https://openpromoter.com",
+  "bugs": {
+    "url": "https://github.com/openpromoter/openpromoter/issues"
+  },
+  "author": "DevDiggers (https://devdiggers.com)",
   "license": "MIT",
   "type": "module",
   "bin": {

@@ -1,5 +1,7 @@
 # openpromoter-cli
 
+Command line for [OpenPromoter](https://openpromoter.com), the open-source affiliate and referral platform for SaaS. Check stats and manage partners, commissions and payouts from your terminal.
+
 ```bash
 npx openpromoter-cli login --url https://app.openpromoter.com --key op_sk_...
 npx openpromoter-cli programs
