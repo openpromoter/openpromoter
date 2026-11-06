@@ -5,18 +5,28 @@
     "title": "A $99 plan at 30% for 12 months with and *without a hold*",
     "kind": "cards",
     "items": [
-      { "t": "Each month", "v": "$29.70", "lines": ["Paid on every invoice the fake customer pays"] },
+      {
+        "t": "Each month",
+        "v": "$29.70",
+        "lines": [
+          "Paid on every invoice the fake customer pays"
+        ]
+      },
       {
         "t": "No hold and no review",
         "v": "$356.40",
-        "lines": ["The full year is paid on a customer who never used the product"],
+        "lines": [
+          "The full year is paid on a customer who never used the product"
+        ],
         "tag": "Lost",
         "tone": "r"
       },
       {
         "t": "30 day hold",
         "v": "$0",
-        "lines": ["The flag fires while the commission is still pending"],
+        "lines": [
+          "The flag fires while the commission is still pending"
+        ],
         "hi": true,
         "tag": "Reversed before payout",
         "tone": "g"
@@ -29,14 +39,32 @@
     "title": "Five *payout rules* that make fraud unprofitable",
     "kind": "rows",
     "cols": "1.1fr 1.4fr",
-    "head": ["Rule", "What it stops"],
+    "head": [
+      "Rule",
+      "What it stops"
+    ],
     "mutedLast": true,
     "items": [
-      ["Pay on paid invoices only", "Clicks, trials and checkout visits earning money"],
-      ["Hold through the refund window", "Commissions paid on sales that get refunded"],
-      ["Claw back late refunds", "Refunds and disputes that land after payout"],
-      ["Set a minimum payout", "Small fake balances leaving every week"],
-      ["A person approves each batch", "A wrong rate or flagged partner getting paid"]
+      [
+        "Pay on paid invoices only",
+        "Clicks, trials and checkout visits earning money"
+      ],
+      [
+        "Hold through the refund window",
+        "Commissions paid on sales that get refunded"
+      ],
+      [
+        "Claw back late refunds",
+        "Refunds and disputes that land after payout"
+      ],
+      [
+        "Set a minimum payout",
+        "Small fake balances leaving every week"
+      ],
+      [
+        "A person approves each batch",
+        "A wrong rate or flagged partner getting paid"
+      ]
     ]
   },
   {
@@ -45,19 +73,45 @@
     "title": "The *signal* that catches each scheme",
     "kind": "rows",
     "cols": "0.9fr 1.6fr",
-    "head": ["Scheme", "Signal OpenPromoter checks"],
+    "head": [
+      "Scheme",
+      "Signal OpenPromoter checks"
+    ],
     "mutedLast": true,
     "items": [
-      ["Self-referral", "Partner and customer share an email or network"],
-      ["Duplicate accounts", "Three or more referrals share one network"],
-      ["Refunds after payout", "30% or more of paid commissions refunded"],
-      ["Fast churn", "Half of five or more referrals cancel within a week"],
-      ["Coupon leaking", "80% or more of referrals use the coupon with no click"],
-      ["Brand bidding", "Three or more clicks carry a paid search id"],
-      ["Cookie stuffing", "Very high clicks with almost no signups"],
-      ["Click spam and bots", "25 clicks from one visitor or 30% automated"]
-    ],
-    "source": "Source: OpenPromoter fraud rules (November 2026)"
+      [
+        "Self-referral",
+        "Partner and customer share an email or network"
+      ],
+      [
+        "Duplicate accounts",
+        "Three or more referrals share one network"
+      ],
+      [
+        "Refunds after payout",
+        "30% or more of paid commissions refunded"
+      ],
+      [
+        "Fast churn",
+        "Half of five or more referrals cancel within a week"
+      ],
+      [
+        "Coupon leaking",
+        "80% or more of referrals use the coupon with no click"
+      ],
+      [
+        "Brand bidding",
+        "Three or more clicks carry a paid search id"
+      ],
+      [
+        "Cookie stuffing",
+        "Very high clicks with almost no signups"
+      ],
+      [
+        "Click spam and bots",
+        "25 clicks from one visitor or 30% automated"
+      ]
+    ]
   },
   {
     "out": "blog/1099-for-affiliates/1099-for-affiliates-2000-threshold-examples",
@@ -68,14 +122,18 @@
       {
         "t": "$150 a month",
         "v": "$1,800",
-        "lines": ["Below $2,000 for the year"],
+        "lines": [
+          "Below $2,000 for the year"
+        ],
         "tag": "No form",
         "tone": "g"
       },
       {
         "t": "$200 a month",
         "v": "$2,400",
-        "lines": ["Box 1 shows the full $2,400"],
+        "lines": [
+          "Box 1 shows the full $2,400"
+        ],
         "hi": true,
         "tag": "1099-NEC due",
         "tone": "a"
@@ -83,7 +141,9 @@
       {
         "t": "Late in the year",
         "v": "$2,100",
-        "lines": ["$1,700 by November plus a $400 December payout"],
+        "lines": [
+          "$1,700 by November plus a $400 December payout"
+        ],
         "tag": "1099-NEC due",
         "tone": "a"
       }
@@ -96,13 +156,37 @@
     "title": "What to collect and who gets a *1099-NEC*",
     "kind": "rows",
     "cols": "1.4fr 0.8fr 1.1fr",
-    "head": ["Partner", "Form", "1099-NEC"],
+    "head": [
+      "Partner",
+      "Form",
+      "1099-NEC"
+    ],
     "items": [
-      ["US individual or sole proprietor", "!W-9", "At $2,000 or more"],
-      ["Single-member LLC", "!W-9", "Under the owner's name"],
-      ["LLC taxed as a corporation", "!W-9", "Usually not"],
-      ["Foreign individual", "!W-8BEN", "No"],
-      ["Foreign company", "!W-8BEN-E", "No"]
+      [
+        "US individual or sole proprietor",
+        "!W-9",
+        "At $2,000 or more"
+      ],
+      [
+        "Single-member LLC",
+        "!W-9",
+        "Under the owner's name"
+      ],
+      [
+        "LLC taxed as a corporation",
+        "!W-9",
+        "Usually not"
+      ],
+      [
+        "Foreign individual",
+        "!W-8BEN",
+        "No"
+      ],
+      [
+        "Foreign company",
+        "!W-8BEN-E",
+        "No"
+      ]
     ],
     "source": "Source: IRS 1099-NEC and W-9 instructions (December 2026)"
   },
@@ -142,7 +226,10 @@
         "t": "No automatic extension",
         "d": "January 31 falls on a Sunday in 2027. The due date moves to Monday."
       },
-      { "t": "10 or more returns", "d": "You must e-file. IRIS is the IRS's free portal." }
+      {
+        "t": "10 or more returns",
+        "d": "You must e-file. IRIS is the IRS's free portal."
+      }
     ],
     "source": "Source: IRS General Instructions for Certain Information Returns (2026)"
   }
