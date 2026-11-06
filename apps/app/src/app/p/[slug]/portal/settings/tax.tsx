@@ -2,6 +2,7 @@
 
 import { Badge, Button, Field, Input, Select, Textarea } from "@openpromoter/ui";
 import { useState } from "react";
+import { CountrySelect } from "@/components/country-select";
 import { SettingsCard } from "@/components/page";
 import { useAction } from "@/components/use-action";
 import { taxFormAction } from "../../portal-actions";
@@ -73,14 +74,7 @@ export function TaxForm({
             </Select>
           </Field>
           <Field label="Country" htmlFor="tx-cc">
-            <Input
-              id="tx-cc"
-              name="country"
-              defaultValue={country}
-              maxLength={2}
-              required
-              className="uppercase"
-            />
+            <CountrySelect id="tx-cc" defaultValue={country} required />
           </Field>
         </div>
         <Field label="Legal name" htmlFor="tx-name">

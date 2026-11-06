@@ -87,8 +87,8 @@ export function PortalShell({
   const items = groups.flatMap((g) => g.items);
   const current = items.find(([h]) => isActive(h));
   return (
-    <div className="min-h-dvh bg-canvas md:grid md:grid-cols-[244px_1fr]">
-      <aside className="sticky top-0 hidden h-dvh flex-col md:flex" aria-label="Partner portal">
+    <div className="min-h-dvh bg-canvas lg:grid lg:grid-cols-[244px_1fr]">
+      <aside className="sticky top-0 hidden h-dvh flex-col lg:flex" aria-label="Partner portal">
         <div className="flex h-[60px] items-center gap-2.5 px-5 pt-2">
           {logo}
           <div className="min-w-0">
@@ -144,23 +144,23 @@ export function PortalShell({
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-col md:py-2 md:pr-2">
-        <div className="flex min-h-dvh flex-1 flex-col bg-surface md:min-h-[calc(100dvh-16px)] md:rounded-[14px] md:border md:border-border">
-          <header className="sticky top-0 z-20 border-b border-border bg-surface/90 backdrop-blur-md md:top-2 md:rounded-t-[18px]">
-            <div className="flex h-14 items-center gap-3 px-4 md:px-6">
-              <span className="md:hidden">{logo}</span>
+      <div className="flex min-w-0 flex-col lg:py-2 lg:pr-2">
+        <div className="flex min-h-dvh flex-1 flex-col bg-surface lg:min-h-[calc(100dvh-16px)] lg:rounded-[14px] lg:border lg:border-border">
+          <header className="sticky top-0 z-20 border-b border-border bg-surface/90 backdrop-blur-md lg:top-2 lg:rounded-t-[18px]">
+            <div className="flex h-14 items-center gap-3 px-4 lg:px-6">
+              <span className="lg:hidden">{logo}</span>
               <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-[13px]">
                 <span className="truncate text-subtle">{name}</span>
                 <span aria-hidden className="size-1 shrink-0 rounded-full bg-border-strong" />
                 <span className="truncate font-medium text-fg">{current?.[1] ?? "Portal"}</span>
               </nav>
-              <div className="ml-auto md:hidden">
+              <div className="ml-auto lg:hidden">
                 <AccountMenu slug={slug} user={user} email={email} programs={programs} compact />
               </div>
             </div>
             <nav
               aria-label="Portal sections"
-              className="-mb-px flex gap-1 overflow-x-auto px-3 pb-2 [scrollbar-width:none] md:hidden"
+              className="-mb-px flex gap-1 overflow-x-auto px-3 pb-2 [scrollbar-width:none] lg:hidden"
             >
               {items.map(([h, l]) => (
                 <Link
@@ -178,7 +178,7 @@ export function PortalShell({
             </nav>
           </header>
           {banner}
-          <main id="main" className="mx-auto w-full max-w-[1160px] flex-1 px-4 py-6 md:px-8 md:py-8">
+          <main id="main" className="mx-auto w-full max-w-[1160px] flex-1 px-4 py-6 lg:px-8 lg:py-8">
             {children}
           </main>
           {footer}

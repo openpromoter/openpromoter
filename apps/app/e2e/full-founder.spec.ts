@@ -170,7 +170,7 @@ test("partners: turn auto-approve off, an application waits for approval", async
   await pp.getByLabel("Password", { exact: true }).fill("e2e-password-123");
   await pp.getByLabel("Website or main channel").fill("https://applicant.example");
   await pp.getByRole("checkbox").check();
-  await pp.getByRole("button", { name: "Apply" }).click();
+  await pp.getByRole("button", { name: /^(Join and get my link|Send application)$/ }).click();
   const err = pp.locator('[data-sonner-toast][data-type="error"]');
   await Promise.race([
     pp.waitForURL(/\/portal/),
@@ -1270,5 +1270,5 @@ test("demo account, read only: rich screens render without errors", async ({ bro
   await page.goto(`${base}/partners`);
   await page.locator('a[href*="/partners/prt_"]').first().click();
   await page.waitForURL(/partners\/prt_/);
-  await expect(page.getByRole("heading", { name: "Commissions" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Commissions", exact: true })).toBeVisible();
 });

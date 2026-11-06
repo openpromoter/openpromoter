@@ -39,7 +39,7 @@ export function SignupForm({ next, email, social }: { next: string; email: strin
         <>
           Already have an account?{" "}
           <Link
-            className="font-medium text-accent-text hover:underline"
+            className="-my-2 inline-block py-2 font-medium text-accent-text hover:underline"
             href={`/login?next=${encodeURIComponent(next)}`}
           >
             Sign in

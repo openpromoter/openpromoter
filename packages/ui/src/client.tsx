@@ -17,12 +17,12 @@ export function Switch({ className, ...props }: React.ComponentProps<typeof Swit
   return (
     <SwitchPrimitive.Root
       className={cn(
-        "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border border-transparent bg-border-strong transition-colors data-[state=checked]:bg-primary disabled:opacity-50",
+        "peer relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full after:absolute after:-inset-y-3 after:-inset-x-1.5 after:content-[''] border border-transparent bg-border-strong data-[state=checked]:bg-primary disabled:opacity-50",
         className,
       )}
       {...props}
     >
-      <SwitchPrimitive.Thumb className="pointer-events-none block size-4 translate-x-0.5 rounded-full bg-white shadow-sm transition-transform data-[state=checked]:translate-x-4 dark:bg-bg dark:data-[state=checked]:bg-primary-fg" />
+      <SwitchPrimitive.Thumb className="pointer-events-none block size-4 translate-x-0.5 rounded-full bg-white shadow-sm data-[state=checked]:translate-x-4 dark:bg-bg dark:data-[state=checked]:bg-primary-fg" />
     </SwitchPrimitive.Root>
   );
 }
@@ -31,7 +31,7 @@ export function Checkbox({ className, ...props }: React.ComponentProps<typeof Ch
   return (
     <CheckboxPrimitive.Root
       className={cn(
-        "peer flex size-4 shrink-0 items-center justify-center rounded-[5px] border border-border-strong bg-surface data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-fg data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-fg",
+        "peer relative flex size-4 shrink-0 items-center justify-center rounded-[5px] after:absolute after:-inset-3 after:content-[''] border border-border-strong bg-surface data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-fg data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-fg",
         className,
       )}
       {...props}

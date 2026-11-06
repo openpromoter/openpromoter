@@ -17,14 +17,20 @@ export function ReportSubscribe({ programId, email }: { programId: string; email
         </div>
       </div>
       <form
-        className="flex gap-2"
+        className="flex flex-wrap gap-2"
         action={(f) =>
           run(() =>
             subscribeReportAction(programId, String(f.get("email")), String(f.get("frequency")) as "weekly"),
           )
         }
       >
-        <Input name="email" type="email" defaultValue={email} aria-label="Email" className="w-56" />
+        <Input
+          name="email"
+          type="email"
+          defaultValue={email}
+          aria-label="Email"
+          className="w-56 max-sm:min-w-0 max-sm:flex-1 max-sm:basis-full"
+        />
         <Select name="frequency" defaultValue="weekly" aria-label="Frequency" className="w-32">
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>

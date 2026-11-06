@@ -185,7 +185,7 @@ export function RecruiterView({
         {shown.length ? (
           <ul className="divide-y divide-border">
             {shown.map((r) => (
-              <li key={r.id} className="flex items-start gap-3 px-4 py-3">
+              <li key={r.id} className="flex flex-wrap items-start gap-3 px-4 py-3">
                 {canWrite && (r.status === "new" || r.status === "approved") ? (
                   <Checkbox
                     checked={sel.has(r.id)}
@@ -210,7 +210,8 @@ export function RecruiterView({
                   </div>
                   <p className="mt-1 text-[13px] text-muted">{r.reason}</p>
                 </div>
-                <div className="flex shrink-0 flex-col items-end gap-2">
+                {/* phone: fit score and actions move to their own row under the text, which keeps its full width */}
+                <div className="flex shrink-0 flex-col items-end gap-2 max-sm:w-full max-sm:flex-row max-sm:items-center max-sm:justify-between max-sm:pl-[72px]">
                   <span className="num text-xs text-muted">fit {r.score}</span>
                   {canWrite && r.status === "new" ? (
                     <div className="flex gap-1">

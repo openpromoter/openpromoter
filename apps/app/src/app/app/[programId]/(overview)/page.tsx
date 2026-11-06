@@ -206,7 +206,7 @@ export default async function Dashboard({
             {prog.name} overview
           </h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <RangePicker days={days} base={base} />
           <Button asChild variant="primary">
             <Link href={`${base}/recruiter`}>
@@ -244,14 +244,14 @@ export default async function Dashboard({
 
       <section
         aria-label="Key numbers"
-        className="mt-4 grid grid-cols-2 overflow-hidden rounded-lg border border-border bg-surface lg:grid-cols-4"
+        className="mt-4 grid grid-cols-2 overflow-hidden rounded-lg border border-border bg-surface xl:grid-cols-4"
       >
         <Metric
           icon={Coins}
           label="Referred revenue"
           d={dRev}
           value={mw(cur.revenue)}
-          caption={`${mw(cur.mrr)} MRR from partner customers`}
+          caption={`${mw(cur.mrr)} MRR from partners`}
         >
           <DotSpark values={tail.map((x) => x.revenue)} recent={recent} rows={5} />
         </Metric>
@@ -547,17 +547,19 @@ function Metric({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 flex-col border-border p-4 sm:p-5 [&:nth-child(-n+2)]:border-b lg:[&:nth-child(-n+2)]:border-b-0 [&:nth-child(odd)]:border-r lg:[&:not(:last-child)]:border-r">
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-        <span className="flex items-center gap-2 text-[13px] text-muted">
-          <Icon size={16} className="text-subtle" aria-hidden /> {label}
+    <div className="@container flex min-w-0 flex-col border-border p-4 sm:p-5 [&:nth-child(-n+2)]:border-b xl:[&:nth-child(-n+2)]:border-b-0 [&:nth-child(odd)]:border-r xl:[&:not(:last-child)]:border-r">
+      {/* wide card: label and trend badge share a line; narrow card (phone): the badge sits under the label */}
+      <div className="flex items-center justify-between gap-2 @max-[230px]:flex-col @max-[230px]:items-start @max-[230px]:gap-1.5">
+        <span className="flex min-w-0 max-w-full items-center gap-2 text-[13px] text-muted">
+          <Icon size={16} className="shrink-0 text-subtle @max-[250px]:hidden" aria-hidden />{" "}
+          <span className="truncate">{label}</span>
         </span>
-        <Badge tone={d >= 0 ? "success" : "danger"} className="num gap-1">
+        <Badge tone={d >= 0 ? "success" : "danger"} className="num shrink-0 gap-1">
           {d >= 0 ? <TrendUp size={13} aria-hidden /> : <TrendDown size={13} aria-hidden />}
           {Math.abs(d * 100).toFixed(1)}%
         </Badge>
       </div>
-      <div className="figure mt-2 text-[26px] leading-8 text-fg sm:text-[28px]">{value}</div>
+      <div className="figure mt-2 truncate text-[clamp(20px,13cqi,28px)] leading-8 text-fg">{value}</div>
       <p className="truncate text-xs text-subtle">{caption}</p>
       <div className="mt-4">{children}</div>
     </div>

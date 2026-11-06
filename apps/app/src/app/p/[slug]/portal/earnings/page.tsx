@@ -63,7 +63,7 @@ export default async function PortalEarnings({ params }: { params: Promise<{ slu
         <Card className="flex flex-col">
           <div className="flex items-center justify-between border-b border-border px-5 py-3">
             <span className="eyebrow">Balance</span>
-            <span className="eyebrow">{p.currency}</span>
+            <span className="eyebrow">{p.currency.toUpperCase()}</span>
           </div>
           <div className="flex flex-1 flex-col gap-3 px-5 py-4">
             <LedgerLine label="Pending" value={m(b.pending)} />

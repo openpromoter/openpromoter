@@ -124,7 +124,7 @@ export function ContentView({
                       <span className="text-fg">{a.title}</span>
                       <a
                         href={`/api/banner/${a.id}?download=1`}
-                        className="text-xs text-accent-text hover:underline"
+                        className="-my-2 inline-block py-2 text-xs text-accent-text hover:underline"
                       >
                         SVG
                       </a>

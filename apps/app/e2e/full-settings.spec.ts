@@ -451,7 +451,7 @@ test.describe("settings", () => {
     await required.fill("Weekly newsletter to 12k founders");
     await p.page.getByLabel("Audience size (optional)").fill("12000");
     for (let i = 0; i < 5; i++) {
-      await p.page.getByRole("button", { name: "Apply" }).click();
+      await p.page.getByRole("button", { name: /^(Join and get my link|Send application)$/ }).click();
       const r = await Promise.race([
         p.page.waitForURL(/\/portal/, { timeout: 20_000 }).then(() => "ok"),
         p.page

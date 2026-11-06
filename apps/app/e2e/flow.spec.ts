@@ -58,7 +58,7 @@ test.describe
       await page.getByLabel("Password", { exact: true }).fill("e2e-password-123");
       await page.getByLabel("Website or main channel").fill("https://pia.example");
       await page.getByRole("checkbox").check();
-      await page.getByRole("button", { name: "Apply" }).click();
+      await page.getByRole("button", { name: /^(Join and get my link|Send application)$/ }).click();
       await page.waitForURL(/\/portal$/);
       const link = (await page.locator("span.font-mono", { hasText: "/r/" }).first().textContent())!;
       expect(link).toContain(`/r/${slug}/`);

@@ -53,10 +53,10 @@ export function AuthCard({
         </div>
         <div className="flex items-center gap-4 text-xs text-subtle">
           <span>Open source under AGPL-3.0</span>
-          <a href={PRODUCT.github} className="ml-auto hover:text-fg">
+          <a href={PRODUCT.github} className="-my-2 ml-auto py-2 hover:text-fg">
             GitHub
           </a>
-          <a href="https://openpromoter.com/docs/" className="hover:text-fg">
+          <a href="https://openpromoter.com/docs/" className="-my-2 py-2 hover:text-fg">
             Docs
           </a>
         </div>

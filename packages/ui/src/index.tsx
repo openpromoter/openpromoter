@@ -132,8 +132,11 @@ export function CardHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-start justify-between gap-4 px-5 pt-4 pb-3", className)}>
-      <div className="min-w-0">
+    // the text keeps at least 200px: on a phone the action wraps under it instead of squeezing the title to "Statu"
+    <div
+      className={cn("flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-5 pt-4 pb-3", className)}
+    >
+      <div className="min-w-0 flex-1 basis-[200px]">
         <h3 className="text-[15px] font-medium tracking-[-0.01em] text-fg">{title}</h3>
         {description ? <p className="mt-0.5 text-[13px] text-muted">{description}</p> : null}
       </div>

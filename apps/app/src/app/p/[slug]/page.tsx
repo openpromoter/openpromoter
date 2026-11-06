@@ -84,7 +84,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ slug: 
             </div>
             <dl className="mt-12 grid max-w-[480px] grid-cols-3 gap-4 border-t border-border pt-5">
               {[
-                ["Tracked by", "Billing"],
+                ["Approval", p.autoApprove.enabled ? "Instant" : "By the team"],
                 ["Cookie", `${p.cookieDays} days`],
                 ["Paid", scheduleLabel(p)],
               ].map(([k, v]) => (

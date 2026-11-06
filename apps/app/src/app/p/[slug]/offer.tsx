@@ -53,7 +53,7 @@ export async function OfferStatement({ p, className }: { p: P; className?: strin
     <div className={cn("overflow-hidden rounded-xl border border-border bg-surface ", className)}>
       <div className="flex items-center justify-between border-b border-border px-5 py-3">
         <span className="eyebrow">Commission statement</span>
-        <span className="eyebrow">{p.currency}</span>
+        <span className="eyebrow">{p.currency.toUpperCase()}</span>
       </div>
       <div className="px-5 pt-5 pb-4">
         <div className="text-[13px] text-muted">You earn</div>

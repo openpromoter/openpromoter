@@ -101,7 +101,7 @@ export function PartnerContent({
                   <span className="truncate text-fg">{a.title}</span>
                   <a
                     href={`/api/banner/${a.id}?download=1`}
-                    className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-accent-text hover:underline"
+                    className="-my-2 inline-flex shrink-0 items-center gap-1 py-2 text-xs font-medium text-accent-text hover:underline"
                   >
                     <Download className="size-3.5" /> Download
                   </a>

@@ -69,6 +69,7 @@ export default async function ApplyPage({
               email={sp.email ?? ""}
               questions={p.applicationQuestions}
               inviteOnly={p.visibility === "invite_only"}
+              instant={instant}
             />
           </div>
         </main>
@@ -76,8 +77,10 @@ export default async function ApplyPage({
       <aside className="hidden lg:block">
         <div className="sticky top-0 flex h-dvh flex-col justify-center px-10 xl:px-16">
           <div className="mx-auto w-full max-w-[400px]">
-            <OfferStatement p={p} />
-            <ol className="mt-8 flex flex-col gap-4">
+            <p className="eyebrow">What you get</p>
+            <OfferStatement p={p} className="mt-3" />
+            <p className="eyebrow mt-10">What happens next</p>
+            <ol className="mt-4 flex flex-col gap-4">
               {[
                 instant ? "You're approved the moment you apply." : "The team reviews your application.",
                 "Your portal opens with your link, QR code and content kit.",

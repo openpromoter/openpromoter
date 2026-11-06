@@ -26,10 +26,11 @@
 }
 
 /*
- * Desktop app shell: the panel scrolls, the page never does. Without this, anything a browser or an
- * extension adds after the shell lets the whole document scroll and leaves blank space under it.
+ * Desktop app shell (sidebar from 1024px; tablets in portrait get the phone layout with the tab bar):
+ * the panel scrolls, the page never does. Without this, anything a browser or an extension adds after
+ * the shell lets the whole document scroll and leaves blank space under it.
  */
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   html:has(.app-shell),
   html:has(.app-shell) body {
     overflow: hidden;
@@ -38,6 +39,11 @@
 }
 
 @layer base {
+  /* A grid item may shrink below its content: a wide table or a long URL then scrolls or truncates inside
+     its card instead of pushing the whole page wider than a phone. */
+  .grid > * {
+    min-width: 0;
+  }
   h1,
   h2,
   h3 {

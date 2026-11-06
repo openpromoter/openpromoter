@@ -1,0 +1,50 @@
+[
+  {
+    "out": "blog/how-to-prevent-affiliate-fraud/affiliate-fraud-review-queue",
+    "path": "/app/prg_1Qqz8HTpJ413SyAK/fraud",
+    "card": "Flags",
+    "width": 1280
+  },
+  {
+    "out": "blog/how-to-prevent-affiliate-fraud/affiliate-fraud-auto-hold-setting",
+    "path": "/app/prg_1Qqz8HTpJ413SyAK/settings",
+    "card": "Fraud",
+    "width": 1100,
+    "boxes": ["label:Auto-hold at risk score"]
+  },
+  {
+    "out": "blog/how-to-prevent-affiliate-fraud/affiliate-fraud-autopilot-suggestion",
+    "path": "/app/prg_1Qqz8HTpJ413SyAK/autopilot",
+    "css": "main",
+    "width": 1100,
+    "maxHeight": 760,
+    "pad": 0
+  },
+  {
+    "out": "blog/1099-for-affiliates/affiliate-1099-report-export",
+    "path": "/app/prg_1Qqz8HTpJ413SyAK/payouts",
+    "css": "main",
+    "width": 1100,
+    "maxHeight": 300,
+    "pad": 0,
+    "boxes": ["text:1099 report 2025"]
+  },
+  {
+    "out": "blog/1099-for-affiliates/partner-portal-tax-form-w9",
+    "path": "/p/acme-analytics/portal/settings",
+    "as": "partner",
+    "apply": "acme-analytics",
+    "css": "main",
+    "width": 1100,
+    "maxHeight": 1100,
+    "pad": 0
+  },
+  {
+    "out": "blog/1099-for-affiliates/affiliate-partner-tax-form-status",
+    "path": "/app/prg_1Qqz8HTpJ413SyAK/partners/prt_8HjCmiTymXeMMHcR",
+    "css": "main",
+    "width": 1100,
+    "maxHeight": 900,
+    "pad": 0
+  }
+]

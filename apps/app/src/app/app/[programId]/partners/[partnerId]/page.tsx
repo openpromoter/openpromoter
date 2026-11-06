@@ -135,7 +135,7 @@ export default async function PartnerPage({
         <PartnerActions programId={programId} partnerId={p.id} status={p.status} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         <Stat icon={MousePointerClick} label="Clicks" value={formatNumber(clicks?.n ?? 0)} />
         <Stat icon={UsersRound} label="Customers" value={formatNumber(rev?.customers ?? 0)} />
         <Stat icon={ChartLine} label="Revenue" value={mw(Number(rev?.revenue ?? 0))} />

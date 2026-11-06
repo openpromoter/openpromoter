@@ -140,7 +140,7 @@ export function MessagesView({
   const ordered = [...thread].reverse();
 
   return (
-    <div className="-mx-4 -my-6 flex h-[calc(100dvh-56px-60px)] md:-mx-8 md:-my-8 md:h-[calc(100dvh-56px-18px)]">
+    <div className="-mx-4 -my-6 flex h-[calc(100dvh-56px-60px)] lg:-mx-8 lg:-my-8 lg:h-[calc(100dvh-56px-18px)]">
       {/* conversations */}
       <aside
         className={cn(

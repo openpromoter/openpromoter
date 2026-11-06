@@ -80,7 +80,7 @@ export function AssistantView({
   const submit = () => q.trim() && !pending && send(q.trim());
 
   return (
-    <div className="-mx-4 -my-6 flex h-[calc(100dvh-56px-60px)] flex-col md:-mx-8 md:-my-8 md:h-[calc(100dvh-56px-18px)]">
+    <div className="-mx-4 -my-6 flex h-[calc(100dvh-56px-60px)] flex-col lg:-mx-8 lg:-my-8 lg:h-[calc(100dvh-56px-18px)]">
       <div className="min-h-0 flex-1 overflow-y-auto px-4 md:px-8">
         {log.length === 0 ? (
           <div className="mx-auto flex h-full max-w-[712px] flex-col justify-center py-10">

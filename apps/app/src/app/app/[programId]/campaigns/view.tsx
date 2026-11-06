@@ -72,7 +72,8 @@ export function CampaignsView({
   const row = (c: C) => (
     <li key={c.id} className="px-5 py-3.5">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <div className="min-w-0 flex-1">
+        {/* 220px basis: on a phone the dates and End now wrap under the name instead of squeezing it to "2x co…" */}
+        <div className="min-w-0 flex-1 basis-[220px]">
           <div className="flex items-center gap-2">
             <span className="truncate text-[13px] font-medium text-fg">{c.name}</span>
             {scheduled(c) ? <Badge tone="info">Scheduled</Badge> : <StatusBadge status={c.status} />}

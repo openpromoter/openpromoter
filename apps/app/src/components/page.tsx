@@ -50,13 +50,19 @@ export function Stat({
 }) {
   const good = delta == null ? null : invert ? delta <= 0 : delta >= 0;
   return (
-    <Card className={cn("flex min-w-0 flex-col p-4 sm:p-5", className)}>
+    <Card className={cn("@container flex min-w-0 flex-col p-4 sm:p-5", className)}>
       <div className="flex min-h-5 items-center gap-2">
-        {I ? <I size={16} className={cn("shrink-0 text-subtle", iconClass)} aria-hidden /> : null}
+        {I ? (
+          <I size={16} className={cn("shrink-0 text-subtle @max-[170px]:hidden", iconClass)} aria-hidden />
+        ) : null}
         <span className="truncate text-[13px] text-muted">{label}</span>
         {hint ? (
           <Tooltip content={hint}>
-            <button type="button" aria-label={`About ${label}`} className="text-subtle hover:text-fg">
+            <button
+              type="button"
+              aria-label={`About ${label}`}
+              className="relative text-subtle after:absolute after:-inset-2.5 after:content-[''] hover:text-fg"
+            >
               <Info className="size-3.5" />
             </button>
           </Tooltip>
@@ -69,7 +75,8 @@ export function Stat({
         ) : null}
       </div>
       <div className="flex flex-1 flex-col">
-        <div className="figure mt-2 truncate text-[24px] leading-8 text-fg sm:text-[28px]">{value}</div>
+        {/* the figure scales with the card's own width, so a narrow card never cuts off "$132,456" */}
+        <div className="figure mt-2 truncate text-[clamp(20px,13cqi,28px)] leading-8 text-fg">{value}</div>
         {sub ? (
           <div className="text-xs leading-4 text-subtle [&_b]:font-medium [&_b]:text-fg">{sub}</div>
         ) : delta != null ? (

@@ -106,7 +106,7 @@ async function apply(
   if (o.website) await page.getByLabel("Website or main channel").fill(o.website);
   if (o.answer) await page.getByLabel(/How will you promote us/).fill(o.answer);
   await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: "Apply" }).click();
+  await page.getByRole("button", { name: /^(Join and get my link|Send application)$/ }).click();
   const err = page.locator("[data-sonner-toast][data-type=error]");
   await Promise.race([
     page.waitForURL(/\/portal$/, { timeout: 30_000 }),
@@ -249,7 +249,7 @@ test("11 apply: required custom question is enforced on the server, then auto-ap
   await page.locator("form").evaluate((f) => {
     for (const el of f.querySelectorAll("[required]")) el.removeAttribute("required");
   });
-  await page.getByRole("button", { name: "Apply" }).click();
+  await page.getByRole("button", { name: /^(Join and get my link|Send application)$/ }).click();
   await expect(page.getByText("Please answer: How will you promote us?")).toBeVisible();
   // the form clears itself after the error (test 18), so fill it again
   await page.getByLabel("Full name").fill("Paula One");
@@ -258,7 +258,7 @@ test("11 apply: required custom question is enforced on the server, then auto-ap
   await page.getByLabel("Website or main channel").fill("https://paula.example");
   await page.getByRole("checkbox").check();
   await page.getByLabel(/How will you promote us/).fill("YouTube reviews");
-  await page.getByRole("button", { name: "Apply" }).click();
+  await page.getByRole("button", { name: /^(Join and get my link|Send application)$/ }).click();
   await page.waitForURL(/\/portal$/);
   await expect(page.getByText("You're approved. Your portal is ready.")).toBeVisible();
   await expect(page.getByText("Your application is being reviewed")).toHaveCount(0);
@@ -359,7 +359,7 @@ test("15 duplicate application: signed-in partner is sent to the portal; same em
   await p.getByLabel("Website or main channel").fill("https://paula.example");
   await p.getByLabel(/How will you promote us/).fill("again");
   await p.getByRole("checkbox").check();
-  await p.getByRole("button", { name: "Apply" }).click();
+  await p.getByRole("button", { name: /^(Join and get my link|Send application)$/ }).click();
   await expect(p.getByText("You already have an account. Please sign in before you apply.")).toBeVisible();
   await anon.close();
 });
@@ -426,7 +426,7 @@ test("18 apply form keeps what the partner typed when the server refuses the app
   await page.locator("form").evaluate((f) => {
     for (const el of f.querySelectorAll("[required]")) el.removeAttribute("required");
   });
-  await page.getByRole("button", { name: "Apply" }).click();
+  await page.getByRole("button", { name: /^(Join and get my link|Send application)$/ }).click();
   await expect(page.getByText("Please answer: How will you promote us?")).toBeVisible();
   // React resets a <form action> once the action settles; give it that moment before reading the fields
   await page.waitForTimeout(1000);
@@ -1184,7 +1184,7 @@ test("55 tax forms: W-9 validates the TIN, W-8BEN saves, details persist", async
   const { ctx, page } = await partnerAs(browser, "p1");
   await page.goto(`/p/${s.slug}/portal/settings`);
   await choose(page, "#tx-form", "W-9 (US person)");
-  await page.locator("#tx-cc").fill("US");
+  await choose(page, "#tx-cc", "United States");
   await page.getByLabel("Legal name").fill("Paula One LLC");
   await page.getByLabel("Address").fill("1 Main Street, Springfield, IL 62701");
   await page.getByLabel("SSN or EIN").fill("12345");
@@ -1193,7 +1193,7 @@ test("55 tax forms: W-9 validates the TIN, W-8BEN saves, details persist", async
   await expect(page.getByText("Enter a valid SSN (123-45-6789) or EIN (12-3456789)")).toBeVisible();
   await page.reload();
   await choose(page, "#tx-form", "W-9 (US person)");
-  await page.locator("#tx-cc").fill("US");
+  await choose(page, "#tx-cc", "United States");
   await page.getByLabel("Legal name").fill("Paula One LLC");
   await page.getByLabel("Address").fill("1 Main Street, Springfield, IL 62701");
   await page.getByLabel("SSN or EIN").fill("12-3456789");
@@ -1206,7 +1206,7 @@ test("55 tax forms: W-9 validates the TIN, W-8BEN saves, details persist", async
   expect(await page.content()).not.toContain("123456789");
 
   await choose(page, "#tx-form", "W-8BEN (non-US individual)");
-  await page.locator("#tx-cc").fill("DE");
+  await choose(page, "#tx-cc", "Germany");
   await page.getByLabel("Legal name").fill("Paula Eins");
   await page.getByLabel("Address").fill("Hauptstrasse 1, 10115 Berlin");
   await page.getByLabel("EU VAT ID (optional)").fill("de 123456789");

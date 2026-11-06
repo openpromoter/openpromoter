@@ -78,7 +78,7 @@ export default async function PayoutsPage({ params }: { params: Promise<{ progra
           </>
         }
       />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat
           label="Ready to pay"
           icon={Wallet}
@@ -98,7 +98,7 @@ export default async function PayoutsPage({ params }: { params: Promise<{ progra
           sub={`${paid?.n ?? 0} payouts`}
         />
         <Stat
-          label="Fees charged by OpenPromoter"
+          label="OpenPromoter fees"
           icon={Coins}
           value={mw(0)}
           sub="Provider fees (Stripe, PayPal, Wise) still apply"

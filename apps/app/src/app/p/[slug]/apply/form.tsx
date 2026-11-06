@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
+import { CountrySelect } from "@/components/country-select";
 import { applyAction } from "../portal-actions";
 
 function Group({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
@@ -29,6 +30,7 @@ export function ApplyForm({
   email,
   questions,
   inviteOnly,
+  instant,
 }: {
   slug: string;
   signedIn: { name: string; email: string } | null;
@@ -37,6 +39,7 @@ export function ApplyForm({
   email: string;
   questions: ApplicationQuestion[];
   inviteOnly: boolean;
+  instant: boolean;
 }) {
   const [pending, start] = useTransition();
   const router = useRouter();
@@ -125,14 +128,12 @@ export function ApplyForm({
         ) : null}
       </Group>
       <Group n="02" title="Where you'll share">
-        <div className="grid gap-5 sm:grid-cols-[1fr_112px]">
-          <Field label="Website or main channel" htmlFor="ap-web">
-            <Input id="ap-web" name="website" placeholder="https://" className="h-10" />
-          </Field>
-          <Field label="Country" htmlFor="ap-cc" hint="2-letter code">
-            <Input id="ap-cc" name="country" maxLength={2} placeholder="US" className="h-10 uppercase" />
-          </Field>
-        </div>
+        <Field label="Website or main channel" htmlFor="ap-web">
+          <Input id="ap-web" name="website" placeholder="https://" className="h-10" />
+        </Field>
+        <Field label="Country" htmlFor="ap-cc" hint="Used for tax forms and payout options.">
+          <CountrySelect id="ap-cc" />
+        </Field>
         {questions.map((q) => (
           <Field key={q.id} label={`${q.label}${q.required ? "" : " (optional)"}`} htmlFor={`q-${q.id}`}>
             {q.type === "textarea" ? (
@@ -175,7 +176,7 @@ export function ApplyForm({
           loading={pending}
           className="h-11 w-full text-[14px]"
         >
-          Apply
+          {instant ? "Join and get my link" : "Send application"}
         </Button>
       </div>
     </form>

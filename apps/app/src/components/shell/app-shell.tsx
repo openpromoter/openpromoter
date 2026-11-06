@@ -254,11 +254,11 @@ export function AppShell({ program, programs, user, role, counts, children }: Sh
   return (
     <div
       className={cn(
-        "app-shell min-h-dvh bg-canvas md:grid md:h-dvh md:overflow-hidden",
-        collapsed ? "md:grid-cols-[64px_1fr]" : "md:grid-cols-[252px_1fr]",
+        "app-shell min-h-dvh bg-canvas lg:grid lg:h-dvh lg:overflow-hidden",
+        collapsed ? "lg:grid-cols-[64px_1fr]" : "lg:grid-cols-[252px_1fr]",
       )}
     >
-      <aside className="sticky top-0 hidden h-dvh flex-col md:flex" aria-label="Main navigation">
+      <aside className="sticky top-0 hidden h-dvh flex-col lg:flex" aria-label="Main navigation">
         <div className={cn("flex h-[60px] items-center px-3 pt-2", collapsed && "justify-center px-0")}>
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -337,9 +337,9 @@ export function AppShell({ program, programs, user, role, counts, children }: Sh
       </aside>
 
       {/* On desktop the white panel is the scroller, so the sticky header sits flush inside it */}
-      <div className="flex min-w-0 flex-col pb-[calc(60px+env(safe-area-inset-bottom))] md:h-dvh md:py-2 md:pr-2 md:pb-2">
-        <div className="flex min-h-full flex-1 flex-col bg-surface md:min-h-0 md:overflow-y-auto md:rounded-[14px] md:border md:border-border">
-          <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4 md:px-6">
+      <div className="flex min-w-0 flex-col pb-[calc(60px+env(safe-area-inset-bottom))] lg:h-dvh lg:py-2 lg:pr-2 lg:pb-2">
+        <div className="flex min-h-full flex-1 flex-col bg-surface lg:min-h-0 lg:overflow-y-auto lg:rounded-[14px] lg:border lg:border-border">
+          <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4 lg:px-6">
             <Tooltip
               content={
                 <span>
@@ -350,14 +350,14 @@ export function AppShell({ program, programs, user, role, counts, children }: Sh
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="-ml-1.5 hidden md:inline-flex"
+                className="-ml-1.5 hidden lg:inline-flex"
                 aria-label="Toggle sidebar"
                 onClick={() => setCollapsed((c) => !c)}
               >
                 <PanelLeft />
               </Button>
             </Tooltip>
-            <span className="text-fg md:hidden">
+            <span className="text-fg lg:hidden">
               <LogoMark size={22} />
             </span>
             <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-[13px]">
@@ -395,19 +395,19 @@ export function AppShell({ program, programs, user, role, counts, children }: Sh
               >
                 <Sparkles className="text-accent" /> Ask
               </Button>
-              <span className="md:hidden">
+              <span className="lg:hidden">
                 <UserMenu user={user} role={role} collapsed />
               </span>
             </div>
           </header>
-          <main id="main" className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 md:px-8 md:py-8">
+          <main id="main" className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 lg:px-8 lg:py-8">
             {children}
           </main>
         </div>
       </div>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
         aria-label="Mobile navigation"
       >
         {mobile.map((i) => (

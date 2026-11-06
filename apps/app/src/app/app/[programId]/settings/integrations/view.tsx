@@ -197,7 +197,7 @@ export function IntegrationsView({
             <form
               // remount after a save: the reset form would otherwise show the Sandbox switch off for a test connection
               key={`${p}:${status[p]?.livemode ?? "none"}`}
-              className="flex gap-2"
+              className="flex flex-wrap gap-2 [&>input]:min-w-[180px] [&>input]:flex-1"
               action={(f) =>
                 run(() => connectProviderAction(programId, p, String(f.get("secret")), !!f.get("sandbox")))
               }

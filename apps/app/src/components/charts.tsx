@@ -129,7 +129,8 @@ export function DotChart({
   const color = s.color ?? "var(--chart-1)";
   const values = data.map((d) => Number(d[s.key]) || 0);
   const prev = compare?.length ? data.map((_, i) => Number(compare[i]?.[s.key]) || 0) : null;
-  const top = niceMax(Math.max(...values, ...(prev ?? []), 0));
+  const peak = Math.max(...values, ...(prev ?? []), 0);
+  const top = niceMax(peak);
   const axisW = 48;
   const plotW = Math.max(0, width - axisW);
   const cols = data.length || 1;
@@ -291,7 +292,8 @@ export function DotChart({
                   y={plotH - t * plotH + 4}
                   className="fill-[var(--text-subtle)] text-[11px] tabular-nums"
                 >
-                  {fmt(top * t, sKind, currency)}
+                  {/* nothing to plot yet: one "$0" on the baseline, not five of them */}
+                  {peak > 0 || t === 0 ? fmt(top * t, sKind, currency) : null}
                 </text>
               </g>
             ))}

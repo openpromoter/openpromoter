@@ -31,7 +31,7 @@ export function Logo({ className }: { className?: string }) {
       <span className="relative -top-[3px] inline-flex">
         <LogoMark />
       </span>
-      {PRODUCT.name.toLowerCase()}
+      {PRODUCT.name}
     </span>
   );
 }

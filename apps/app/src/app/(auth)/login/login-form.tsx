@@ -53,7 +53,7 @@ export function LoginForm({
           <>
             New here?{" "}
             <Link
-              className="font-medium text-accent-text hover:underline"
+              className="-my-2 inline-block py-2 font-medium text-accent-text hover:underline"
               href={`/signup?next=${encodeURIComponent(next)}`}
             >
               Create an account
