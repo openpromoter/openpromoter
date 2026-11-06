@@ -60,13 +60,13 @@ export function Invoice({
       </header>
       <div className="mt-8 grid grid-cols-2 gap-8">
         <div>
-          <div className="text-xs font-semibold tracking-wide text-[#5A6164] uppercase">From (supplier)</div>
+          <div className="text-xs font-semibold text-[#5A6164]">From (supplier)</div>
           <div className="mt-1 font-medium">{pt.taxLegalName ?? pt.name}</div>
           <div className="whitespace-pre-line">{pt.taxAddress ?? pt.email}</div>
           {pt.vatId ? <div className="mt-1">VAT ID: {pt.vatId}</div> : null}
         </div>
         <div>
-          <div className="text-xs font-semibold tracking-wide text-[#5A6164] uppercase">To (customer)</div>
+          <div className="text-xs font-semibold text-[#5A6164]">To (customer)</div>
           <div className="mt-1 font-medium">{workspaceName}</div>
           <div>{prog.websiteUrl}</div>
         </div>

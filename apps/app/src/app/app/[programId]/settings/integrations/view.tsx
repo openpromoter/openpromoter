@@ -53,9 +53,9 @@ export function IntegrationsView({
   const disconnect = (p: "stripe" | "paddle" | "lemonsqueezy" | "polar" | "chargebee" | "paypal" | "wise") =>
     status[p] && canBilling ? (
       <Button
+        type="button"
         variant="ghost"
-        size="sm"
-        className="text-danger"
+        className="text-danger hover:text-danger"
         onClick={() => window.confirm(`Disconnect ${p}?`) && run(() => disconnectAction(programId, p))}
       >
         Disconnect
@@ -106,7 +106,11 @@ export function IntegrationsView({
               <Field
                 label="Webhook signing secret"
                 htmlFor="st-wh"
-                hint={local ? "From `stripe listen`" : "Only needed if automatic registration failed"}
+                hint={
+                  local
+                    ? "Printed by the stripe listen command below"
+                    : "Only needed if automatic registration failed"
+                }
               >
                 <Input
                   id="st-wh"
@@ -132,7 +136,6 @@ export function IntegrationsView({
                   Re-import from Stripe
                 </Button>
               ) : null}
-              {disconnect("stripe")}
               {canWrite ? (
                 <Button
                   type="button"
@@ -146,6 +149,7 @@ export function IntegrationsView({
                   Delete test data
                 </Button>
               ) : null}
+              {disconnect("stripe")}
             </div>
           </form>
           <Field label="Webhook endpoint" htmlFor="st-url">

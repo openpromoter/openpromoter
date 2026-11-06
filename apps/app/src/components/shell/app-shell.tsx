@@ -144,7 +144,7 @@ function NavLink({
       )}
       {!collapsed && item.count ? (
         alert ? (
-          <span className="num inline-flex h-[18px] min-w-[18px] items-center justify-center gap-1 rounded-[5px] bg-danger px-1.5 text-[11px] font-medium text-white">
+          <span className="num inline-flex h-[18px] min-w-[18px] items-center justify-center gap-1 rounded-[5px] bg-danger px-1.5 text-[11px] font-medium text-white dark:text-bg">
             {item.count}
           </span>
         ) : (
@@ -268,7 +268,8 @@ export function AppShell({ program, programs, user, role, counts, children }: Sh
               )}
               aria-label="Switch program"
             >
-              <span className="text-fg">
+              {/* lifted so the head, not the antenna box, is centred on the name */}
+              <span className="relative -top-[3px] inline-flex text-fg">
                 <LogoMark size={22} />
               </span>
               {!collapsed ? (
@@ -357,7 +358,7 @@ export function AppShell({ program, programs, user, role, counts, children }: Sh
                 <PanelLeft />
               </Button>
             </Tooltip>
-            <span className="text-fg lg:hidden">
+            <span className="relative -top-[3px] inline-flex text-fg lg:hidden">
               <LogoMark size={22} />
             </span>
             <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-[13px]">
@@ -417,7 +418,7 @@ export function AppShell({ program, programs, user, role, counts, children }: Sh
             aria-current={isActive(i.href) ? "page" : undefined}
             className={cn(
               "flex h-[60px] flex-col items-center justify-center gap-1 text-[11px]",
-              isActive(i.href) ? "font-medium text-fg" : "text-subtle",
+              isActive(i.href) ? "font-medium text-fg" : "text-muted",
             )}
           >
             <i.icon size={20} weight={isActive(i.href) ? "fill" : "regular"} />
@@ -427,7 +428,7 @@ export function AppShell({ program, programs, user, role, counts, children }: Sh
         <button
           type="button"
           onClick={() => setMoreOpen(true)}
-          className="flex h-[60px] flex-col items-center justify-center gap-1 text-[11px] text-subtle"
+          className="flex h-[60px] flex-col items-center justify-center gap-1 text-[11px] text-muted"
         >
           <MoreHorizontal className="size-5" />
           More

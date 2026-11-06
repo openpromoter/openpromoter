@@ -28,7 +28,7 @@ body{background:#fff;font-family:Inter;color:#16171A;-webkit-font-smoothing:anti
 #c{width:1800px;padding:88px 96px 80px;background:#fff}
 .top{display:flex;align-items:center;justify-content:space-between}
 .brand{display:flex;align-items:center;gap:14px;font-size:34px;font-weight:500;letter-spacing:-.02em}
-.eb{font-family:Mono;font-size:26px;line-height:34px;color:${BLUE};background:#EEF1FF;padding:8px 16px;border-radius:8px;text-transform:uppercase;letter-spacing:.06em}
+.eb{font-size:28px;line-height:36px;font-weight:500;color:${BLUE};background:#EEF1FF;padding:8px 18px;border-radius:8px;letter-spacing:-.01em}
 h1{margin-top:56px;font-size:72px;line-height:84px;font-weight:500;letter-spacing:-.035em;max-width:1560px;text-wrap:balance}
 .kw{color:${BLUE}}
 .lead{margin-top:20px;font-size:34px;line-height:48px;color:#5F6066;max-width:1400px}
@@ -43,7 +43,7 @@ h1{margin-top:56px;font-size:72px;line-height:84px;font-weight:500;letter-spacin
 .rows .card{padding:8px 44px}
 .row{display:grid;grid-template-columns:var(--cols);gap:40px;align-items:baseline;padding:30px 0;border-top:2px dashed #DDE1E8;font-size:34px;line-height:46px}
 .row:first-child{border-top:0}
-.row.h{font-family:Mono;font-size:24px;letter-spacing:.06em;text-transform:uppercase;color:#5F6066;padding:28px 0 18px}
+.row.h{font-size:28px;line-height:38px;font-weight:500;color:#5F6066;padding:28px 0 18px}
 .row b{font-weight:500}
 .row .hi{color:${BLUE};font-weight:500}
 .row .m{color:#5F6066}
