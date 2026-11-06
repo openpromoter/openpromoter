@@ -1,0 +1,35 @@
+{
+  "name": "openpromoter-cli",
+  "version": "0.1.0",
+  "description": "Command line for OpenPromoter: partners, commissions, payouts and agent-skill install",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "openpromoter": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openpromoter/openpromoter",
+    "directory": "packages/cli"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "commander": "14.0.3",
+    "openpromoter": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "tsup": "8.5.1",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,29 @@
+node_modules
+.next
+dist
+out
+.turbo
+.env
+.env.local
+*.log
+coverage
+*.tsbuildinfo
+test-results
+playwright-report
+.pglite
+.astro
+
+# Owner's private notes. They stay on disk so CLAUDE.md, scripts and design checks keep working,
+# but they never go to the public repo.
+research/
+launch/
+OWNER-STEPS.md
+BUILD-LOG.md
+.claude/
+/*.png
+
+# graphify code graph (rebuild with: graphify update .)
+graphify-out/
+
+# Launch checklist with account names and IDs (private)
+STEPS_TO_DO_BEFORE_LIVE.md

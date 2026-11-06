@@ -1,0 +1,1 @@
+ALTER TABLE "payout" ADD COLUMN "test" boolean DEFAULT false NOT NULL;

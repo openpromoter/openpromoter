@@ -1,0 +1,306 @@
+/* dark: the .dark class, or "system" (class .system) when the device prefers dark. No script needed. */
+@custom-variant dark {
+  &:where(.dark, .dark *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(.system, .system *) {
+      @slot;
+    }
+  }
+}
+
+/*
+ * OpenPromoter v2: "ledger" system. See research/design-v2/DIRECTION.md.
+ * One warm neutral scale, three text levels, one accent: ledger blue.
+ */
+:root {
+  --canvas: #f4f4f1; /* behind the panel */
+  --bg: #fbfbfa; /* page background where there is no panel */
+  --surface: #ffffff;
+  --surface-2: #f7f7f5; /* insets, table heads, hover */
+  --surface-3: #efefec; /* pressed, selected */
+  --border: #e8e8e4;
+  --border-strong: #d9d9d4;
+  --input: #d4d4cf;
+  --text: #16171a;
+  --text-muted: #5f6066;
+  --text-subtle: #6c6d72;
+  --primary: #2442f5;
+  --primary-hover: #1a35dc;
+  --primary-fg: #ffffff;
+  --primary-soft: #eef0fe;
+  --primary-text: #1b33c9;
+  --ink: #16171a; /* secondary black button */
+  --ink-fg: #ffffff;
+  --success: #15763a;
+  --success-soft: #e8f6ec;
+  --warning: #a35a00;
+  --warning-soft: #fdf3e1;
+  --danger: #dc2626;
+  --danger-soft: #fdecea;
+  --info: #2442f5;
+  --info-soft: #eef0fe;
+  --neutral: #5f6066;
+  --neutral-soft: #f0f0ed;
+  --ring: #2442f5;
+  --dot: #e4e4e0; /* empty dot in dot-matrix charts */
+  --chart-1: #2442f5;
+  --chart-1-soft: #97a6fa; /* revenue behind commissions */
+  --chart-2: #16171a;
+  --chart-3: #0d9488; /* teal: a third series that sits with blue and ink */
+  --chart-4: #17803d;
+  --chart-5: #8b5cf6;
+  --chart-6: #0e9fb8;
+  --chart-7: #d6407a;
+  --chart-8: #9a9ba0;
+  --accent: #2442f5;
+  --accent-hover: #1a35dc;
+  --accent-fg: #ffffff;
+  --accent-soft: #eef0fe;
+  --accent-text: #1b33c9;
+}
+.dark {
+  --canvas: #0c0c0d;
+  --bg: #0c0c0d;
+  --surface: #131315;
+  --surface-2: #19191c;
+  --surface-3: #212125;
+  --border: #232326;
+  --border-strong: #2f2f33;
+  --input: #38383d;
+  --text: #ededee;
+  --text-muted: #a1a1a7;
+  --text-subtle: #8d8d94;
+  --primary: #548dff;
+  --primary-hover: #6ea1ff;
+  --primary-fg: #0b0d1f;
+  --primary-soft: #101d38;
+  --primary-text: #8fb7ff;
+  --ink: #ededee;
+  --ink-fg: #0c0c0d;
+  --success: #4cc77a;
+  --success-soft: #11241a;
+  --warning: #f0a943;
+  --warning-soft: #2a1f0f;
+  --danger: #f26b66;
+  --danger-soft: #2c1414;
+  --info: #548dff;
+  --info-soft: #101d38;
+  --neutral: #a1a1a7;
+  --neutral-soft: #1d1d20;
+  --ring: #548dff;
+  --dot: #242428;
+  --chart-1: #548dff;
+  --chart-1-soft: #2a457d;
+  --chart-2: #ededee;
+  --chart-3: #2dd4bf;
+  --chart-4: #4cc77a;
+  --chart-5: #a78bfa;
+  --chart-6: #38bdd8;
+  --chart-7: #ec6a9c;
+  --chart-8: #6f6f76;
+  color-scheme: dark;
+  --accent: #548dff;
+  --accent-hover: #6ea1ff;
+  --accent-fg: #0b0d1f;
+  --accent-soft: #101d38;
+  --accent-text: #8fb7ff;
+}
+.dark {
+  color-scheme: dark;
+}
+.system {
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  .system {
+    --canvas: #0c0c0d;
+    --bg: #0c0c0d;
+    --surface: #131315;
+    --surface-2: #19191c;
+    --surface-3: #212125;
+    --border: #232326;
+    --border-strong: #2f2f33;
+    --input: #38383d;
+    --text: #ededee;
+    --text-muted: #a1a1a7;
+    --text-subtle: #8d8d94;
+    --primary: #548dff;
+    --primary-hover: #6ea1ff;
+    --primary-fg: #0b0d1f;
+    --primary-soft: #101d38;
+    --primary-text: #8fb7ff;
+    --ink: #ededee;
+    --ink-fg: #0c0c0d;
+    --success: #4cc77a;
+    --success-soft: #11241a;
+    --warning: #f0a943;
+    --warning-soft: #2a1f0f;
+    --danger: #f26b66;
+    --danger-soft: #2c1414;
+    --info: #548dff;
+    --info-soft: #101d38;
+    --neutral: #a1a1a7;
+    --neutral-soft: #1d1d20;
+    --ring: #548dff;
+    --dot: #242428;
+    --chart-1: #548dff;
+    --chart-1-soft: #2a457d;
+    --chart-2: #ededee;
+    --chart-3: #2dd4bf;
+    --chart-4: #4cc77a;
+    --chart-5: #a78bfa;
+    --chart-6: #38bdd8;
+    --chart-7: #ec6a9c;
+    --chart-8: #6f6f76;
+    color-scheme: dark;
+    --accent: #548dff;
+    --accent-hover: #6ea1ff;
+    --accent-fg: #0b0d1f;
+    --accent-soft: #101d38;
+    --accent-text: #8fb7ff;
+  }
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-fg: var(--text);
+  --color-muted: var(--text-muted);
+  --color-subtle: var(--text-subtle);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-fg: var(--primary-fg);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-text: var(--primary-text);
+  --color-ink: var(--ink);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+  --color-ink-fg: var(--ink-fg);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-neutral: var(--neutral);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-ring: var(--ring);
+  --color-dot: var(--dot);
+  --color-chart-1: var(--chart-1);
+  --color-chart-1-soft: var(--chart-1-soft);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 14px;
+  --shadow-xs: 0 1px 1px rgb(22 23 26 / 0.04);
+  --shadow-sm: 0 1px 2px rgb(22 23 26 / 0.05), 0 0 0 1px rgb(22 23 26 / 0.02);
+  --shadow-md: 0 6px 16px -6px rgb(22 23 26 / 0.12), 0 2px 4px -2px rgb(22 23 26 / 0.06);
+  --shadow-lg: 0 24px 48px -16px rgb(22 23 26 / 0.22), 0 6px 14px -6px rgb(22 23 26 / 0.1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-feature-settings: "cv11", "ss01", "ss03";
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.num,
+[data-money] {
+  font-variant-numeric: tabular-nums;
+}
+/* Big figures: display optical size, tight tracking */
+.figure {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  font-variation-settings: "opsz" 32;
+}
+/* Section label: small, sentence case, quiet (Apple sidebar style). Mono is kept for codes and figures only. */
+.eyebrow {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--text-subtle);
+}
+/* Mono stamp for codes, IDs and statement numbers */
+.stamp {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.02em;
+  color: var(--text-subtle);
+}
+/* Ledger line: label ···· amount */
+.leader {
+  flex: 1;
+  min-width: 12px;
+  height: 1px;
+  margin: 0 8px;
+  align-self: center;
+  translate: 0 3px;
+  background-image: radial-gradient(circle, var(--border-strong) 0.8px, transparent 1px);
+  background-size: 5px 2px;
+  background-repeat: repeat-x;
+}
+/* Perforation used on payout slips and link stubs */
+.perforated {
+  background-image: radial-gradient(circle at 50% 50%, var(--canvas) 4px, transparent 4.5px);
+  background-size: 14px 10px;
+  background-repeat: repeat-x;
+  height: 10px;
+}
+/*
+ * No focus rings for mouse or touch. Text fields show focus with a border colour change only.
+ * Keyboard users still get a quiet grey ring on links and buttons (browsers only match
+ * :focus-visible on those after keyboard input, never after a click).
+ */
+:focus,
+:focus-visible {
+  outline: none;
+}
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+[role="tab"]:focus-visible,
+[role="radio"]:focus-visible {
+  outline: 2px solid var(--border-strong);
+  outline-offset: 2px;
+}
+::selection {
+  background: var(--accent-soft);
+}
+
+/* No motion anywhere: every state change is instant, so nothing ever waits on an animation. */
+*,
+::before,
+::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}

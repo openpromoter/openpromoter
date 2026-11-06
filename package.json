@@ -1,0 +1,26 @@
+{
+  "name": "openpromoter-monorepo",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint": "biome check apps/app/src apps/app/tests apps/app/e2e apps/app/scripts packages/*/src packages/*/test",
+    "format": "biome check --write apps/app/src apps/app/tests apps/app/e2e apps/app/scripts packages/*/src packages/*/test",
+    "db:migrate": "pnpm --filter @openpromoter/db migrate",
+    "db:generate": "pnpm --filter @openpromoter/db generate",
+    "db:seed": "pnpm --filter @openpromoter/app seed",
+    "e2e": "pnpm --filter @openpromoter/app e2e"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.4",
+    "turbo": "2.11.10",
+    "typescript": "5.9.3"
+  }
+}
