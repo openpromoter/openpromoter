@@ -15,8 +15,11 @@ export const captchaSiteKey =
  * through the Turnstile API if bots show up there.
  */
 export function captchaFor(h: Headers): string | undefined {
-  return h.get("host") === new URL(env.APP_URL).host ? captchaSiteKey : undefined;
+  return isAppHost(h) ? captchaSiteKey : undefined;
 }
+
+/** The Host header, not request.url: behind a proxy the URL carries the server's own address (0.0.0.0:3000). */
+export const isAppHost = (h: Headers) => h.get("host") === new URL(env.APP_URL).host;
 
 export async function verifyCaptcha(token: string | undefined, ip: string | null): Promise<boolean> {
   if (!token) return false;

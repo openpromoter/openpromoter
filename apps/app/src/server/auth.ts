@@ -8,7 +8,7 @@ import { captcha, twoFactor as twoFactorPlugin } from "better-auth/plugins";
 import { and, eq, ne } from "drizzle-orm";
 import { headers } from "next/headers";
 import { PRODUCT } from "@/lib/config";
-import { captchaSiteKey } from "./captcha";
+import { captchaSiteKey, isAppHost } from "./captcha";
 import { db } from "./db";
 import { sendNotice } from "./email";
 import { env } from "./env";
@@ -31,12 +31,10 @@ export const socialProviders = (Object.keys(SOCIAL) as SocialProvider[]).filter(
 function turnstile(): BetterAuthPlugin[] {
   if (!captchaSiteKey) return [];
   const plugin = captcha({ provider: "cloudflare-turnstile", secretKey: env.TURNSTILE_SECRET_KEY! });
-  const appHost = new URL(env.APP_URL).host;
   return [
     {
       ...plugin,
-      onRequest: async (req, ctx) =>
-        new URL(req.url).host === appHost ? plugin.onRequest(req, ctx) : undefined,
+      onRequest: async (req, ctx) => (isAppHost(req.headers) ? plugin.onRequest(req, ctx) : undefined),
     },
   ];
 }
