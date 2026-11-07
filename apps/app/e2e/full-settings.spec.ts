@@ -289,7 +289,7 @@ test.describe("onboarding", () => {
     await page.getByRole("button", { name: /Skip for now/ }).click();
     await page.getByRole("button", { name: "Keep the defaults and edit later" }).click();
     await expect(page.getByRole("heading", { name: "Install tracking" })).toBeVisible();
-    for (const tab of ["Paste into Claude Code / Cursor", "npm SDK", "Script tag"]) {
+    for (const tab of ["Paste into your AI agent", "npm SDK", "Script tag"]) {
       await page.getByRole("tab", { name: tab }).click();
       await expect(page.getByRole("tab", { name: tab })).toHaveAttribute("aria-selected", "true");
     }
@@ -846,7 +846,8 @@ test.describe("settings", () => {
     await page.waitForURL(/\/onboarding\?program=prg_.*step=3/);
     const second = new URL(page.url()).searchParams.get("program")!;
     await page.goto(`/app/${second}/settings/programs`);
-    await expect(page.getByRole("link", { name: `Second ${id}` })).toBeVisible();
+    // the program you are in is marked Current; the others link to their own settings
+    await expect(page.locator("li", { hasText: "Current" })).toContainText(`Second ${id}`);
     const [{ name: firstName }] = sql<{ name: string }>(
       `select name from program where id = '${programId}'`,
     ) as [{ name: string }];
@@ -1262,11 +1263,12 @@ test.describe("account", () => {
   }) => {
     const { ctx, page } = await newPage(browser, "delete", `${STATE}/acct.json`);
     await page.goto(`${acctProgram}/settings/account`);
-    page.once("dialog", (d) => d.accept("wrong-pass-000"));
     await page.getByRole("button", { name: "Delete my account" }).click();
+    await page.getByLabel("Your password").fill("wrong-pass-000");
+    await page.getByRole("button", { name: "Delete my account for good" }).click();
     await toast(page, /invalid|password/i);
-    page.once("dialog", (d) => d.accept("changed-pass-321"));
-    await page.getByRole("button", { name: "Delete my account" }).click();
+    await page.getByLabel("Your password").fill("changed-pass-321");
+    await page.getByRole("button", { name: "Delete my account for good" }).click();
     await page.waitForURL(/\/login/);
     await ctx.close();
 

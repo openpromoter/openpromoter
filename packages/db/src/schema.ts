@@ -33,45 +33,58 @@ export const user = pgTable("user", {
   updatedAt: updated(),
 });
 
-export const session = pgTable("session", {
-  id: text("id").primaryKey(),
-  expiresAt: ts("expires_at").notNull(),
-  token: text("token").notNull().unique(),
-  ipAddress: text("ip_address"),
-  userAgent: text("user_agent"),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  createdAt: created(),
-  updatedAt: updated(),
-});
+export const session = pgTable(
+  "session",
+  {
+    id: text("id").primaryKey(),
+    expiresAt: ts("expires_at").notNull(),
+    token: text("token").notNull().unique(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: created(),
+    updatedAt: updated(),
+  },
+  (t) => [index("session_user").on(t.userId)],
+);
 
-export const account = pgTable("account", {
-  id: text("id").primaryKey(),
-  accountId: text("account_id").notNull(),
-  providerId: text("provider_id").notNull(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  accessToken: text("access_token"),
-  refreshToken: text("refresh_token"),
-  idToken: text("id_token"),
-  accessTokenExpiresAt: ts("access_token_expires_at"),
-  refreshTokenExpiresAt: ts("refresh_token_expires_at"),
-  scope: text("scope"),
-  password: text("password"),
-  createdAt: created(),
-  updatedAt: updated(),
-});
+export const account = pgTable(
+  "account",
+  {
+    id: text("id").primaryKey(),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: ts("access_token_expires_at"),
+    refreshTokenExpiresAt: ts("refresh_token_expires_at"),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: created(),
+    updatedAt: updated(),
+  },
+  // social sign-in looks accounts up by provider and provider account id on every login
+  (t) => [index("account_user").on(t.userId), index("account_provider").on(t.providerId, t.accountId)],
+);
 
-export const verification = pgTable("verification", {
-  id: text("id").primaryKey(),
-  identifier: text("identifier").notNull(),
-  value: text("value").notNull(),
-  expiresAt: ts("expires_at").notNull(),
-  createdAt: created(),
-  updatedAt: updated(),
-});
+export const verification = pgTable(
+  "verification",
+  {
+    id: text("id").primaryKey(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: ts("expires_at").notNull(),
+    createdAt: created(),
+    updatedAt: updated(),
+  },
+  (t) => [index("verification_identifier").on(t.identifier)],
+);
 
 export const twoFactor = pgTable("two_factor", {
   id: text("id").primaryKey(),
@@ -115,7 +128,8 @@ export const member = pgTable(
     role: text("role").$type<Role>().notNull(),
     createdAt: created(),
   },
-  (t) => [primaryKey({ columns: [t.workspaceId, t.userId] })],
+  // the primary key serves workspace lookups; member_user serves "my programs" on every page
+  (t) => [primaryKey({ columns: [t.workspaceId, t.userId] }), index("member_user").on(t.userId)],
 );
 
 export const invitation = pgTable("invitation", {

@@ -8,22 +8,33 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { SettingsCard } from "@/components/page";
 import { authClient } from "@/lib/auth-client";
+import { setPasswordAction } from "./actions";
+
+const PROVIDER: Record<string, string> = { google: "Google", github: "GitHub" };
 
 export function AccountView({
   name,
   email,
   twoFactor,
+  hasPassword,
+  social,
   workspaceExport,
+  programsHref,
 }: {
   name: string;
   email: string;
   twoFactor: boolean;
+  hasPassword: boolean;
+  social: string[];
   workspaceExport: string | null;
+  programsHref: string;
 }) {
   const router = useRouter();
   const [qr, setQr] = useState<string | null>(null);
   const [codes, setCodes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const via = social.map((p) => PROVIDER[p] ?? p).join(" or ") || "a sign-in link";
   return (
     <>
       <SettingsCard title="Profile">
@@ -52,51 +63,89 @@ export function AccountView({
           </Button>
         </form>
       </SettingsCard>
-      <SettingsCard title="Password" description="Other devices are signed out when you change it.">
-        <form
-          className="grid gap-4 sm:grid-cols-2"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            const form = e.currentTarget;
-            const f = new FormData(form);
-            const next = String(f.get("new"));
-            if (next.length < 8) return void toast.error("Use at least 8 characters");
-            setLoading(true);
-            const r = await authClient.changePassword({
-              currentPassword: String(f.get("current")),
-              newPassword: next,
-              revokeOtherSessions: true,
-            });
-            setLoading(false);
-            if (r.error) return void toast.error(r.error.message ?? "Couldn't change the password");
-            form.reset();
-            toast.success("Password changed");
-          }}
+      {!hasPassword ? (
+        <SettingsCard
+          title="Password"
+          description={`You sign in with ${via}. Add a password to also sign in with your email and to turn on two-factor authentication.`}
         >
-          <Field label="Current password" htmlFor="ac-pw-current">
-            <Input
-              id="ac-pw-current"
-              name="current"
-              type="password"
-              autoComplete="current-password"
-              required
-            />
-          </Field>
-          <Field label="New password" htmlFor="ac-pw-new">
-            <Input
-              id="ac-pw-new"
-              name="new"
-              type="password"
-              autoComplete="new-password"
-              minLength={8}
-              required
-            />
-          </Field>
-          <Button type="submit" loading={loading} className="self-start sm:col-span-2">
-            Change password
-          </Button>
-        </form>
-      </SettingsCard>
+          <form
+            className="grid gap-4 sm:grid-cols-2"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const form = e.currentTarget;
+              const next = String(new FormData(form).get("new"));
+              if (next.length < 8) return void toast.error("Use at least 8 characters");
+              setLoading(true);
+              const r = await setPasswordAction(next);
+              setLoading(false);
+              if (!r.ok) return void toast.error(r.error);
+              form.reset();
+              toast.success(r.message ?? "Password set");
+              router.refresh();
+            }}
+          >
+            <Field label="New password" htmlFor="ac-pw-set">
+              <Input
+                id="ac-pw-set"
+                name="new"
+                type="password"
+                autoComplete="new-password"
+                minLength={8}
+                required
+              />
+            </Field>
+            <Button type="submit" loading={loading} className="self-start sm:col-span-2">
+              Set password
+            </Button>
+          </form>
+        </SettingsCard>
+      ) : (
+        <SettingsCard title="Password" description="Other devices are signed out when you change it.">
+          <form
+            className="grid gap-4 sm:grid-cols-2"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const form = e.currentTarget;
+              const f = new FormData(form);
+              const next = String(f.get("new"));
+              if (next.length < 8) return void toast.error("Use at least 8 characters");
+              setLoading(true);
+              const r = await authClient.changePassword({
+                currentPassword: String(f.get("current")),
+                newPassword: next,
+                revokeOtherSessions: true,
+              });
+              setLoading(false);
+              if (r.error) return void toast.error(r.error.message ?? "Couldn't change the password");
+              form.reset();
+              toast.success("Password changed");
+            }}
+          >
+            <Field label="Current password" htmlFor="ac-pw-current">
+              <Input
+                id="ac-pw-current"
+                name="current"
+                type="password"
+                autoComplete="current-password"
+                required
+              />
+            </Field>
+            <Field label="New password" htmlFor="ac-pw-new">
+              <Input
+                id="ac-pw-new"
+                name="new"
+                type="password"
+                autoComplete="new-password"
+                minLength={8}
+                required
+              />
+            </Field>
+            <Button type="submit" loading={loading} className="self-start sm:col-span-2">
+              Change password
+            </Button>
+          </form>
+        </SettingsCard>
+      )}
       <SettingsCard
         title="Two-factor authentication"
         description="Use an authenticator app. Strongly recommended for anyone who approves payouts."
@@ -106,7 +155,10 @@ export function AccountView({
             Enabled
           </Badge>
         ) : null}
-        {!twoFactor && !qr ? (
+        {!twoFactor && !hasPassword ? (
+          <p className="text-[13px] text-muted">Set a password above first. Two-factor setup asks for it.</p>
+        ) : null}
+        {!twoFactor && hasPassword && !qr ? (
           <form
             className="flex gap-2"
             onSubmit={async (e) => {
@@ -206,22 +258,73 @@ export function AccountView({
               <a href={workspaceExport}>Export the whole workspace</a>
             </Button>
           ) : null}
-          <Button
-            variant="ghost"
-            className="text-danger"
-            onClick={async () => {
-              const password = window.prompt(
-                "Delete your account permanently? Enter your password to confirm.",
-              );
-              if (!password) return;
-              const r = await authClient.deleteUser({ password, callbackURL: "/login" });
-              if (r.error) return void toast.error(r.error.message ?? "Couldn't delete the account");
+          {!deleting ? (
+            <Button variant="ghost" className="text-danger" onClick={() => setDeleting(true)}>
+              Delete my account
+            </Button>
+          ) : null}
+        </div>
+        {deleting ? (
+          <form
+            className="flex flex-col gap-3 rounded-md border border-danger/40 p-4"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const f = new FormData(e.currentTarget);
+              setLoading(true);
+              const r = await authClient.deleteUser({
+                ...(hasPassword ? { password: String(f.get("password")) } : {}),
+                callbackURL: "/login",
+              });
+              setLoading(false);
+              if (r.error)
+                return void toast.error(
+                  r.error.code === "SESSION_EXPIRED"
+                    ? "For your safety, sign out and sign in again, then delete within a day."
+                    : (r.error.message ?? "Couldn't delete the account"),
+                );
               window.location.href = "/login";
             }}
           >
-            Delete my account
-          </Button>
-        </div>
+            <p className="text-[13px] text-fg">
+              This deletes your login and every program you own alone, with their partners and payout history.
+              It can't be undone. To remove one program only, go to{" "}
+              <a href={programsHref} className="text-accent-text hover:underline">
+                Settings &gt; Programs
+              </a>
+              .
+            </p>
+            {hasPassword ? (
+              <Field label="Your password" htmlFor="ac-del-pw">
+                <Input
+                  id="ac-del-pw"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                />
+              </Field>
+            ) : (
+              <Field label='Type "DELETE" to confirm' htmlFor="ac-del-typed">
+                <Input
+                  id="ac-del-typed"
+                  name="typed"
+                  autoComplete="off"
+                  required
+                  pattern="DELETE"
+                  title="Type DELETE in capitals"
+                />
+              </Field>
+            )}
+            <div className="flex gap-2">
+              <Button type="submit" variant="danger" loading={loading}>
+                Delete my account for good
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => setDeleting(false)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        ) : null}
       </SettingsCard>
     </>
   );

@@ -7,14 +7,22 @@ import { SettingsCard } from "@/components/page";
 import { useAction } from "@/components/use-action";
 import { deleteProgramAction } from "../../settings-actions";
 
-export function DeleteProgram({ programId, name }: { programId: string; name: string }) {
+export function DeleteProgram({
+  programId,
+  name,
+  created,
+}: {
+  programId: string;
+  name: string;
+  created: string;
+}) {
   const { pending, run } = useAction();
   const router = useRouter();
   const [typed, setTyped] = useState("");
   return (
     <SettingsCard
       title="Delete this program"
-      description="Removes its partners, commissions, links and payout history for good. Export what you need first."
+      description={`Deletes ${name} (created ${created}) with its partners, commissions, links and payout history. Your account and other programs stay. Export what you need first.`}
     >
       <form
         className="flex flex-col gap-3"

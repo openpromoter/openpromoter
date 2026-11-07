@@ -342,7 +342,7 @@ export function DevelopersView({
             · Program id: <span className="font-mono">{programId}</span>
           </p>
           <CodeBlock
-            label="MCP server (Claude Desktop, Claude Code and Cursor)"
+            label="MCP server (any MCP client: Claude, Cursor, VS Code, Windsurf and more)"
             code={JSON.stringify(
               {
                 mcpServers: {

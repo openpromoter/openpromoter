@@ -82,7 +82,10 @@ export default async function InstallSettings({ params }: { params: Promise<{ pr
       />
       <CodeBlock label="3. Custom Stripe Checkout (server)" code={s.checkout} />
       <CodeBlock label="Server-side SDK" code={s.npm} />
-      <CodeBlock label="Paste into Claude Code or Cursor" code={s.prompt} />
+      <CodeBlock
+        label="Prompt for your AI coding agent (Claude Code, Codex, Cursor, Copilot or any other)"
+        code={s.prompt}
+      />
       <CodeBlock
         label="Paddle, Lemon Squeezy and Polar"
         code={`// Pass the click id as custom data at checkout:\n// Paddle.js:      Paddle.Checkout.open({ customData: { op_click: window.openpromoter.clickId } })\n// Lemon Squeezy:  checkout URL ?checkout[custom][op_click]=<clickId>\n// Polar:          checkout metadata: { op_click: <clickId> }`}

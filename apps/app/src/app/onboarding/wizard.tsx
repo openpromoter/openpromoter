@@ -493,7 +493,7 @@ function StepInstall({ initial, onDone }: { initial: NonNullable<Initial>; onDon
   }, [verified, initial.programId]);
   const tabs = [
     { id: "script", label: "Script tag" },
-    { id: "ai", label: "Paste into Claude Code / Cursor" },
+    { id: "ai", label: "Paste into your AI agent" },
     { id: "npm", label: "npm SDK" },
   ] as const;
   return (
@@ -531,8 +531,8 @@ function StepInstall({ initial, onDone }: { initial: NonNullable<Initial>; onDon
       ) : tab === "ai" ? (
         <div>
           <p className="mb-3 text-[13px] leading-5 text-muted">
-            Your coding agent wires tracking and server-side conversion into your codebase. It won't touch
-            your prices.
+            Works in Claude Code, Codex, Cursor, Copilot or any other coding agent. It wires tracking and
+            server-side conversion into your codebase and leaves your prices alone.
           </p>
           <Textarea
             readOnly

@@ -9,7 +9,7 @@ npx openpromoter-cli stats --program prg_...
 npx openpromoter-cli partners list --program prg_...
 npx openpromoter-cli payouts prepare --program prg_...   # approval happens in the dashboard
 npx openpromoter-cli ask --program prg_... "which partners brought paying customers last month?"
-npx openpromoter-cli skill   # installs the agent skill for Claude Code and Cursor
+npx openpromoter-cli skill   # installs the agent skill for Claude Code, Codex, Cursor and other coding agents
 ```
 
 `OPENPROMOTER_URL` and `OPENPROMOTER_API_KEY` env vars override the saved login. License: [MIT](LICENSE)

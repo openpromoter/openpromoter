@@ -184,7 +184,7 @@ export function AutopilotView({
             ).map(([v, l, d]) => (
               <label
                 key={v}
-                className={`flex cursor-pointer gap-3 rounded-md border p-3 ${mode === v ? "border-accent bg-accent-soft/40" : "border-border"}`}
+                className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 ${mode === v ? "border-accent bg-accent-soft/40" : "border-border"}`}
               >
                 <input
                   type="radio"
@@ -192,7 +192,7 @@ export function AutopilotView({
                   value={v}
                   checked={mode === v}
                   onChange={() => save({ enabled, mode: v })}
-                  className="mt-0.5 accent-[var(--primary)]"
+                  className="mt-[3px] size-3.5 shrink-0 accent-[var(--primary)]"
                 />
                 <span>
                   <span className="block text-[13px] font-medium text-fg">{l}</span>

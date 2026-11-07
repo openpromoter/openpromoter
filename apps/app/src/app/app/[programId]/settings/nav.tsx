@@ -23,7 +23,7 @@ export function SettingsNav({ base, hosted }: { base: string; hosted: boolean })
   return (
     <nav
       aria-label="Settings"
-      className="-mx-4 flex gap-1 overflow-x-auto border-b border-border px-4 md:mx-0 md:px-0"
+      className="-mx-4 flex gap-1 overflow-x-auto border-b border-border px-4 md:mx-0 md:flex-wrap md:px-0"
     >
       {items.map(([href, label]) => {
         const active = href === "" ? path === base : path.startsWith(base + href);

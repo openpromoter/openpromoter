@@ -78,6 +78,13 @@
       "when": 1793959286726,
       "tag": "0010_ai_cap_resource_files",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794080794695,
+      "tag": "0011_auth_member_indexes",
+      "breakpoints": true
     }
   ]
 }

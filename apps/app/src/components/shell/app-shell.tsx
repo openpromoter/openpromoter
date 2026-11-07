@@ -20,6 +20,7 @@ import {
   BookOpen,
   Bot,
   ChartLine,
+  Check,
   ChevronsUpDown,
   Coins,
   FileText,
@@ -288,10 +289,17 @@ export function AppShell({ program, programs, user, role, counts, children }: Sh
               {programs.map((p) => (
                 <DropdownMenuItem key={p.id} onSelect={() => router.push(`/app/${p.id}`)}>
                   <span className="min-w-0 flex-1 truncate">{p.name}</span>
-                  <span className="truncate text-xs text-subtle">{p.workspaceName}</span>
+                  {p.id === program.id ? (
+                    <Check className="size-4 text-fg" aria-label="Current program" />
+                  ) : (
+                    <span className="truncate text-xs text-subtle">{p.workspaceName}</span>
+                  )}
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => router.push(`${base}/settings/programs`)}>
+                <Settings2 /> Manage programs
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => router.push(`${base}/settings/programs`)}>
                 <Plus /> New program
               </DropdownMenuItem>
@@ -332,7 +340,7 @@ export function AppShell({ program, programs, user, role, counts, children }: Sh
             collapsed={collapsed}
           />
           <div className="mt-2">
-            <UserMenu user={user} role={role} collapsed={collapsed} />
+            <UserMenu user={user} role={role} collapsed={collapsed} base={base} />
           </div>
         </div>
       </aside>
@@ -397,7 +405,7 @@ export function AppShell({ program, programs, user, role, counts, children }: Sh
                 <Sparkles className="text-accent" /> Ask
               </Button>
               <span className="lg:hidden">
-                <UserMenu user={user} role={role} collapsed />
+                <UserMenu user={user} role={role} collapsed base={base} />
               </span>
             </div>
           </header>
@@ -491,10 +499,12 @@ function UserMenu({
   user,
   role,
   collapsed,
+  base,
 }: {
   user: { name: string; email: string };
   role: string;
   collapsed: boolean;
+  base: string;
 }) {
   const router = useRouter();
   return (
@@ -521,6 +531,10 @@ function UserMenu({
           <div className="truncate text-[13px] font-medium text-fg">{user.name}</div>
           <div className="truncate text-xs text-subtle">{user.email}</div>
         </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => router.push(`${base}/settings/account`)}>
+          <Settings2 /> Account settings
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <ThemeItems />
         <DropdownMenuSeparator />

@@ -238,13 +238,17 @@ program
 
 program
   .command("skill")
-  .description("Install the 'add OpenPromoter' agent skill for Claude Code and Cursor in this project")
+  .description(
+    "Install the 'add OpenPromoter' agent skill for Claude Code, Codex, Cursor and other coding agents in this project",
+  )
   .option("--dir <dir>", "project directory", ".")
   .action((o) =>
     run(async () => {
       const claude = path.join(o.dir, ".claude", "skills", "openpromoter", "SKILL.md");
       const cursor = path.join(o.dir, ".cursor", "rules", "openpromoter.mdc");
-      for (const f of [claude, cursor]) {
+      // Codex and other agents that follow the open Agent Skills layout
+      const agents = path.join(o.dir, ".agents", "skills", "openpromoter", "SKILL.md");
+      for (const f of [claude, agents, cursor]) {
         mkdirSync(path.dirname(f), { recursive: true });
         writeFileSync(
           f,

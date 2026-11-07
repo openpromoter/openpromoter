@@ -48,6 +48,7 @@ export async function userPrograms(userId: string) {
       workspaceName: workspace.name,
       role: member.role,
       color: program.brand,
+      createdAt: program.createdAt,
     })
     .from(member)
     .innerJoin(workspace, eq(workspace.id, member.workspaceId))
