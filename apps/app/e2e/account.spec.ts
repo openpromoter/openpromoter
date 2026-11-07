@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import postgres from "postgres";
 import Stripe from "stripe";
 import { newFounder, PASSWORD, signIn } from "./full-settings.helpers";
@@ -157,4 +157,49 @@ test("two programs with one name: the list marks the current one and deleting it
   expect(await userCount(email)).toBe(1);
   expect((await db`select count(*)::int as n from program where id = ${secondId}`)[0]!.n).toBe(0);
   expect((await db`select count(*)::int as n from program where id = ${first.split("/")[2]!}`)[0]!.n).toBe(1);
+});
+
+test("team accounts: an owner with teammates is refused, a teammate leaving or a co-owner keeps the workspace", async ({
+  browser,
+}) => {
+  const a = await (await browser.newContext()).newPage();
+  const b = await (await browser.newContext()).newPage();
+  const aEmail = `team-a-${id()}@example.test`;
+  const bEmail = `team-b-${id()}@example.test`;
+  const aBase = await newFounder(a, "Owner A", aEmail, `TeamA ${id()}`);
+  const bBase = await newFounder(b, "Teammate B", bEmail, `TeamB ${id()}`);
+  const wsOf = async (base: string) =>
+    (await db`select workspace_id from program where id = ${base.split("/")[2]!}`)[0]!.workspace_id as string;
+  const aWs = await wsOf(aBase);
+  const bWs = await wsOf(bBase);
+  const bUser = (await db`select id from "user" where email = ${bEmail}`)[0]!.id;
+  await db`insert into member (workspace_id, user_id, role) values (${aWs}, ${bUser}, 'admin')`;
+  const del = async (p: Page, base: string) => {
+    await p.goto(`${base}/settings/account`);
+    await p.getByRole("button", { name: "Delete my account" }).click();
+    await p.getByLabel("Your password").fill(PASSWORD);
+    await p.getByRole("button", { name: "Delete my account for good" }).click();
+  };
+  const wsCount = async (ws: string) =>
+    Number((await db`select count(*)::int as n from workspace where id = ${ws}`)[0]!.n);
+
+  // 1. A owns a workspace B works in: refused, nothing deleted
+  await del(a, aBase);
+  await expect(a.getByText("Make another teammate an owner")).toBeVisible();
+  expect(await userCount(aEmail)).toBe(1);
+  expect(await wsCount(aWs)).toBe(1);
+
+  // 2. B is co-owner: A can leave, the workspace and its program stay with B
+  await db`update member set role = 'owner' where workspace_id = ${aWs} and user_id = ${bUser}`;
+  await del(a, aBase);
+  await a.waitForURL(/\/login\?deleted=1/);
+  expect(await userCount(aEmail)).toBe(0);
+  expect(await wsCount(aWs)).toBe(1);
+
+  // 3. B deletes: B's own workspace goes, and now A's old workspace has no one left, so it goes too
+  await del(b, bBase);
+  await b.waitForURL(/\/login\?deleted=1/);
+  expect(await userCount(bEmail)).toBe(0);
+  expect(await wsCount(bWs)).toBe(0);
+  expect(await wsCount(aWs)).toBe(0);
 });

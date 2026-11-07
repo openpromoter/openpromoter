@@ -109,6 +109,10 @@ export const workspace = pgTable("workspace", {
   plan: text("plan").notNull().default("free"),
   billingCustomerId: text("billing_customer_id"),
   billingSubscriptionId: text("billing_subscription_id"),
+  /** Stripe status of the plan subscription (trialing, active, past_due, canceled, ...), set by the platform webhook. */
+  billingStatus: text("billing_status"),
+  /** When a scheduled cancellation ends the plan. */
+  billingCancelAt: ts("billing_cancel_at"),
   trialEndsAt: ts("trial_ends_at"),
   /** AI spend this month in micro-dollars (Cloud cap); resets when aiMonth changes. */
   aiMonth: text("ai_month"),

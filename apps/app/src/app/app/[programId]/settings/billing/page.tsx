@@ -7,6 +7,27 @@ import { planStatus } from "@/server/billing-plans";
 import { programCtx } from "@/server/context";
 import { PlanButton } from "./plan-button";
 
+const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+/** One line on where the plan stands in Stripe: trial, failed payment or a scheduled end. */
+function statusLine(s: Awaited<ReturnType<typeof planStatus>>) {
+  if (s.status === "past_due")
+    return {
+      warn: true,
+      text: `Your last payment failed. Stripe will try the card again. Update it under Manage billing to keep the ${s.plan.name} plan.`,
+    };
+  if (s.cancelAt)
+    return {
+      warn: false,
+      text: `Your ${s.plan.name} plan ends on ${day(s.cancelAt)}. You move to Free after that. Use Manage billing to keep it.`,
+    };
+  if (s.status === "trialing" && s.trialEndsAt)
+    return { warn: false, text: `Free trial until ${day(s.trialEndsAt)}. Your card is charged after that.` };
+  if (s.status === "incomplete")
+    return { warn: true, text: "Your first payment didn't go through. Choose a plan again to retry." };
+  return null;
+}
+
 export default async function BillingPage({
   params,
   searchParams,
@@ -19,6 +40,7 @@ export default async function BillingPage({
   const { program: p, role } = await programCtx(programId);
   const s = await planStatus(p.workspaceId);
   const ai = s.hosted ? await aiBudget(p.workspaceId) : null;
+  const line = statusLine(s);
   return (
     <>
       {paid ? (
@@ -33,6 +55,14 @@ export default async function BillingPage({
           action={s.over ? <Badge tone="warning">Over limit</Badge> : null}
         />
         <CardBody>
+          {line ? (
+            <p
+              role="status"
+              className={`mb-4 rounded-md px-3 py-2 text-[13px] ${line.warn ? "bg-warning-soft text-fg" : "bg-surface-2 text-fg"}`}
+            >
+              {line.text}
+            </p>
+          ) : null}
           <div className="mb-2 flex justify-between text-[13px]">
             <span className="text-muted">Partner revenue this month</span>
             <span className="num text-fg">

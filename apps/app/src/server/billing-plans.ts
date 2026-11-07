@@ -1,7 +1,8 @@
 import { commission, program, workspace } from "@openpromoter/db";
 import { and, eq, gte, sql } from "drizzle-orm";
+import type Stripe from "stripe";
 import { PRODUCT } from "@/lib/config";
-import { lookupKey, type PlanId, planById } from "@/lib/plans";
+import { lookupKey, PLANS, type PlanId, planById } from "@/lib/plans";
 import { stripeClient } from "./billing/stripe";
 import { db } from "./db";
 import { env, isHosted } from "./env";
@@ -26,7 +27,9 @@ export async function planStatus(workspaceId: string) {
     plan,
     usage,
     over: isHosted() && usage > plan.revenueLimit,
-    trialEndsAt: ws?.trialEndsAt ?? null,
+    status: ws?.billingStatus ?? null,
+    trialEndsAt: ws?.billingStatus === "trialing" ? ws.trialEndsAt : null,
+    cancelAt: ws?.billingCancelAt ?? null,
   };
 }
 
@@ -91,4 +94,38 @@ export async function cancelPlan(workspaceId: string) {
     // already gone in Stripe: nothing left to charge
     if ((e as { code?: string }).code !== "resource_missing") throw e;
   }
+}
+
+const at = (sec: number | null | undefined) => (sec ? new Date(sec * 1000) : null);
+
+/**
+ * Applies a plan subscription (as Stripe has it now) to its workspace. Called by the platform webhook.
+ * past_due keeps the plan while Stripe retries the card; anything not active, trialing or past_due is Free.
+ */
+export async function applyPlanSubscription(sub: Stripe.Subscription) {
+  const wsId = sub.metadata?.workspace_id;
+  const [ws] = wsId ? await db().select().from(workspace).where(eq(workspace.id, wsId)) : [];
+  if (!ws) return false; // deleted workspace, or not one of ours
+  const active = ["active", "trialing", "past_due"].includes(sub.status);
+  // An event for another subscription must not change the current one, except a new live subscription
+  // replacing an ended one: a founder who canceled and subscribes again gets a new subscription id.
+  const current = !ws.billingSubscriptionId || ws.billingSubscriptionId === sub.id;
+  if (!current && !(ws.plan === "free" && active)) return false;
+  // the price says which plan it is; portal upgrades change the price, not the metadata
+  const key = sub.items?.data?.[0]?.price?.lookup_key ?? "";
+  const plan =
+    PLANS.find((p) => key.startsWith(`openpromoter_${p.id}_`))?.id ?? sub.metadata?.plan ?? "starter";
+  const periodEnd = sub.items?.data?.[0]?.current_period_end;
+  await db()
+    .update(workspace)
+    .set({
+      plan: active ? plan : "free",
+      billingSubscriptionId: sub.id,
+      billingCustomerId: typeof sub.customer === "string" ? sub.customer : sub.customer.id,
+      billingStatus: sub.status,
+      trialEndsAt: at(sub.trial_end),
+      billingCancelAt: active ? at(sub.cancel_at ?? (sub.cancel_at_period_end ? periodEnd : null)) : null,
+    })
+    .where(eq(workspace.id, ws.id));
+  return true;
 }
