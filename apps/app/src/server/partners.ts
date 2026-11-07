@@ -39,7 +39,15 @@ export interface ApplicationInput {
 /** Decide auto-approval; returns a reason when the application must wait for a human. */
 export function autoApproveDecision(
   prog: Pick<Program, "autoApprove" | "visibility">,
-  a: { email: string; website?: string | null; country?: string | null; riskScore: number; invited: boolean },
+  a: {
+    email: string;
+    website?: string | null;
+    country?: string | null;
+    riskScore: number;
+    invited: boolean;
+    /** false when a self-service applicant hasn't confirmed the address yet */
+    emailVerified?: boolean;
+  },
 ): { approve: boolean; reason: string } {
   const r = prog.autoApprove;
   if (a.invited) return { approve: true, reason: "Invited by you" };
@@ -53,6 +61,9 @@ export function autoApproveDecision(
   const domain = a.email.split("@")[1]?.toLowerCase() ?? "";
   if (r.allowedEmailDomains.length && !r.allowedEmailDomains.includes(domain))
     return { approve: false, reason: "Email domain is not on the allow list" };
+  // anyone can type a company address at sign-up; the allow list only counts once it is confirmed
+  if (r.allowedEmailDomains.length && a.emailVerified === false)
+    return { approve: false, reason: "Email not confirmed yet, so the domain allow list can't apply" };
   return { approve: true, reason: "Matched your auto-approve rules" };
 }
 
@@ -130,6 +141,13 @@ export async function applyToProgram(
       );
     if (!pr) invited = false;
   }
+  // self-service applicants (signed in) only count as invited or on-domain once the email is confirmed
+  let emailVerified: boolean | undefined;
+  if (input.userId) {
+    const [u] = await db().select({ v: user.emailVerified }).from(user).where(eq(user.id, input.userId));
+    emailVerified = !!u?.v;
+    if (invited && input.source === "recruiter" && !emailVerified) invited = false;
+  }
   const risk = applicationRisk({ email, website: input.website });
   const decision = autoApproveDecision(prog, {
     email,
@@ -137,6 +155,7 @@ export async function applyToProgram(
     country: input.country,
     riskScore: risk,
     invited,
+    emailVerified,
   });
   const [group] = await db()
     .select()

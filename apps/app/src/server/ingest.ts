@@ -297,8 +297,15 @@ async function findPartner(
 }
 
 /** Lead commission, self-referral flag and signup bounties for a brand new referral. */
-export async function afterNewReferral(tx: Tx | AppDb, prog: Program, p: Partner, r: Referral) {
+export async function afterNewReferral(
+  tx: Tx | AppDb,
+  prog: Program,
+  p: Partner,
+  r: Referral,
+  opts: { browser?: boolean } = {},
+) {
   const risk = scoreReferral(p, r);
+  const risky = risk.score >= prog.fraudHoldScore;
   if (risk.reasons.includes("self-referral")) {
     await tx
       .insert(fraudFlag)
@@ -327,16 +334,24 @@ export async function afterNewReferral(tx: Tx | AppDb, prog: Program, p: Partner
         amount: prog.leadCommission,
         currency: prog.currency,
         test: r.test,
-        status: risk.score >= prog.fraudHoldScore ? "held" : "pending",
-        heldReason:
-          risk.score >= prog.fraudHoldScore ? `Risk ${risk.score}: ${risk.reasons.join(", ")}` : null,
+        status: risky || opts.browser ? "held" : "pending",
+        heldReason: risky
+          ? `Risk ${risk.score}: ${risk.reasons.join(", ")}`
+          : opts.browser
+            ? "Signup reported by the browser script. Approve it once you know the signup is real."
+            : null,
         holdUntil: new Date(Date.now() + prog.holdDays * DAY),
         description: "Signup",
       })
       .onConflictDoNothing();
   }
   await tx.update(partner).set({ lastActiveAt: new Date() }).where(eq(partner.id, p.id));
-  await enqueue("campaigns.evaluate", { programId: prog.id, partnerId: p.id, trigger: "signup" }, {}, tx);
+  await enqueue(
+    "campaigns.evaluate",
+    { programId: prog.id, partnerId: p.id, trigger: "signup", held: !!opts.browser },
+    {},
+    tx,
+  );
   await enqueue(
     "events.emit",
     {

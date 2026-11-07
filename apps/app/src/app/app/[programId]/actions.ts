@@ -212,6 +212,11 @@ export async function createPromoAction(
         couponId: z.string().max(80).optional(),
       })
       .parse(input);
+    const [own] = await db()
+      .select({ id: partner.id })
+      .from(partner)
+      .where(and(eq(partner.id, partnerId), eq(partner.programId, programId)));
+    if (!own) throw new Error("Partner not found");
     let externalId: string | null = null;
     if (v.couponId) {
       const s = await stripeFor(ctx.program.workspaceId);

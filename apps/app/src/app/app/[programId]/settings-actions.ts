@@ -771,10 +771,13 @@ export async function subscribeReportAction(
 ) {
   return safe(
     async () => {
-      await actionCtx(programId, "read");
+      const ctx = await actionCtx(programId, "read");
+      // reports go only to the signed-in teammate: a viewer must not route analytics to an outside inbox
+      if (email.trim().toLowerCase() !== ctx.user.email.toLowerCase())
+        throw new Error("Reports can only be sent to your own email");
       const v = z
         .object({ email: z.email(), frequency: z.enum(["weekly", "monthly", "off"]) })
-        .parse({ email, frequency });
+        .parse({ email: ctx.user.email, frequency });
       await db()
         .delete(reportSubscription)
         .where(and(eq(reportSubscription.programId, programId), eq(reportSubscription.email, v.email)));

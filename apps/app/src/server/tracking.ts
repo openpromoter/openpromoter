@@ -197,6 +197,8 @@ export interface LeadInput {
   partnerCode?: string | null;
   externalCustomerId?: string | null;
   ip?: string | null;
+  /** From the public browser endpoint: anyone can call it, so money it would earn is held for review. */
+  browser?: boolean;
 }
 
 /** Signup tracking before payment. Idempotent on (program, email). */
@@ -261,7 +263,7 @@ export async function recordLead(input: LeadInput) {
       })
       .onConflictDoNothing()
       .returning();
-    if (r) await afterNewReferral(tx, prog, p, r);
+    if (r) await afterNewReferral(tx, prog, p, r, { browser: input.browser });
     return r ?? null;
   });
 }

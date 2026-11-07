@@ -266,6 +266,7 @@ async function grant(
   amount: number,
   key: string,
   description: string,
+  held = false,
 ) {
   await db()
     .insert(commission)
@@ -278,7 +279,10 @@ async function grant(
       sourceKey: key,
       amount,
       currency: prog.currency,
-      status: "pending",
+      status: held ? "held" : "pending",
+      heldReason: held
+        ? "Signup reported by the browser script. Approve it once you know the signup is real."
+        : null,
       holdUntil: new Date(Date.now() + prog.holdDays * 86_400_000),
       campaignId: c.id,
       description,
@@ -287,7 +291,7 @@ async function grant(
 }
 
 /** Called after signups and sales: pays any bounty the partner just earned. Idempotent via sourceKey. */
-export async function evaluateBounties(programId: string, partnerId: string, trigger: string) {
+export async function evaluateBounties(programId: string, partnerId: string, trigger: string, held = false) {
   const [prog] = await db().select().from(program).where(eq(program.id, programId));
   const [p] = await db().select().from(partner).where(eq(partner.id, partnerId));
   if (!prog || !p || p.status !== "approved") return 0;
@@ -314,7 +318,15 @@ export async function evaluateBounties(programId: string, partnerId: string, tri
         .orderBy(desc(referral.createdAt))
         .limit(1);
       if (last && last.createdAt >= c.startsAt) {
-        await grant(prog, partnerId, c, r.reward ?? 0, `bounty:${c.id}:${last.id}`, `${c.name}: new signup`);
+        await grant(
+          prog,
+          partnerId,
+          c,
+          r.reward ?? 0,
+          `bounty:${c.id}:${last.id}`,
+          `${c.name}: new signup`,
+          held,
+        );
         granted++;
       }
     }

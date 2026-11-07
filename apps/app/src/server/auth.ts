@@ -1,14 +1,24 @@
-import { account, member, session, twoFactor, user, verification, workspace } from "@openpromoter/db";
+import {
+  account,
+  member,
+  program,
+  session,
+  twoFactor,
+  user,
+  verification,
+  workspace,
+} from "@openpromoter/db";
 import { type BetterAuthPlugin, betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { deleteSessionCookie } from "better-auth/cookies";
 import { nextCookies } from "better-auth/next-js";
 import { captcha, twoFactor as twoFactorPlugin } from "better-auth/plugins";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, isNotNull, ne } from "drizzle-orm";
 import { headers } from "next/headers";
 import { PRODUCT } from "@/lib/config";
 import { captchaSiteKey, isAppHost } from "./captcha";
+import { cloudflareOn, removeHostname } from "./custom-hostnames";
 import { db } from "./db";
 import { sendNotice } from "./email";
 import { env } from "./env";
@@ -50,6 +60,9 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
+    // sign-up doesn't verify email, so someone could register an address first and keep that session;
+    // the real owner's password reset must sign every other session out
+    revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user: u, url }) => {
       await sendNotice(u.email, `Reset your ${PRODUCT.name} password`, {
         brandName: PRODUCT.name,
@@ -65,7 +78,8 @@ export const auth = betterAuth({
   // sign-in works unverified; claiming an existing partner record requires a verified email (partners.ts)
   emailVerification: {
     sendOnSignUp: false,
-    autoSignInAfterVerification: true,
+    // the link only verifies: signing in here would skip two-factor for anyone who can read the inbox
+    autoSignInAfterVerification: false,
     sendVerificationEmail: async ({ user: u, url }) => {
       await sendNotice(u.email, `Confirm your email for ${PRODUCT.name}`, {
         brandName: PRODUCT.name,
@@ -106,7 +120,13 @@ export const auth = betterAuth({
             throw new APIError("BAD_REQUEST", {
               message: "Make another teammate an owner before deleting your account.",
             });
+          const domains = await db()
+            .select({ d: program.customDomain })
+            .from(program)
+            .where(and(eq(program.workspaceId, ws), isNotNull(program.customDomain)));
           await db().delete(workspace).where(eq(workspace.id, ws));
+          // same cleanup as deleting one program: free the founder's domain certificate on Cloudflare
+          if (cloudflareOn()) for (const { d } of domains) await removeHostname(d!).catch(() => {});
         }
       },
     },

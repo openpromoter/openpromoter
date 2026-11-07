@@ -50,7 +50,7 @@ export function registerJobs() {
   });
   defineJob("webhook.deliver", async (p) => deliver(String(p.deliveryId)));
   defineJob("campaigns.evaluate", async (p) => {
-    await evaluateBounties(String(p.programId), String(p.partnerId), String(p.trigger));
+    await evaluateBounties(String(p.programId), String(p.partnerId), String(p.trigger), p.held === true);
   });
   defineJob("tiers.evaluate", async (p) => {
     await evaluateTiers(String(p.programId), String(p.partnerId));
@@ -327,6 +327,17 @@ const SCHEDULE: { key: string; every: number; run: () => Promise<unknown> }[] = 
           now.getTime() - s.lastSentAt.getTime() < 28 * 86_400_000
         )
           continue;
+        // a teammate removed from the workspace stops getting its analytics
+        const [still] = await db()
+          .select({ id: user.id })
+          .from(user)
+          .innerJoin(member, eq(member.userId, user.id))
+          .innerJoin(program, eq(program.workspaceId, member.workspaceId))
+          .where(and(eq(program.id, s.programId), sql`lower(${user.email}) = lower(${s.email})`));
+        if (!still) {
+          await db().delete(reportSubscription).where(eq(reportSubscription.id, s.id));
+          continue;
+        }
         await enqueue("reports.send", { programId: s.programId, email: s.email });
         await db().update(reportSubscription).set({ lastSentAt: now }).where(eq(reportSubscription.id, s.id));
       }

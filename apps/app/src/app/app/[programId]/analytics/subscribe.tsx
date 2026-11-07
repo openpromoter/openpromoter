@@ -28,6 +28,7 @@ export function ReportSubscribe({ programId, email }: { programId: string; email
           name="email"
           type="email"
           defaultValue={email}
+          readOnly
           aria-label="Email"
           className="w-56 max-sm:min-w-0 max-sm:flex-1 max-sm:basis-full"
         />

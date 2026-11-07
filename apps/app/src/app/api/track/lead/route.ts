@@ -38,6 +38,7 @@ export async function POST(req: Request) {
     visitorId: v.visitorId,
     partnerCode: v.code,
     ip,
+    browser: true,
   });
   return Response.json({ ok: !!r }, { headers: CORS });
 }
