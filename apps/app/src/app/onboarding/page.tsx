@@ -1,10 +1,10 @@
 import { billingConnection, program } from "@openpromoter/db";
 import { and, eq } from "drizzle-orm";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { snippets } from "@/lib/install";
 import { AccessError, requireProgram } from "@/server/access";
-import { requireUser } from "@/server/context";
+import { requireUser, userPrograms } from "@/server/context";
 import { db } from "@/server/db";
 import { env } from "@/server/env";
 import { stripeOAuthUrl, webhookUrl } from "@/server/stripe-service";
@@ -19,6 +19,13 @@ export default async function OnboardingPage({
 }) {
   const u = await requireUser("/onboarding");
   const sp = await searchParams;
+  // Setup without a program id creates a program, so only a first-time founder may start it. Signing in
+  // again (the sign-up page sends Google and GitHub users here) must land on the existing program.
+  // Further programs start from Settings > Programs, which passes their id.
+  if (!sp.program) {
+    const [first] = await userPrograms(u.id);
+    if (first) redirect(`/app/${first.id}`);
+  }
   let initial: Parameters<typeof Wizard>[0]["initial"] = null;
   if (sp.program) {
     // someone else's (or a made-up) program id is a 404, not a crash
