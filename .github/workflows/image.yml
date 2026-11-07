@@ -1,0 +1,38 @@
+# Builds the app image on GitHub so the VPS never runs a Next.js build next to the live sites.
+# The image is kept as a private workflow artifact; scripts/deploy-vps.sh downloads it and loads it on the server.
+name: Image
+
+on:
+  push:
+    branches: [main]
+    paths: [apps/app/**, packages/**, Dockerfile, .dockerignore, pnpm-lock.yaml, .github/workflows/image.yml]
+  workflow_dispatch:
+
+concurrency:
+  group: image
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          tags: openpromoter:${{ github.sha }}
+          outputs: type=docker,dest=/tmp/image.tar
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - run: gzip -1 /tmp/image.tar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: image
+          path: /tmp/image.tar.gz
+          retention-days: 5
+          compression-level: 0
