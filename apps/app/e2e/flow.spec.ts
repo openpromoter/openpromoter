@@ -24,7 +24,7 @@ test.describe
       await page.getByLabel("Product name").fill(`Testco ${id}`);
       await page.getByRole("button", { name: "Continue" }).click();
       await expect(page.getByRole("heading", { name: "Connect Stripe" })).toBeVisible();
-      await page.getByRole("button", { name: /Use Paddle, Lemon Squeezy or Polar instead/ }).click();
+      await page.getByRole("button", { name: /Skip for now/ }).click();
       await expect(page.getByRole("button", { name: "Accept this program" })).toBeVisible();
       await expect(page.getByText("Commission", { exact: true })).toBeVisible();
       await page.getByRole("button", { name: "Accept this program" }).click();

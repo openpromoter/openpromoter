@@ -76,7 +76,7 @@ export async function createFounder(browser: Browser, id: string) {
   await page.getByLabel("Product name").fill(`QA Co ${id}`);
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Connect Stripe" })).toBeVisible();
-  await page.getByRole("button", { name: /Use Paddle, Lemon Squeezy or Polar instead/ }).click();
+  await page.getByRole("button", { name: /Skip for now/ }).click();
   await page.getByRole("button", { name: "Accept this program" }).click();
   await expect(page.getByRole("heading", { name: "Install tracking" })).toBeVisible();
   await page.getByRole("button", { name: /I'll do this later|Continue/ }).click();

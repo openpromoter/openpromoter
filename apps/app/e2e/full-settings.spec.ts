@@ -286,7 +286,7 @@ test.describe("onboarding", () => {
     await page.getByLabel("Restricted key").fill("this-is-definitely-not-a-stripe-key");
     await page.getByRole("button", { name: "Connect Stripe" }).click();
     await toast(page, /doesn't look like a Stripe/);
-    await page.getByRole("button", { name: /Use Paddle, Lemon Squeezy or Polar instead/ }).click();
+    await page.getByRole("button", { name: /Skip for now/ }).click();
     await page.getByRole("button", { name: "Keep the defaults and edit later" }).click();
     await expect(page.getByRole("heading", { name: "Install tracking" })).toBeVisible();
     for (const tab of ["Paste into Claude Code / Cursor", "npm SDK", "Script tag"]) {

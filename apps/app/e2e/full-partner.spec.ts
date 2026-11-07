@@ -68,7 +68,7 @@ async function onboard(page: Page, product: string, website: string) {
   await page.getByLabel("Product name").fill(product);
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Connect Stripe" })).toBeVisible({ timeout: 60_000 });
-  await page.getByRole("button", { name: /Use Paddle, Lemon Squeezy or Polar instead/ }).click();
+  await page.getByRole("button", { name: /Skip for now/ }).click();
   await page.getByRole("button", { name: "Accept this program" }).click();
   await expect(page.getByRole("heading", { name: "Install tracking" })).toBeVisible();
   await page.getByRole("button", { name: /I'll do this later|Continue/ }).click();

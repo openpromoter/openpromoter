@@ -98,7 +98,7 @@ export function IntegrationsView({
                 <Input
                   id="st-key"
                   name="key"
-                  placeholder="rk_test_..."
+                  placeholder="rk_live_... or rk_test_..."
                   autoComplete="off"
                   className="font-mono"
                   disabled={!canWrite}

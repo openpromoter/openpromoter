@@ -314,7 +314,7 @@ function StepStripe({
           <Input
             id="key"
             name="key"
-            placeholder="rk_test_..."
+            placeholder="rk_live_... or rk_test_..."
             required={!initial.stripeConnected}
             autoComplete="off"
             className="h-10 font-mono"
@@ -357,10 +357,15 @@ function StepStripe({
             {initial.stripeConnected ? "Update connection" : "Connect Stripe"}
           </Button>
           <Button type="button" variant="ghost" size="lg" onClick={onDone}>
-            {initial.stripeConnected || result ? "Continue" : "Use Paddle, Lemon Squeezy or Polar instead"}{" "}
-            <ArrowRight />
+            {initial.stripeConnected || result ? "Continue" : "Skip for now"} <ArrowRight />
           </Button>
         </div>
+        {initial.stripeConnected || result ? null : (
+          <p className="-mt-2 text-[13px] leading-5 text-muted">
+            You can connect Stripe later in Settings &gt; Integrations. Paddle, Lemon Squeezy and Polar are
+            there too.
+          </p>
+        )}
       </form>
     </section>
   );
