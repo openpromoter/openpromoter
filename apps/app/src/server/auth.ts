@@ -1,13 +1,14 @@
 import { account, member, session, twoFactor, user, verification, workspace } from "@openpromoter/db";
-import { betterAuth } from "better-auth";
+import { type BetterAuthPlugin, betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { deleteSessionCookie } from "better-auth/cookies";
 import { nextCookies } from "better-auth/next-js";
-import { twoFactor as twoFactorPlugin } from "better-auth/plugins";
+import { captcha, twoFactor as twoFactorPlugin } from "better-auth/plugins";
 import { and, eq, ne } from "drizzle-orm";
 import { headers } from "next/headers";
 import { PRODUCT } from "@/lib/config";
+import { captchaSiteKey } from "./captcha";
 import { db } from "./db";
 import { sendNotice } from "./email";
 import { env } from "./env";
@@ -25,6 +26,20 @@ export type SocialProvider = keyof typeof SOCIAL;
 export const socialProviders = (Object.keys(SOCIAL) as SocialProvider[]).filter(
   (p) => SOCIAL[p][0] && SOCIAL[p][1],
 );
+
+/** Turnstile on email sign-up, sign-in and password reset, on the app's own host only (captcha.ts says why). */
+function turnstile(): BetterAuthPlugin[] {
+  if (!captchaSiteKey) return [];
+  const plugin = captcha({ provider: "cloudflare-turnstile", secretKey: env.TURNSTILE_SECRET_KEY! });
+  const appHost = new URL(env.APP_URL).host;
+  return [
+    {
+      ...plugin,
+      onRequest: async (req, ctx) =>
+        new URL(req.url).host === appHost ? plugin.onRequest(req, ctx) : undefined,
+    },
+  ];
+}
 
 export const auth = betterAuth({
   appName: PRODUCT.name,
@@ -132,7 +147,7 @@ export const auth = betterAuth({
       throw ctx.redirect(`${env.APP_URL}/login?error=two_factor_required`);
     }),
   },
-  plugins: [twoFactorPlugin({ issuer: PRODUCT.name }), nextCookies()],
+  plugins: [twoFactorPlugin({ issuer: PRODUCT.name }), ...turnstile(), nextCookies()],
 });
 
 export async function getSession() {

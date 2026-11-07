@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { safeNext } from "@/lib/url";
 import { socialProviders } from "@/server/auth";
+import { captchaFor } from "@/server/captcha";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -26,6 +28,7 @@ export default async function LoginPage({
       twoFactor={sp["2fa"] === "1"}
       social={socialProviders}
       initialError={error}
+      captcha={captchaFor(await headers())}
     />
   );
 }

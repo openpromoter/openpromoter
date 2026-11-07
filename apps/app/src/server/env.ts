@@ -25,6 +25,9 @@ const schema = z.object({
   CLOUDFLARE_ZONE_ID: z.string().optional(),
   /** Hostname founders CNAME to (defaults to the APP_URL host). */
   CUSTOM_DOMAIN_TARGET: z.string().optional(),
+  /** Cloudflare Turnstile on sign-up, sign-in, password reset and partner applications (read in captcha.ts). */
+  TURNSTILE_SITE_KEY: z.string().optional(),
+  TURNSTILE_SECRET_KEY: z.string().optional(),
   RUN_WORKER: z.enum(["true", "false"]).default("true"),
   /** Connections per process (read in db.ts). */
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(500).optional(),

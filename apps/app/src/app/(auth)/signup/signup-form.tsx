@@ -5,11 +5,28 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AuthCard } from "@/components/auth/auth-card";
+import {
+  CAPTCHA_ERROR,
+  Captcha,
+  captchaHeaders,
+  isCaptchaError,
+  resetCaptcha,
+} from "@/components/auth/captcha";
 import { PasswordInput } from "@/components/auth/password-input";
 import { type Social, SocialButtons } from "@/components/auth/social-buttons";
 import { authClient } from "@/lib/auth-client";
 
-export function SignupForm({ next, email, social }: { next: string; email: string; social: Social[] }) {
+export function SignupForm({
+  next,
+  email,
+  social,
+  captcha,
+}: {
+  next: string;
+  email: string;
+  social: Social[];
+  captcha?: string;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -18,14 +35,23 @@ export function SignupForm({ next, email, social }: { next: string; email: strin
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const f = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const f = new FormData(form);
     const res = await authClient.signUp.email({
       name: String(f.get("name")),
       email: String(f.get("email")),
       password: String(f.get("password")),
+      fetchOptions: await captchaHeaders(form, captcha),
     });
     setLoading(false);
-    if (res.error) return setError(res.error.message ?? "Could not create the account");
+    if (res.error) {
+      resetCaptcha();
+      return setError(
+        isCaptchaError(res.error.code)
+          ? CAPTCHA_ERROR
+          : (res.error.message ?? "Could not create the account"),
+      );
+    }
     router.push(next);
     router.refresh();
   }
@@ -66,6 +92,7 @@ export function SignupForm({ next, email, social }: { next: string; email: strin
         <Field label="Password" htmlFor="password" hint="At least 8 characters.">
           <PasswordInput id="password" name="password" autoComplete="new-password" minLength={8} required />
         </Field>
+        <Captcha siteKey={captcha} />
         {error ? (
           <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-[13px] leading-5 text-danger">
             {error}

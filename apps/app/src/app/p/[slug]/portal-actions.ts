@@ -9,6 +9,7 @@ import { encrypt } from "@/lib/crypto";
 import { createId } from "@/lib/id";
 import { audit } from "@/server/audit";
 import { auth } from "@/server/auth";
+import { captchaFor, verifyCaptcha } from "@/server/captcha";
 import { currentUser, partnerCtx, safe } from "@/server/context";
 import { db } from "@/server/db";
 import { applyToProgram, createLink } from "@/server/partners";
@@ -22,6 +23,8 @@ export async function applyAction(slug: string, input: Record<string, string>) {
     const ip = clientIp({ headers: h }) ?? "unknown";
     if (!(await limit(`apply:${ip}`, 10, 3_600_000)).ok)
       throw new Error("Too many applications from this network. Try again later.");
+    if (captchaFor(h) && !(await verifyCaptcha(input["cf-turnstile-response"], ip === "unknown" ? null : ip)))
+      throw new Error("Please complete the check above the button, then try again.");
     const [p] = await db().select().from(program).where(eq(program.slug, slug));
     if (!p) throw new Error("Program not found");
     const base = z

@@ -2,9 +2,11 @@ import { partner, program } from "@openpromoter/db";
 import { ArrowLeft } from "@openpromoter/ui/icons";
 import { and, eq } from "drizzle-orm";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { durationLabel, rateLabel } from "@/lib/program-labels";
+import { captchaFor } from "@/server/captcha";
 import { currentUser } from "@/server/context";
 import { db } from "@/server/db";
 import { BrandMark } from "../brand";
@@ -70,6 +72,7 @@ export default async function ApplyPage({
               questions={p.applicationQuestions}
               inviteOnly={p.visibility === "invite_only"}
               instant={instant}
+              captcha={captchaFor(await headers())}
             />
           </div>
         </main>

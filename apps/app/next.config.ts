@@ -12,14 +12,15 @@ export function contentSecurityPolicy(opts: { dev: boolean; https: boolean; fram
     "default-src 'self'",
     // Next.js inlines its bootstrap scripts and the theme script in app/layout.tsx; a nonce CSP needs a
     // per-request nonce from proxy.ts and a layout change, so inline stays allowed for now
-    `script-src 'self' 'unsafe-inline'${opts.dev ? " 'unsafe-eval'" : ""}`,
+    // challenges.cloudflare.com: the Turnstile captcha (server/captcha.ts), only loaded when its keys are set
+    `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com${opts.dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     // program logos and partner avatars are arbitrary https images
     // http logos only on plain-http self-hosted installs; an https app would block them as mixed content
     `img-src 'self' data: blob: https:${opts.https ? "" : " http:"}`,
     "font-src 'self' data:",
     `connect-src 'self'${opts.dev ? " ws: wss:" : ""}`,
-    "frame-src 'self'",
+    "frame-src 'self' https://challenges.cloudflare.com",
     "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",

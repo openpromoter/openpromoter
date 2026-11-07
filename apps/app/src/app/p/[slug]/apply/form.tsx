@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
+import { Captcha, captchaToken, resetCaptcha } from "@/components/auth/captcha";
 import { CountrySelect } from "@/components/country-select";
 import { applyAction } from "../portal-actions";
 
@@ -31,6 +32,7 @@ export function ApplyForm({
   questions,
   inviteOnly,
   instant,
+  captcha,
 }: {
   slug: string;
   signedIn: { name: string; email: string } | null;
@@ -40,6 +42,7 @@ export function ApplyForm({
   questions: ApplicationQuestion[];
   inviteOnly: boolean;
   instant: boolean;
+  captcha?: string;
 }) {
   const [pending, start] = useTransition();
   const router = useRouter();
@@ -55,13 +58,18 @@ export function ApplyForm({
       // onSubmit, not action: React resets a form after its action runs, which would wipe the answers on an error
       onSubmit={(e) => {
         e.preventDefault();
-        const f = new FormData(e.currentTarget);
+        const form = e.currentTarget;
         start(async () => {
+          await captchaToken(form, captcha);
+          const f = new FormData(form);
           const r = await applyAction(
             slug,
             Object.fromEntries([...f.entries()].map(([k, v]) => [k, String(v)])),
           );
-          if (!r.ok) return void toast.error(r.error);
+          if (!r.ok) {
+            resetCaptcha();
+            return void toast.error(r.error);
+          }
           toast.success(
             r.data!.autoApproved
               ? "You're approved. Your portal is ready."
@@ -169,6 +177,7 @@ export function ApplyForm({
             including the self-billing agreement for commission invoices.
           </span>
         </label>
+        <Captcha siteKey={captcha} />
         <Button
           type="submit"
           variant="primary"

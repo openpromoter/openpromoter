@@ -5,6 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AuthCard } from "@/components/auth/auth-card";
+import {
+  CAPTCHA_ERROR,
+  Captcha,
+  captchaHeaders,
+  isCaptchaError,
+  resetCaptcha,
+} from "@/components/auth/captcha";
 import { PasswordInput } from "@/components/auth/password-input";
 import { type Social, SocialButtons } from "@/components/auth/social-buttons";
 import { authClient } from "@/lib/auth-client";
@@ -14,11 +21,13 @@ export function LoginForm({
   twoFactor,
   social,
   initialError,
+  captcha,
 }: {
   next: string;
   twoFactor: boolean;
   social: Social[];
   initialError: string | null;
+  captcha?: string;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(initialError);
@@ -28,12 +37,22 @@ export function LoginForm({
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const f = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const f = new FormData(form);
     const res = twoFactor
       ? await authClient.twoFactor.verifyTotp({ code: String(f.get("code")), trustDevice: true })
-      : await authClient.signIn.email({ email: String(f.get("email")), password: String(f.get("password")) });
+      : await authClient.signIn.email({
+          email: String(f.get("email")),
+          password: String(f.get("password")),
+          fetchOptions: await captchaHeaders(form, captcha),
+        });
     setLoading(false);
-    if (res.error) return setError(res.error.message ?? "Could not sign in");
+    if (res.error) {
+      resetCaptcha();
+      return setError(
+        isCaptchaError(res.error.code) ? CAPTCHA_ERROR : (res.error.message ?? "Could not sign in"),
+      );
+    }
     if (!twoFactor && (res.data as { twoFactorRedirect?: boolean } | null)?.twoFactorRedirect)
       return router.push(`/login?2fa=1&next=${encodeURIComponent(next)}`);
     router.push(next);
@@ -91,6 +110,7 @@ export function LoginForm({
             >
               <PasswordInput id="password" name="password" autoComplete="current-password" required />
             </Field>
+            <Captcha siteKey={captcha} />
           </>
         )}
         {error ? (
