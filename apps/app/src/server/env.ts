@@ -18,6 +18,8 @@ const schema = z.object({
   /** OpenPromoter's own Stripe account (cloud billing + Connect OAuth). */
   PLATFORM_STRIPE_SECRET_KEY: z.string().optional(),
   PLATFORM_STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  /** Customer portal configuration (bpc_...) for plan billing. Unset: the account's default portal. */
+  PLATFORM_STRIPE_PORTAL_CONFIG: z.string().optional(),
   /** Connect webhook on the platform account ("events on connected accounts"): sales of founders who used Connect with Stripe. */
   STRIPE_CONNECT_WEBHOOK_SECRET: z.string().optional(),
   /** Cloudflare for SaaS: issues HTTPS certificates for founders' custom domains (read in custom-hostnames.ts). */

@@ -73,6 +73,7 @@ export async function portalUrl(workspaceId: string, returnPath = "/app") {
   const s = await stripeClient(env.PLATFORM_STRIPE_SECRET_KEY).billingPortal.sessions.create({
     customer: ws.billingCustomerId,
     return_url: `${env.APP_URL}${returnPath}`,
+    ...(env.PLATFORM_STRIPE_PORTAL_CONFIG ? { configuration: env.PLATFORM_STRIPE_PORTAL_CONFIG } : {}),
   });
   return s.url;
 }
