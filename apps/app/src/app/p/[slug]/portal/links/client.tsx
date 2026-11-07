@@ -1,7 +1,7 @@
 "use client";
 
-import { Badge, Button, Card, CardHeader, EmptyState, Field, Input, Tooltip } from "@openpromoter/ui";
-import { Link2, Plus, QrCode } from "@openpromoter/ui/icons";
+import { Badge, Button, Card, CardHeader, Field, Input, Tooltip } from "@openpromoter/ui";
+import { Plus, QrCode } from "@openpromoter/ui/icons";
 import { useState } from "react";
 import { CopyButton } from "@/components/copy";
 import { useAction } from "@/components/use-action";
@@ -21,11 +21,22 @@ type L = {
 
 const path = (u: string) => u.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
+function withParam(site: string, param: string, code: string) {
+  try {
+    const u = new URL(site);
+    u.searchParams.set(param, code);
+    return u.toString();
+  } catch {
+    return `${site}?${param}=${code}`;
+  }
+}
+
 export function PartnerLinks({
   slug,
   website,
   param,
   code,
+  direct,
   links,
 }: {
   slug: string;
@@ -33,8 +44,10 @@ export function PartnerLinks({
   appUrl: string;
   param: string;
   code: string;
+  direct: { clicks: number; customers: number };
   links: L[];
 }) {
+  const viaUrl = withParam(website, param, code);
   const { pending, run } = useAction();
   const [qr, setQr] = useState<string | null>(null);
   return (
@@ -79,65 +92,73 @@ export function PartnerLinks({
       <Card className="mt-4">
         <CardHeader
           title="Your links"
-          description={
-            <>
-              Any page also works with{" "}
-              <code className="font-mono text-[12px] text-fg">
-                ?{param}={code}
-              </code>
-            </>
-          }
+          description="Clicks and paying customers for each way you share, so you can see what works."
         />
-        {links.length ? (
-          <ul className="divide-y divide-border border-t border-border">
-            <li className="hidden h-9 items-center gap-4 bg-surface-2 px-5 sm:flex" aria-hidden>
-              <span className="eyebrow flex-1">Link</span>
-              <span className="eyebrow w-16 text-right">Clicks</span>
-              <span className="eyebrow w-20 text-right">Customers</span>
-              <span className="w-[60px]" />
-            </li>
-            {links.map((l) => (
-              <li
-                key={l.id}
-                className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5 sm:flex-nowrap"
-              >
-                <div className="min-w-0 flex-1 basis-full sm:basis-auto">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate font-mono text-[13px] text-fg">{l.url}</span>
-                    {l.subId ? <Badge className="h-5 font-mono text-[11px]">{l.subId}</Badge> : null}
-                  </div>
-                  <div className="mt-0.5 truncate text-xs text-subtle">
-                    {l.label ? `${l.label} · ` : ""}to {path(l.destination)}
-                  </div>
-                </div>
-                <span className="num text-[13px] text-fg sm:w-16 sm:text-right">
-                  {formatNumber(l.clicks)}
-                  <span className="text-subtle sm:hidden"> clicks</span>
-                </span>
-                <span className="num text-[13px] text-fg sm:w-20 sm:text-right">
-                  {formatNumber(l.customers)}
-                  <span className="text-subtle sm:hidden"> customers</span>
-                </span>
-                <span className="ml-auto flex items-center gap-1 sm:ml-0">
-                  <Tooltip content="QR code">
-                    <Button variant="ghost" size="icon-sm" aria-label="QR code" onClick={() => setQr(l.url)}>
-                      <QrCode />
-                    </Button>
-                  </Tooltip>
-                  <CopyButton value={l.url} label="Copy link" />
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyState
-            icon={Link2}
-            title="No links yet"
-            description="Create one above to start tracking a channel."
+        <ul className="divide-y divide-border border-t border-border">
+          <li className="hidden h-9 items-center gap-4 bg-surface-2 px-5 sm:flex" aria-hidden>
+            <span className="eyebrow flex-1">Link</span>
+            <span className="eyebrow w-16 text-right">Clicks</span>
+            <span className="eyebrow w-20 text-right">Customers</span>
+            <span className="w-[60px]" />
+          </li>
+          <LinkRow
+            url={viaUrl}
+            note="Any page on the site with your code. Coupon code sales count here too."
+            clicks={direct.clicks}
+            customers={direct.customers}
+            onQr={setQr}
           />
-        )}
+          {links.map((l) => (
+            <LinkRow
+              key={l.id}
+              url={l.url}
+              subId={l.subId}
+              note={`${l.label ? `${l.label} · ` : ""}to ${path(l.destination)}`}
+              clicks={l.clicks}
+              customers={l.customers}
+              onQr={setQr}
+            />
+          ))}
+        </ul>
       </Card>
       <QrDialog url={qr} onClose={() => setQr(null)} />
     </>
+  );
+}
+
+function LinkRow(props: {
+  url: string;
+  subId?: string | null;
+  note: string;
+  clicks: number;
+  customers: number;
+  onQr: (url: string) => void;
+}) {
+  return (
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5 sm:flex-nowrap">
+      <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+        <div className="flex items-center gap-2">
+          <span className="truncate font-mono text-[13px] text-fg">{props.url}</span>
+          {props.subId ? <Badge className="h-5 font-mono text-[11px]">{props.subId}</Badge> : null}
+        </div>
+        <div className="mt-0.5 truncate text-xs text-subtle">{props.note}</div>
+      </div>
+      <span className="num text-[13px] text-fg sm:w-16 sm:text-right">
+        {formatNumber(props.clicks)}
+        <span className="text-subtle sm:hidden"> clicks</span>
+      </span>
+      <span className="num text-[13px] text-fg sm:w-20 sm:text-right">
+        {formatNumber(props.customers)}
+        <span className="text-subtle sm:hidden"> customers</span>
+      </span>
+      <span className="ml-auto flex items-center gap-1 sm:ml-0">
+        <Tooltip content="QR code">
+          <Button variant="ghost" size="icon-sm" aria-label="QR code" onClick={() => props.onQr(props.url)}>
+            <QrCode />
+          </Button>
+        </Tooltip>
+        <CopyButton value={props.url} label="Copy link" />
+      </span>
+    </li>
   );
 }

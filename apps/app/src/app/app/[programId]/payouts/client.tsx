@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { BrandIcon } from "@/components/brand";
 import { mascotToast } from "@/components/mascot-toast";
 import { formatMoney } from "@/lib/money";
 import {
@@ -125,6 +126,7 @@ export function ApprovalQueue({
               <div className="truncate text-xs text-subtle">
                 {r.email} ·{" "}
                 <span>
+                  <BrandIcon brand={r.method} size={12} className="mr-1 inline-block align-[-2px]" />
                   {(
                     { stripe: "Stripe", paypal: "PayPal", wise: "Wise", manual: "Manual" } as Record<
                       string,

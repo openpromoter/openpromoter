@@ -1,4 +1,4 @@
-import { click, link, promoCode, referral } from "@openpromoter/db";
+import { click, link, partner, promoCode, referral } from "@openpromoter/db";
 import { Card, CardHeader } from "@openpromoter/ui";
 import { eq, sql } from "drizzle-orm";
 import { CopyButton } from "@/components/copy";
@@ -11,7 +11,7 @@ import { PartnerLinks } from "./client";
 export default async function PortalLinks({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { program: p, partner: pt } = await partnerCtx(slug);
-  const [links, codes] = await Promise.all([
+  const [links, codes, [direct]] = await Promise.all([
     db()
       .select({
         l: link,
@@ -22,6 +22,15 @@ export default async function PortalLinks({ params }: { params: Promise<{ slug: 
       .where(eq(link.partnerId, pt.id))
       .orderBy(link.createdAt),
     db().select().from(promoCode).where(eq(promoCode.partnerId, pt.id)),
+    // Traffic that did not come through a generated link: ?via=code on any page, and coupon sales.
+    // Without this row a partner who shares ?via links sees 0 everywhere on this page.
+    db()
+      .select({
+        clicks: sql<number>`(select count(*) from ${click} where ${click.partnerId} = ${pt.id} and ${click.linkId} is null and ${click.isBot} = false)::int`,
+        customers: sql<number>`(select count(*) from ${referral} r left join ${click} c on c.id = r.click_id where r.partner_id = ${pt.id} and r.converted_at is not null and c.link_id is null)::int`,
+      })
+      .from(partner)
+      .where(eq(partner.id, pt.id)),
   ]);
   return (
     <>
@@ -35,6 +44,7 @@ export default async function PortalLinks({ params }: { params: Promise<{ slug: 
         appUrl={env.APP_URL}
         param={p.referralParam}
         code={pt.code}
+        direct={{ clicks: direct?.clicks ?? 0, customers: direct?.customers ?? 0 }}
         links={links.map(({ l, clicks, customers }) => ({
           id: l.id,
           url: `${env.APP_URL}/r/${slug}/l/${l.key}`,

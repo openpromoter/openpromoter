@@ -1,5 +1,6 @@
 import { cn } from "@openpromoter/ui";
 import Link from "next/link";
+import { BRANDS, BrandIcon } from "@/components/brand";
 import { LedgerLine } from "@/components/page";
 
 export const METHOD_SHORT: Record<string, string> = {
@@ -65,7 +66,11 @@ export function PayoutSlip({
       </div>
       <div className="flex items-center justify-between gap-3 border-t border-border bg-surface-2/60 px-5 py-2.5 text-xs">
         <span className="flex items-center gap-1.5 text-muted">
-          <span aria-hidden className={cn("size-1.5 rounded-full", method ? "bg-success" : "bg-warning")} />
+          {method && BRANDS[method] ? (
+            <BrandIcon brand={method} size={12} />
+          ) : (
+            <span aria-hidden className={cn("size-1.5 rounded-full", method ? "bg-success" : "bg-warning")} />
+          )}
           {method ? `Paid by ${METHOD_SHORT[method] ?? method}` : "No payout method yet"}
         </span>
         {href ? (

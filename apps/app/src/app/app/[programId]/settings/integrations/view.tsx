@@ -3,6 +3,7 @@
 import { Badge, Button, Card, CardBody, CardHeader, Field, Input, Switch } from "@openpromoter/ui";
 import { CheckCircle2, Link2 } from "@openpromoter/ui/icons";
 import Link from "next/link";
+import { BrandTitle } from "@/components/brand";
 import { CodeBlock, CopyField } from "@/components/copy";
 import { useAction } from "@/components/use-action";
 import {
@@ -65,7 +66,7 @@ export function IntegrationsView({
     <>
       <Card>
         <CardHeader
-          title="Stripe"
+          title={<BrandTitle brand="stripe">Stripe</BrandTitle>}
           description="Attribution, commissions, refunds and partner payouts through Stripe Connect."
           action={<Status s={status.stripe ?? null} />}
         />
@@ -177,12 +178,16 @@ export function IntegrationsView({
         <Card key={p}>
           <CardHeader
             title={
-              {
-                paddle: "Paddle Billing",
-                lemonsqueezy: "Lemon Squeezy",
-                polar: "Polar",
-                chargebee: "Chargebee",
-              }[p]
+              <BrandTitle brand={p}>
+                {
+                  {
+                    paddle: "Paddle Billing",
+                    lemonsqueezy: "Lemon Squeezy",
+                    polar: "Polar",
+                    chargebee: "Chargebee",
+                  }[p]
+                }
+              </BrandTitle>
             }
             description={
               {
@@ -238,7 +243,7 @@ export function IntegrationsView({
 
       <Card>
         <CardHeader
-          title="PayPal Payouts"
+          title={<BrandTitle brand="paypal">PayPal Payouts</BrandTitle>}
           description="Pay partners by PayPal email. Needs a PayPal business account with Payouts enabled."
           action={<Status s={status.paypal ?? null} />}
         />
@@ -288,7 +293,7 @@ export function IntegrationsView({
       </Card>
       <Card>
         <CardHeader
-          title="Wise"
+          title={<BrandTitle brand="wise">Wise</BrandTitle>}
           description="Pay partners in their local currency from your Wise balance. UK and EEA profiles fund each transfer in the Wise app; the payout is marked paid once Wise sends it."
           action={<Status s={status.wise ?? null} />}
         />

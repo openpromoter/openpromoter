@@ -1,9 +1,10 @@
 "use client";
 
 import { Badge, Button, Card, CardBody, CardHeader, cn, Input } from "@openpromoter/ui";
-import { Bank, CheckCircle2, CreditCard, type Icon, Mail, Wallet } from "@openpromoter/ui/icons";
+import { Bank, CheckCircle2 } from "@openpromoter/ui/icons";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { BRANDS, BrandIcon } from "@/components/brand";
 import { useAction } from "@/components/use-action";
 import { payoutMethodAction, stripeOnboardingAction } from "../../portal-actions";
 
@@ -19,7 +20,6 @@ const SHORT: Record<string, string> = {
   wise: "Wise",
   manual: "Bank transfer",
 };
-const ICON: Record<string, Icon> = { stripe: CreditCard, paypal: Mail, wise: Wallet, manual: Bank };
 const HINT: Record<string, string> = {
   stripe: "Straight to your bank with the tax form included",
   paypal: "To your PayPal email",
@@ -69,7 +69,6 @@ export function PayoutMethod({
       <CardBody className="flex flex-col gap-5">
         <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Payout method">
           {methods.map((x) => {
-            const I = ICON[x] ?? Bank;
             return (
               <label
                 key={x}
@@ -87,15 +86,14 @@ export function PayoutMethod({
                   onChange={() => setM(x)}
                   className="sr-only"
                 />
+                {/* brand marks keep their own colour, so the tile stays neutral; the card shows the selection */}
                 <span
                   className={cn(
-                    "flex size-8 shrink-0 items-center justify-center rounded-md border",
-                    m === x
-                      ? "border-transparent bg-primary text-primary-fg"
-                      : "border-border bg-surface-2 text-muted",
+                    "flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-surface",
+                    m === x ? "text-fg" : "text-muted",
                   )}
                 >
-                  <I className="size-4" />
+                  {BRANDS[x] ? <BrandIcon brand={x} size={16} /> : <Bank className="size-4" />}
                 </span>
                 <span className="min-w-0">
                   <span className="block text-[13px] leading-5 font-medium text-fg">{LABEL[x]}</span>

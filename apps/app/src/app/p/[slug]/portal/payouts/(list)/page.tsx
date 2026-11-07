@@ -2,6 +2,7 @@ import { billingConnection, payout } from "@openpromoter/db";
 import { Card, CardHeader, EmptyState, StatusBadge } from "@openpromoter/ui";
 import { Banknote, FileText } from "@openpromoter/ui/icons";
 import { and, desc, eq } from "drizzle-orm";
+import { BrandIcon } from "@/components/brand";
 import { PageHeader } from "@/components/page";
 import { formatMoney } from "@/lib/money";
 import { partnerCtx } from "@/server/context";
@@ -87,6 +88,7 @@ export default async function PortalPayouts({
                 </time>
                 <span className="flex min-w-0 flex-1 items-baseline">
                   <span className="truncate text-fg">
+                    <BrandIcon brand={r.method} size={13} className="mr-1.5 inline-block align-[-2px]" />
                     {METHOD_SHORT[r.method] ?? r.method}
                     {r.invoiceNumber ? (
                       <span className="font-mono text-[12px] text-subtle"> · {r.invoiceNumber}</span>

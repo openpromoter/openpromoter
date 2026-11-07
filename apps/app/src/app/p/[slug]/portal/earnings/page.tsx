@@ -1,6 +1,6 @@
 import { commission } from "@openpromoter/db";
-import { Card, CardBody, CardHeader, EmptyState, StatusBadge } from "@openpromoter/ui";
-import { Coins } from "@openpromoter/ui/icons";
+import { Button, Card, CardBody, CardHeader, EmptyState, StatusBadge } from "@openpromoter/ui";
+import { ChevronLeft, ChevronRight, Coins, Download } from "@openpromoter/ui/icons";
 import { desc, eq } from "drizzle-orm";
 import { DotChart } from "@/components/charts";
 import { LedgerLine, PageHeader } from "@/components/page";
@@ -10,25 +10,38 @@ import { db } from "@/server/db";
 import { balances } from "@/server/ledger";
 import { timeseriesForPartner } from "@/server/partner-stats";
 
+const PER_PAGE = 50;
+
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
 
-export default async function PortalEarnings({ params }: { params: Promise<{ slug: string }> }) {
+export default async function PortalEarnings({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ page?: string }>;
+}) {
   const { slug } = await params;
+  const page = Math.max(1, Number.parseInt((await searchParams).page ?? "1", 10) || 1);
   const { program: p, partner: pt } = await partnerCtx(slug);
   const [rows, series, bal] = await Promise.all([
     db()
       .select()
       .from(commission)
       .where(eq(commission.partnerId, pt.id))
-      .orderBy(desc(commission.createdAt))
-      .limit(200),
+      .orderBy(desc(commission.createdAt), desc(commission.id))
+      // one extra row tells us whether an Older page exists
+      .limit(PER_PAGE + 1)
+      .offset((page - 1) * PER_PAGE),
     timeseriesForPartner(pt.id, 60),
     balances(p.id, [pt.id]),
   ]);
   const b = bal.find((x) => x.currency === p.currency) ?? { approved: 0, pending: 0, held: 0, paid: 0 };
   const m = (n: number, c = p.currency) => (n < 0 ? `−${formatMoney(-n, c)}` : formatMoney(n, c));
   const total = b.pending + b.approved + b.held + b.paid;
-  const lines = rows.filter((r) => r.amount !== 0);
+  const hasOlder = rows.length > PER_PAGE;
+  const lines = rows.slice(0, PER_PAGE).filter((r) => r.amount !== 0);
+  const pageHref = (n: number) => (n > 1 ? `?page=${n}` : "?");
   const months = new Map<string, typeof lines>();
   for (const r of lines) {
     const k = r.createdAt.toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -84,7 +97,17 @@ export default async function PortalEarnings({ params }: { params: Promise<{ slu
       </div>
 
       <Card className="mt-4">
-        <CardHeader title="Statement" description="Every commission with the newest first." />
+        <CardHeader
+          title="Statement"
+          description="Every commission with the newest first."
+          action={
+            <Button asChild size="sm">
+              <a href={`/p/${slug}/portal/earnings/csv`}>
+                <Download /> Download CSV
+              </a>
+            </Button>
+          }
+        />
         {lines.length ? (
           <div className="border-t border-border">
             {[...months].map(([month, items]) => (
@@ -123,6 +146,30 @@ export default async function PortalEarnings({ params }: { params: Promise<{ slu
                 </ul>
               </section>
             ))}
+            {page > 1 || hasOlder ? (
+              <nav
+                aria-label="Statement pages"
+                className="flex items-center justify-between border-t border-border px-5 py-3"
+              >
+                <span className="text-[13px] text-muted">Page {page}</span>
+                <span className="flex gap-2">
+                  {page > 1 ? (
+                    <Button asChild size="sm" variant="secondary">
+                      <a href={pageHref(page - 1)}>
+                        <ChevronLeft /> Newer
+                      </a>
+                    </Button>
+                  ) : null}
+                  {hasOlder ? (
+                    <Button asChild size="sm" variant="secondary">
+                      <a href={pageHref(page + 1)}>
+                        Older <ChevronRight />
+                      </a>
+                    </Button>
+                  ) : null}
+                </span>
+              </nav>
+            ) : null}
           </div>
         ) : (
           <EmptyState
