@@ -19,7 +19,11 @@ describe("security review 2026-11-08", () => {
       partnerCode: p.code,
       browser: true,
     });
-    const fromApi = await recordLead({ programId: f.program.id, email: "real@lead.test", partnerCode: p.code });
+    const fromApi = await recordLead({
+      programId: f.program.id,
+      email: "real@lead.test",
+      partnerCode: p.code,
+    });
     const rows = await db().select().from(commission).where(eq(commission.partnerId, p.id));
     const by = (refId: string) => rows.find((r) => r.referralId === refId)!;
     expect(by(fromBrowser!.id).status).toBe("held");

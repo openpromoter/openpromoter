@@ -59,10 +59,8 @@ export async function checkoutUrl(workspaceId: string, planId: PlanId, email: st
       // served by the marketing site (openpromoter-site public/icon-512.png); until it is live Checkout shows the name only
       icon: { type: "url", url: `https://${PRODUCT.domain}/icon-512.png` },
     },
-    subscription_data: {
-      metadata: { workspace_id: workspaceId, plan: planId },
-      trial_period_days: ws?.billingSubscriptionId ? undefined : 14,
-    },
+    // no trial: the Free plan already has every feature, so a paid plan is charged the day it is chosen
+    subscription_data: { metadata: { workspace_id: workspaceId, plan: planId } },
     success_url: `${env.APP_URL}${returnPath}?billing=success`,
     cancel_url: `${env.APP_URL}${returnPath}`,
   });

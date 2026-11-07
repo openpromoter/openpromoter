@@ -34,7 +34,6 @@ export async function createProgramFromUrl(
         id: wsId,
         name,
         slug: await uniqueSlug(workspace, name),
-        trialEndsAt: new Date(Date.now() + 14 * 86_400_000),
       });
     await db().insert(member).values({ workspaceId: wsId, userId, role: "owner" });
   }
