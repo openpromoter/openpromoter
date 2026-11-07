@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { expect, test } from "@playwright/test";
 import postgres from "postgres";
+import Stripe from "stripe";
 import { newFounder, PASSWORD, signIn } from "./full-settings.helpers";
 
 // Accounts made with Google or GitHub have no password. Setting one, two-factor and deleting the
@@ -65,6 +66,22 @@ test("Google-only founder deletes the account by typing DELETE", async ({ page }
   const email = `g-del-${id()}@example.test`;
   const base = await newFounder(page, "Google Delete", email, `Gdel ${id()}`);
   await asGoogleOnly(email);
+  // a paid plan in Stripe test mode: deleting the account must cancel it so the card stops being charged
+  const key = fs.readFileSync(".env.local", "utf8").match(/^PLATFORM_STRIPE_SECRET_KEY=(sk_test_\S+)$/m)?.[1];
+  const stripe = key ? new Stripe(key) : null;
+  let subId: string | null = null;
+  if (stripe) {
+    const [price] = (await stripe.prices.list({ lookup_keys: ["openpromoter_starter_monthly"] })).data;
+    const cus = await stripe.customers.create({ email, metadata: { e2e: "account-delete" } });
+    const sub = await stripe.subscriptions.create({
+      customer: cus.id,
+      items: [{ price: price!.id }],
+      trial_period_days: 14,
+    });
+    subId = sub.id;
+    await db`update workspace set plan = 'starter', billing_subscription_id = ${sub.id}, billing_customer_id = ${cus.id}
+             where id = (select workspace_id from program where id = ${base.split("/")[2]!})`;
+  }
   await page.goto(`${base}/settings/account`);
   await page.getByRole("button", { name: "Delete my account" }).click();
   await expect(page.getByRole("link", { name: "Settings > Programs" })).toHaveAttribute(
@@ -78,8 +95,10 @@ test("Google-only founder deletes the account by typing DELETE", async ({ page }
   expect(await userCount(email)).toBe(1); // the pattern blocks the wrong case
   await page.getByLabel('Type "DELETE" to confirm').fill("DELETE");
   await del.click();
-  await page.waitForURL(/\/login/);
+  await page.waitForURL(/\/login\?deleted=1/);
+  await expect(page.getByRole("status")).toContainText("Signing in again starts a new account");
   expect(await userCount(email)).toBe(0);
+  if (stripe && subId) expect((await stripe.subscriptions.retrieve(subId)).status).toBe("canceled");
   const progs = await db`select count(*)::int as n from program where id = ${base.split("/")[2]!}`;
   expect(progs[0]!.n).toBe(0);
 });

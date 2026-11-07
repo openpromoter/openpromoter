@@ -77,3 +77,18 @@ export async function portalUrl(workspaceId: string, returnPath = "/app") {
   });
   return s.url;
 }
+
+/** Ends a workspace's plan at once, used when the workspace itself is deleted so the card stops being charged. */
+export async function cancelPlan(workspaceId: string) {
+  if (!env.PLATFORM_STRIPE_SECRET_KEY) return;
+  const [ws] = await db().select().from(workspace).where(eq(workspace.id, workspaceId));
+  if (!ws?.billingSubscriptionId) return;
+  const stripe = stripeClient(env.PLATFORM_STRIPE_SECRET_KEY);
+  try {
+    const sub = await stripe.subscriptions.retrieve(ws.billingSubscriptionId);
+    if (sub.status !== "canceled") await stripe.subscriptions.cancel(sub.id);
+  } catch (e) {
+    // already gone in Stripe: nothing left to charge
+    if ((e as { code?: string }).code !== "resource_missing") throw e;
+  }
+}

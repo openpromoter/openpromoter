@@ -273,7 +273,7 @@ export function AccountView({
               setLoading(true);
               const r = await authClient.deleteUser({
                 ...(hasPassword ? { password: String(f.get("password")) } : {}),
-                callbackURL: "/login",
+                callbackURL: "/login?deleted=1",
               });
               setLoading(false);
               if (r.error)
@@ -282,7 +282,7 @@ export function AccountView({
                     ? "For your safety, sign out and sign in again, then delete within a day."
                     : (r.error.message ?? "Couldn't delete the account"),
                 );
-              window.location.href = "/login";
+              window.location.href = "/login?deleted=1";
             }}
           >
             <p className="text-[13px] text-fg">

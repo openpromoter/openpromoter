@@ -21,12 +21,14 @@ export function LoginForm({
   twoFactor,
   social,
   initialError,
+  notice,
   captcha,
 }: {
   next: string;
   twoFactor: boolean;
   social: Social[];
   initialError: string | null;
+  notice?: string | null;
   captcha?: string;
 }) {
   const router = useRouter();
@@ -113,6 +115,11 @@ export function LoginForm({
             <Captcha siteKey={captcha} />
           </>
         )}
+        {notice && !error ? (
+          <p role="status" className="rounded-md bg-surface-2 px-3 py-2 text-[13px] leading-5 text-fg">
+            {notice}
+          </p>
+        ) : null}
         {error ? (
           <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-[13px] leading-5 text-danger">
             {error}

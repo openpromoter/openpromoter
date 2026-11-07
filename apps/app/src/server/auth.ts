@@ -17,6 +17,7 @@ import { captcha, twoFactor as twoFactorPlugin } from "better-auth/plugins";
 import { and, eq, isNotNull, ne } from "drizzle-orm";
 import { headers } from "next/headers";
 import { PRODUCT } from "@/lib/config";
+import { cancelPlan } from "./billing-plans";
 import { captchaSiteKey, isAppHost } from "./captcha";
 import { cloudflareOn, removeHostname } from "./custom-hostnames";
 import { db } from "./db";
@@ -124,6 +125,8 @@ export const auth = betterAuth({
             .select({ d: program.customDomain })
             .from(program)
             .where(and(eq(program.workspaceId, ws), isNotNull(program.customDomain)));
+          // stop the paid plan first: if Stripe refuses, the account stays and the error is shown
+          await cancelPlan(ws);
           await db().delete(workspace).where(eq(workspace.id, ws));
           // same cleanup as deleting one program: free the founder's domain certificate on Cloudflare
           if (cloudflareOn()) for (const { d } of domains) await removeHostname(d!).catch(() => {});

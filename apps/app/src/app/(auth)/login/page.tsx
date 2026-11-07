@@ -18,7 +18,7 @@ const OAUTH_ERROR: Record<string, string> = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; "2fa"?: string; error?: string }>;
+  searchParams: Promise<{ next?: string; "2fa"?: string; error?: string; deleted?: string }>;
 }) {
   const sp = await searchParams;
   const error = sp.error ? (OAUTH_ERROR[sp.error.toLowerCase()] ?? "Could not sign in. Try again.") : null;
@@ -28,6 +28,11 @@ export default async function LoginPage({
       twoFactor={sp["2fa"] === "1"}
       social={socialProviders}
       initialError={error}
+      notice={
+        sp.deleted === "1"
+          ? "Your account and its programs were deleted. Signing in again starts a new account."
+          : null
+      }
       captcha={captchaFor(await headers())}
     />
   );
