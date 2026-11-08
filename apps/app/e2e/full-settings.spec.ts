@@ -300,10 +300,13 @@ test.describe("onboarding", () => {
     await ctx.close();
   });
 
-  test("onboarding with a program id you don't own is a 404, not a 500", async ({ browser }) => {
+  test("onboarding with a program id you don't own goes to your own program, never an error", async ({
+    browser,
+  }) => {
     const { ctx, page } = await asFounder(browser, "onboarding-foreign");
     const res = await page.goto("/onboarding?program=prg_doesnotexist&step=2");
-    expect(res!.status()).toBe(404);
+    expect(res!.status()).toBe(200);
+    await page.waitForURL(new RegExp(`${programId}$`));
     await ctx.close();
   });
 });

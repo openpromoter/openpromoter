@@ -1,7 +1,7 @@
 import { billingConnection, program } from "@openpromoter/db";
 import { and, eq } from "drizzle-orm";
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { snippets } from "@/lib/install";
 import { AccessError, requireProgram } from "@/server/access";
 import { requireUser, userPrograms } from "@/server/context";
@@ -28,12 +28,13 @@ export default async function OnboardingPage({
   }
   let initial: Parameters<typeof Wizard>[0]["initial"] = null;
   if (sp.program) {
-    // someone else's (or a made-up) program id is a 404, not a crash
+    // a deleted, foreign or made-up program id (an old tab, a shared link) goes to the founder's own
+    // setup instead of a bare 404; /onboarding then opens their program or starts a fresh one
     const access = await requireProgram(u.id, sp.program, "read").catch((e) => {
       if (e instanceof AccessError) return null;
       throw e;
     });
-    if (!access) notFound();
+    if (!access) redirect("/onboarding");
     const { program: p } = access;
     const [conn] = await db()
       .select()
