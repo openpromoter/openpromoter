@@ -20,6 +20,15 @@ const schema = z.object({
   PLATFORM_STRIPE_WEBHOOK_SECRET: z.string().optional(),
   /** Customer portal configuration (bpc_...) for plan billing. Unset: the account's default portal. */
   PLATFORM_STRIPE_PORTAL_CONFIG: z.string().optional(),
+  /**
+   * India GST on Cloud plans (Stripe Tax isn't available to Indian accounts): exclusive tax rate ids.
+   * Buyers in GST_HOME_STATE pay CGST + SGST, other Indian states IGST, buyers abroad none (export under LUT).
+   * Unset: no GST is added. Read in gst.ts.
+   */
+  GST_TAX_RATE_CGST: z.string().optional(),
+  GST_TAX_RATE_SGST: z.string().optional(),
+  GST_TAX_RATE_IGST: z.string().optional(),
+  GST_HOME_STATE: z.string().default("UP"),
   /** Connect webhook on the platform account ("events on connected accounts"): sales of founders who used Connect with Stripe. */
   STRIPE_CONNECT_WEBHOOK_SECRET: z.string().optional(),
   /** Cloudflare for SaaS: issues HTTPS certificates for founders' custom domains (read in custom-hostnames.ts). */

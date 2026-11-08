@@ -1,7 +1,7 @@
 import type Stripe from "stripe";
 import { stripeClient, verifyStripe } from "@/server/billing/stripe";
 import { WebhookSignatureError } from "@/server/billing/types";
-import { applyPlanSubscription } from "@/server/billing-plans";
+import { applyPlanSubscription, syncGst } from "@/server/billing-plans";
 import { env } from "@/server/env";
 
 export const runtime = "nodejs";
@@ -25,9 +25,12 @@ export async function POST(req: Request) {
   // the Stripe account is shared with other DevDiggers products: only OpenPromoter plans carry workspace_id
   if (evt.type.startsWith("customer.subscription.") && sub.metadata?.workspace_id) {
     // events arrive in any order: read the subscription as it is now
-    if (env.PLATFORM_STRIPE_SECRET_KEY)
-      sub = await stripeClient(env.PLATFORM_STRIPE_SECRET_KEY).subscriptions.retrieve(sub.id);
+    const stripe = env.PLATFORM_STRIPE_SECRET_KEY ? stripeClient(env.PLATFORM_STRIPE_SECRET_KEY) : null;
+    if (stripe) sub = await stripe.subscriptions.retrieve(sub.id);
     await applyPlanSubscription(sub);
+    // a tax-rate problem must not block the plan change above: logged, not thrown
+    if (stripe)
+      await syncGst(stripe, sub).catch((e) => console.error(`[gst] ${sub.id}: ${(e as Error).message}`));
   }
   return Response.json({ received: true });
 }

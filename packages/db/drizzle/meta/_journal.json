@@ -92,6 +92,13 @@
       "when": 1794084784491,
       "tag": "0012_workspace_billing_status",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794146171947,
+      "tag": "0013_workspace_billing_region",
+      "breakpoints": true
     }
   ]
 }

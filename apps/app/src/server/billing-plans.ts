@@ -6,6 +6,7 @@ import { lookupKey, PLANS, type PlanId, planById } from "@/lib/plans";
 import { stripeClient } from "./billing/stripe";
 import { db } from "./db";
 import { env, isHosted } from "./env";
+import { type BillingRegion, gstOn, gstRates, regionOf, sameRates } from "./gst";
 
 export async function monthlyUsage(workspaceId: string) {
   const start = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
@@ -28,6 +29,8 @@ export async function planStatus(workspaceId: string) {
     usage,
     over: isHosted() && usage > plan.revenueLimit,
     status: ws?.billingStatus ?? null,
+    region: ws?.billingRegion ?? null,
+    gst: gstOn(),
     trialEndsAt: ws?.billingStatus === "trialing" ? ws.trialEndsAt : null,
     cancelAt: ws?.billingCancelAt ?? null,
   };
@@ -45,11 +48,31 @@ export async function checkoutUrl(workspaceId: string, planId: PlanId, email: st
   const price = prices.data[0];
   if (!price) throw new Error(`No Stripe price with lookup key ${lookupKey(planId)}`);
   const [ws] = await db().select().from(workspace).where(eq(workspace.id, workspaceId));
+  // India GST is charged from the first payment, so where the business is billed is asked before Checkout
+  if (gstOn() && !ws?.billingRegion) throw new Error("Choose where your business is billed first");
+  const tax = gstRates(ws?.billingRegion);
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: price.id, quantity: 1 }],
     customer: ws?.billingCustomerId ?? undefined,
     customer_email: ws?.billingCustomerId ? undefined : email,
+    // the address decides GST for renewals (syncGst) and a GSTIN puts the buyer's tax id on the invoice
+    billing_address_collection: "required",
+    tax_id_collection: { enabled: true },
+    ...(ws?.billingCustomerId
+      ? { customer_update: { name: "auto" as const, address: "auto" as const } }
+      : {}),
+    ...(gstOn()
+      ? {
+          custom_text: {
+            submit: {
+              message: tax.length
+                ? "18% GST is added to each payment (CGST and SGST in Uttar Pradesh, IGST in other states)."
+                : "No GST outside India. Indian businesses pay 18% GST on top.",
+            },
+          },
+        }
+      : {}),
     client_reference_id: workspaceId,
     // The Stripe account is shared with other DevDiggers products: name this checkout without changing theirs.
     // Receipts and the terms line still show the legal seller, DevDiggers Technologies.
@@ -60,7 +83,10 @@ export async function checkoutUrl(workspaceId: string, planId: PlanId, email: st
       icon: { type: "url", url: `https://${PRODUCT.domain}/icon-512.png` },
     },
     // no trial: the Free plan already has every feature, so a paid plan is charged the day it is chosen
-    subscription_data: { metadata: { workspace_id: workspaceId, plan: planId } },
+    subscription_data: {
+      metadata: { workspace_id: workspaceId, plan: planId },
+      ...(tax.length ? { default_tax_rates: tax } : {}),
+    },
     success_url: `${env.APP_URL}${returnPath}?billing=success`,
     cancel_url: `${env.APP_URL}${returnPath}`,
   });
@@ -126,4 +152,28 @@ export async function applyPlanSubscription(sub: Stripe.Subscription) {
     })
     .where(eq(workspace.id, ws.id));
   return true;
+}
+
+export async function setBillingRegion(workspaceId: string, region: BillingRegion) {
+  await db().update(workspace).set({ billingRegion: region }).where(eq(workspace.id, workspaceId));
+}
+
+/**
+ * After Checkout: the address the buyer typed is what counts for GST. If it falls in another region than
+ * the one chosen in the app, renewals get the right rates and the workspace is corrected. The first
+ * invoice already used the chosen region; the 18% total is the same inside India.
+ */
+export async function syncGst(stripe: Stripe, sub: Stripe.Subscription) {
+  if (!gstOn() || !["active", "trialing", "past_due"].includes(sub.status)) return;
+  const customer =
+    typeof sub.customer === "string" ? await stripe.customers.retrieve(sub.customer) : sub.customer;
+  if (!customer || customer.deleted) return;
+  const region = regionOf(customer.address);
+  if (!region) return;
+  const want = gstRates(region);
+  const have = (sub.default_tax_rates ?? []).map((r) => (typeof r === "string" ? r : r.id));
+  if (!sameRates(want, have))
+    await stripe.subscriptions.update(sub.id, { default_tax_rates: want.length ? want : ("" as never) });
+  const wsId = sub.metadata?.workspace_id;
+  if (wsId) await db().update(workspace).set({ billingRegion: region }).where(eq(workspace.id, wsId));
 }

@@ -67,6 +67,10 @@ describe("AI features without AI keys", () => {
       prices: [{ productName: "Course", unitAmount: 19900, currency: "usd", interval: null }],
     });
     expect(oneoff.commissionDuration).toBe("once");
+    // Stripe skipped, no prices known: the SaaS default, never "$0.00" amounts
+    const none = heuristicDesign({ programName: "X", prices: [] });
+    expect(none).toMatchObject({ commissionValue: 3000, commissionDuration: "months", commissionMonths: 12 });
+    expect(JSON.stringify(none.rationale)).not.toContain("$0.00");
   });
   it("reads brand facts from a page", () => {
     const html = `<html><head><title>Acme — Ship faster</title><meta name="description" content="Acme helps teams ship &amp; grow."><meta name="theme-color" content="#7c3aed"><link rel="icon" href="/favicon.png"></head><body><h1>Ship <b>faster</b></h1></body></html>`;

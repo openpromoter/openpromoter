@@ -9,10 +9,12 @@ export function PlanButton({
   programId,
   plan,
   current,
+  needsRegion = false,
 }: {
   programId: string;
   plan: string;
   current: boolean;
+  needsRegion?: boolean;
 }) {
   const [pending, start] = useTransition();
   return (
@@ -20,7 +22,8 @@ export function PlanButton({
       className="mt-4"
       variant={current ? "secondary" : "primary"}
       loading={pending}
-      disabled={plan === "free" && current}
+      disabled={(plan === "free" && current) || (needsRegion && !current)}
+      title={needsRegion && !current ? "Choose where your business is billed first" : undefined}
       onClick={() =>
         start(async () => {
           const r = current ? await billingPortalAction(programId) : await choosePlanAction(programId, plan);

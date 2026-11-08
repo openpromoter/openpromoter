@@ -75,7 +75,11 @@ export function heuristicDesign(input: DesignInput): ProgramDesign {
   let rate = 30;
   let duration: ProgramDesign["commissionDuration"] = "months";
   let months = 12;
-  if (!s.recurring) {
+  // no prices yet (Stripe skipped): most programs here sell subscriptions, so start from the SaaS default
+  const unknown = !s.recurring && s.medianOneOff === 0;
+  if (unknown) {
+    // keep 30% for 12 months
+  } else if (!s.recurring) {
     rate = s.medianOneOff >= 50_000 ? 20 : 35;
     duration = "once";
     months = 0;
@@ -94,9 +98,11 @@ export function heuristicDesign(input: DesignInput): ProgramDesign {
     ? Math.round((s.medianMonthly * rate) / 100)
     : Math.round((s.medianOneOff * rate) / 100);
 
-  const commission = s.recurring
-    ? `${rate}% of every payment. On your typical plan (${money(s.medianMonthly)}/month) a partner earns about ${money(perSale)} a month per customer. ${rate >= 30 ? "30% is the most common rate for SaaS programs and is high enough that creators take it seriously." : "A lower rate fits a high price: the absolute amount per customer is still large."}`
-    : `${rate}% of each sale. That is about ${money(perSale)} on your typical ${money(s.medianOneOff)} purchase. One-off products need a higher rate than subscriptions because there is no recurring tail.`;
+  const commission = unknown
+    ? `${rate}% of every payment. 30% is the most common rate for SaaS programs and is high enough that creators take it seriously. Connect Stripe and we tune it to your prices.`
+    : s.recurring
+      ? `${rate}% of every payment. On your typical plan (${money(s.medianMonthly)}/month) a partner earns about ${money(perSale)} a month per customer. ${rate >= 30 ? "30% is the most common rate for SaaS programs and is high enough that creators take it seriously." : "A lower rate fits a high price: the absolute amount per customer is still large."}`
+      : `${rate}% of each sale. That is about ${money(perSale)} on your typical ${money(s.medianOneOff)} purchase. One-off products need a higher rate than subscriptions because there is no recurring tail.`;
   const durationText =
     duration === "lifetime"
       ? "For as long as the customer pays. With a low price, a lifetime share is what makes it worth a partner's effort. Your cost stays a fixed slice of revenue."

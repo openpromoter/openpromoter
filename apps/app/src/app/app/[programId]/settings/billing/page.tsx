@@ -6,6 +6,7 @@ import { aiBudget } from "@/server/ai/provider";
 import { planStatus } from "@/server/billing-plans";
 import { programCtx } from "@/server/context";
 import { PlanButton } from "./plan-button";
+import { BillingRegion } from "./region";
 
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
@@ -93,6 +94,9 @@ export default async function BillingPage({
           ) : null}
         </CardBody>
       </Card>
+      {s.hosted && s.gst && role === "owner" ? (
+        <BillingRegion programId={programId} region={s.region} />
+      ) : null}
       <div className="grid gap-3 md:grid-cols-4">
         {PLANS.map((pl) => (
           <Card key={pl.id} className={`flex flex-col p-5 ${pl.id === s.plan.id ? "border-accent" : ""}`}>
@@ -110,7 +114,12 @@ export default async function BillingPage({
               ))}
             </ul>
             {role === "owner" ? (
-              <PlanButton programId={programId} plan={pl.id} current={pl.id === s.plan.id} />
+              <PlanButton
+                programId={programId}
+                plan={pl.id}
+                current={pl.id === s.plan.id}
+                needsRegion={s.hosted && s.gst && !s.region}
+              />
             ) : null}
           </Card>
         ))}

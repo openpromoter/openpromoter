@@ -38,7 +38,24 @@ async function until(base: string, ok: (w: Ws) => boolean, what: string) {
 }
 
 /** Fills the hosted Stripe Checkout page with a test card, the way a founder would. */
-async function pay(page: Page, card: string) {
+type Addr = { country: string; line1: string; city: string; zip: string; state: string };
+const US: Addr = { country: "US", line1: "1 Test Street", city: "San Francisco", zip: "94103", state: "CA" };
+const IN_MH: Addr = {
+  country: "IN",
+  line1: "1 Marine Drive",
+  city: "Mumbai",
+  zip: "400001",
+  state: "Maharashtra",
+};
+const IN_UP: Addr = {
+  country: "IN",
+  line1: "548 Sector 12D",
+  city: "Agra",
+  zip: "282007",
+  state: "Uttar Pradesh",
+};
+
+async function pay(page: Page, card: string, a: Addr = US) {
   await page.waitForURL(/checkout\.stripe\.com/, { timeout: 60_000 });
   await page.getByRole("textbox", { name: "Card number" }).fill(card);
   await page.getByRole("textbox", { name: "Expiration" }).fill("12 / 34");
@@ -47,25 +64,38 @@ async function pay(page: Page, card: string) {
   // a returning customer already has an address on file, and Checkout then asks for none
   const country = page.getByRole("combobox", { name: "Country or region" });
   if (await country.isVisible().catch(() => false)) {
-    await country.selectOption("US");
+    await country.selectOption(a.country);
     const manual = page.getByRole("button", { name: "Enter address manually" });
     if (await manual.isVisible().catch(() => false)) await manual.click();
     for (const [name, v] of [
-      [/Address line 1/, "1 Test Street"],
-      [/City/, "San Francisco"],
-      [/ZIP/, "94103"],
+      [/Address line 1/, a.line1],
+      [/City/, a.city],
+      [/ZIP|PIN|Postal/i, a.zip],
     ] as const) {
       const f = page.getByRole("textbox", { name });
       if ((await f.isVisible().catch(() => false)) && !(await f.inputValue())) await f.fill(v);
     }
   }
   const state = page.getByRole("combobox", { name: /State/ });
-  if (await state.isVisible().catch(() => false)) await state.selectOption("CA");
+  // US states are picked by code (CA), Indian states by name
+  if (await state.isVisible().catch(() => false))
+    await state
+      .selectOption(a.state, { timeout: 3000 })
+      .catch(() => state.selectOption({ label: a.state }, { timeout: 3000 }));
   await page.getByRole("button", { name: "Subscribe" }).click();
 }
 
-async function choose(page: Page, base: string, planName: string) {
+async function region(page: Page, label: string) {
+  const sel = page.getByRole("combobox", { name: "Billing location" });
+  if (!(await sel.isVisible().catch(() => false))) return;
+  await sel.click();
+  await page.getByRole("option", { name: label }).click();
+  await expect(sel).toContainText(label);
+}
+
+async function choose(page: Page, base: string, planName: string, where = "Outside India") {
   await page.goto(`${base}/settings/billing`);
+  await region(page, where);
   const card = page.locator("div", { has: page.getByText(planName, { exact: true }) }).filter({
     has: page.getByRole("button"),
   });
@@ -268,4 +298,71 @@ test("renewal fails, the plan is kept with a warning, a new card recovers it", a
   await page.reload();
   await expect(page.getByText(/last payment failed/)).toHaveCount(0);
   await stripe.subscriptions.cancel(subId);
+});
+
+/* ------------------------------------------------------------------ India GST */
+
+async function firstInvoice(base: string) {
+  const w = await until(base, (x) => x.plan === "starter" && x.billing_status === "active", "starter active");
+  const sub = await stripe.subscriptions.retrieve(w.billing_subscription_id!, { expand: ["latest_invoice"] });
+  const inv = sub.latest_invoice as Stripe.Invoice;
+  const taxes = (inv.total_taxes ?? []).map((t) => t.amount);
+  return { sub, inv, taxes };
+}
+
+test("GST: India, another state pays 18% IGST from the first payment", async ({ page }) => {
+  const base = await newFounder(page, "GST Other", `gst-mh-${uid()}@example.test`, `Gmh ${uid()}`);
+  await choose(page, base, "Starter", "India: another state");
+  await pay(page, "4242 4242 4242 4242", IN_MH);
+  await page.waitForURL(/billing=success/, { timeout: 60_000 });
+  const { inv, taxes } = await firstInvoice(base);
+  expect(inv.subtotal).toBe(2900);
+  expect(taxes).toEqual([522]);
+  expect(inv.total).toBe(3422);
+  expect(inv.amount_paid).toBe(3422);
+});
+
+test("GST: Uttar Pradesh pays CGST 9% + SGST 9%", async ({ page }) => {
+  const base = await newFounder(page, "GST Home", `gst-up-${uid()}@example.test`, `Gup ${uid()}`);
+  await choose(page, base, "Starter", "India: Uttar Pradesh");
+  await pay(page, "4242 4242 4242 4242", IN_UP);
+  await page.waitForURL(/billing=success/, { timeout: 60_000 });
+  const { inv, taxes } = await firstInvoice(base);
+  expect(taxes.sort()).toEqual([261, 261]);
+  expect(inv.total).toBe(3422);
+});
+
+test("GST: outside India pays no GST", async ({ page }) => {
+  const base = await newFounder(page, "GST Abroad", `gst-us-${uid()}@example.test`, `Gus ${uid()}`);
+  await choose(page, base, "Starter", "Outside India");
+  await pay(page, "4242 4242 4242 4242", US);
+  await page.waitForURL(/billing=success/, { timeout: 60_000 });
+  const { inv, taxes } = await firstInvoice(base);
+  expect(taxes).toEqual([]);
+  expect(inv.total).toBe(2900);
+});
+
+test("GST: picked Outside India but typed an Indian address, renewals get IGST", async ({ page }) => {
+  const base = await newFounder(page, "GST Mismatch", `gst-mix-${uid()}@example.test`, `Gmix ${uid()}`);
+  await choose(page, base, "Starter", "Outside India");
+  await pay(page, "4242 4242 4242 4242", IN_MH);
+  await page.waitForURL(/billing=success/, { timeout: 60_000 });
+  const { sub } = await firstInvoice(base);
+  await expect
+    .poll(
+      async () =>
+        (await stripe.subscriptions.retrieve(sub.id)).default_tax_rates?.map((r) =>
+          typeof r === "string" ? r : r.display_name,
+        ),
+      { timeout: 60_000 },
+    )
+    .toEqual(["IGST"]);
+  const [w] = await db`select w.billing_region from workspace w join program p on p.workspace_id = w.id
+                       where p.id = ${base.split("/")[2]!}`;
+  expect(w!.billing_region).toBe("in_other");
+  await page.goto(`${base}/settings/billing`);
+  await expect(page.getByRole("combobox", { name: "Billing location" })).toContainText(
+    "India: another state",
+  );
+  await stripe.subscriptions.cancel(sub.id);
 });

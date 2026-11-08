@@ -113,6 +113,8 @@ export const workspace = pgTable("workspace", {
   billingStatus: text("billing_status"),
   /** When a scheduled cancellation ends the plan. */
   billingCancelAt: ts("billing_cancel_at"),
+  /** Where the business is billed, for India GST: abroad (no GST), in_home (CGST+SGST) or in_other (IGST). */
+  billingRegion: text("billing_region").$type<"abroad" | "in_home" | "in_other">(),
   trialEndsAt: ts("trial_ends_at"),
   /** AI spend this month in micro-dollars (Cloud cap); resets when aiMonth changes. */
   aiMonth: text("ai_month"),
