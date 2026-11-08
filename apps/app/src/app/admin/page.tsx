@@ -75,7 +75,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           value={pulse.workspaces}
           sub={
             <>
-              <b>{pulse.new7}</b> new this week · <b>{pulse.users}</b> people signed up
+              <b>{pulse.new7}</b> new this week · <b>{pulse.users}</b>{" "}
+              {pulse.users === 1 ? "person" : "people"} signed up
             </>
           }
         />
@@ -101,7 +102,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <Card className="p-5">
           <h2 className="text-[14px] font-medium text-fg">Signups</h2>
           <p className="mt-0.5 text-[13px] text-muted">
-            <b className="font-medium text-fg">{pulse.new30}</b> new workspaces in the last 30 days
+            <b className="font-medium text-fg">{pulse.new30}</b> new{" "}
+            {pulse.new30 === 1 ? "workspace" : "workspaces"} in the last 30 days
           </p>
           <div className="mt-4">
             <DotChart
@@ -116,7 +118,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <Card className="p-5">
           <h2 className="text-[14px] font-medium text-fg">Activation</h2>
           <p className="mt-0.5 mb-5 text-[13px] text-muted">
-            How far each of the <b className="font-medium text-fg">{pulse.workspaces}</b> workspaces got
+            How far each of the <b className="font-medium text-fg">{pulse.workspaces}</b>{" "}
+            {pulse.workspaces === 1 ? "workspace" : "workspaces"} got
           </p>
           <BarChart data={pulse.funnel} x="step" y="count" name="Workspaces" label="Activation steps" />
         </Card>
