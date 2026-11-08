@@ -137,6 +137,16 @@ test("full life of a plan: pay, upgrade, schedule cancel, undo, cancel, pay agai
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: /confirm/i }).click();
   w = await until(base, (x) => x.plan === "growth", "growth after portal upgrade");
+  // the upgrade is charged the same day: an invoice for the difference ($79 - $29, less a few minutes) is paid
+  await expect
+    .poll(
+      async () =>
+        (await stripe.invoices.list({ subscription: w.billing_subscription_id!, limit: 5 })).data.find(
+          (i) => i.billing_reason === "subscription_update" && i.status === "paid",
+        )?.amount_paid ?? 0,
+      { timeout: 60_000 },
+    )
+    .toBeGreaterThan(4900);
 
   // 4. schedule a cancel in the portal
   await page.goto(`${base}/settings/billing`);
