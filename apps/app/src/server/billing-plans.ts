@@ -1,10 +1,11 @@
-import { commission, program, workspace } from "@openpromoter/db";
+import { commission, member, program, user, workspace } from "@openpromoter/db";
 import { and, eq, gte, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { PRODUCT } from "@/lib/config";
 import { lookupKey, PLANS, type PlanId, planById } from "@/lib/plans";
 import { stripeClient } from "./billing/stripe";
 import { db } from "./db";
+import { sendNotice } from "./email";
 import { env, isHosted } from "./env";
 import { type BillingRegion, gstOn, gstRates, regionOf, sameRates } from "./gst";
 
@@ -78,6 +79,8 @@ export async function checkoutUrl(workspaceId: string, planId: PlanId, email: st
     // Receipts and the terms line still show the legal seller, DevDiggers Technologies.
     branding_settings: {
       display_name: PRODUCT.name,
+      // the brand: white page, beacon blue button (the account default is a slate panel shared with other products)
+      background_color: "#ffffff",
       button_color: "#2442F5",
       // served by the marketing site (openpromoter-site public/icon-512.png); until it is live Checkout shows the name only
       icon: { type: "url", url: `https://${PRODUCT.domain}/icon-512.png` },
@@ -151,7 +154,67 @@ export async function applyPlanSubscription(sub: Stripe.Subscription) {
       billingCancelAt: active ? at(sub.cancel_at ?? (sub.cancel_at_period_end ? periodEnd : null)) : null,
     })
     .where(eq(workspace.id, ws.id));
+  const was = planById(ws.plan).name;
+  if (sub.status === "past_due" && ws.billingStatus !== "past_due") await tellOwners(ws.id, "failed", was);
+  else if (ws.plan !== "free" && !active)
+    await tellOwners(ws.id, ws.billingStatus === "past_due" ? "unpaid" : "ended", was);
   return true;
+}
+
+/**
+ * Mail to the workspace owners when a payment fails or a paid plan ends. Stripe's own mails come from the
+ * shared DevDiggers account, so these carry the OpenPromoter name and link to Plan & billing.
+ * Logged, not thrown: a mail problem must not undo the plan change.
+ */
+async function tellOwners(workspaceId: string, kind: "failed" | "ended" | "unpaid", plan: string) {
+  try {
+    const owners = await db()
+      .select({ email: user.email })
+      .from(member)
+      .innerJoin(user, eq(user.id, member.userId))
+      .where(and(eq(member.workspaceId, workspaceId), eq(member.role, "owner")));
+    const [prog] = await db()
+      .select({ id: program.id })
+      .from(program)
+      .where(eq(program.workspaceId, workspaceId))
+      .limit(1);
+    const href = prog ? `${env.APP_URL}/app/${prog.id}/settings/billing` : `${env.APP_URL}/app`;
+    const kept =
+      "Nothing was deleted. Your partners, links, commissions and payouts are all kept, and tracking keeps working.";
+    const mail =
+      kind === "failed"
+        ? {
+            subject: `Your ${PRODUCT.name} payment didn't go through`,
+            title: "Your payment didn't go through",
+            paragraphs: [
+              `We couldn't charge your card for the ${plan} plan. Stripe will try again over the next two weeks.`,
+              "Update your card to keep the plan. Everything keeps working in the meantime.",
+            ],
+            cta: { label: "Update card", href },
+          }
+        : {
+            subject: `Your ${PRODUCT.name} ${plan} plan has ended`,
+            title: `Your ${plan} plan has ended`,
+            paragraphs: [
+              kind === "unpaid"
+                ? "We couldn't charge your card after several tries. You're on the Free plan now."
+                : "You're on the Free plan now.",
+              kept,
+              "Free covers up to $1k a month in partner revenue and shows the OpenPromoter badge on your portal. Choose a plan again any time.",
+            ],
+            cta: { label: "Choose a plan", href },
+          };
+    for (const o of owners)
+      await sendNotice(o.email, mail.subject, {
+        brandName: PRODUCT.name,
+        preview: mail.title,
+        title: mail.title,
+        paragraphs: mail.paragraphs,
+        cta: mail.cta,
+      });
+  } catch (e) {
+    console.error(`[billing] ${kind} mail for ${workspaceId}: ${(e as Error).message}`);
+  }
 }
 
 export async function setBillingRegion(workspaceId: string, region: BillingRegion) {

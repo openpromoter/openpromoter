@@ -1,5 +1,6 @@
-import { agentAction, fraudFlag, partner, payout } from "@openpromoter/db";
+import { agentAction, fraudFlag, partner, payout, workspace } from "@openpromoter/db";
 import { and, eq, sql } from "drizzle-orm";
+import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { programCtx, userPrograms } from "@/server/context";
 import { db } from "@/server/db";
@@ -15,7 +16,7 @@ export default async function ProgramLayout({
   const ctx = await programCtx(programId);
   const programs = await userPrograms(ctx.user.id);
   const count = async (q: Promise<{ n: number }[]>) => (await q)[0]?.n ?? 0;
-  const [pending, suggestions, payouts, flags] = await Promise.all([
+  const [pending, suggestions, payouts, flags, [ws]] = await Promise.all([
     count(
       db()
         .select({ n: sql<number>`count(*)::int` })
@@ -40,7 +41,13 @@ export default async function ProgramLayout({
         .from(fraudFlag)
         .where(and(eq(fraudFlag.programId, programId), eq(fraudFlag.resolution, "open"))),
     ),
+    db()
+      .select({ status: workspace.billingStatus })
+      .from(workspace)
+      .where(eq(workspace.id, ctx.program.workspaceId)),
   ]);
+  // a failed renewal is easy to miss on the billing page alone: owners see it on every page until it is fixed
+  const failed = ws?.status === "past_due" && ctx.role === "owner";
   return (
     <AppShell
       program={{
@@ -54,6 +61,15 @@ export default async function ProgramLayout({
       role={ctx.role}
       counts={{ partners: pending, autopilot: suggestions, payouts, fraud: flags }}
     >
+      {failed ? (
+        <p className="mb-6 rounded-lg border border-border bg-warning-soft px-4 py-3 text-[13px] text-warning">
+          Your last payment didn't go through. Stripe will try again.{" "}
+          <Link href={`/app/${programId}/settings/billing`} className="font-medium underline">
+            Update your card
+          </Link>{" "}
+          to keep your plan.
+        </p>
+      ) : null}
       {children}
     </AppShell>
   );

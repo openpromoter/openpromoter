@@ -24,6 +24,11 @@ function statusLine(s: Awaited<ReturnType<typeof planStatus>>) {
     };
   if (s.status === "trialing" && s.trialEndsAt)
     return { warn: false, text: `Free trial until ${day(s.trialEndsAt)}. Your card is charged after that.` };
+  if (s.plan.id === "free" && (s.status === "canceled" || s.status === "unpaid"))
+    return {
+      warn: false,
+      text: "Your paid plan has ended. Nothing was deleted: your partners, links and payouts are all kept. Choose a plan to upgrade again.",
+    };
   if (s.status === "incomplete")
     return { warn: true, text: "Your first payment didn't go through. Choose a plan again to retry." };
   return null;
