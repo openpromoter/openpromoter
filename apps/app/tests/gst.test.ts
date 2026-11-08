@@ -35,8 +35,8 @@ vi.mock("@/server/env", async (orig) => {
   };
 });
 
-const { checkoutUrl, setBillingRegion, syncGst } = await import("@/server/billing-plans");
-const { gstRates, regionOf } = await import("@/server/gst");
+const { checkoutUrl, planStatus, setBillingRegion, syncGst } = await import("@/server/billing-plans");
+const { gstRates, outsideIndia, regionOf } = await import("@/server/gst");
 const { db } = await import("@/server/db");
 const { fixture } = await import("./helpers");
 
@@ -65,9 +65,20 @@ describe("India GST on plans", () => {
     expect(regionOf(null)).toBeNull();
   });
 
+  it("only visitors Cloudflare places outside India skip the billing location question", () => {
+    expect(outsideIndia("US")).toBe(true);
+    expect(outsideIndia("gb")).toBe(true);
+    for (const c of ["IN", "XX", "T1", "", null, undefined, "garbage"]) expect(outsideIndia(c)).toBe(false);
+  });
+
   it("Checkout waits for the billing location, then charges GST from the first payment", async () => {
     const f = await fixture();
     await expect(checkoutUrl(f.ws.id, "starter", "a@b.test")).rejects.toThrow("billed");
+    // a visitor outside India skips the question: billed abroad, no GST
+    const g = await fixture();
+    await checkoutUrl(g.ws.id, "starter", "a@b.test", "/app", true);
+    expect((lastCheckout.subscription_data as Record<string, unknown>).default_tax_rates).toBeUndefined();
+    expect((await planStatus(g.ws.id)).region).toBe("abroad");
     await setBillingRegion(f.ws.id, "in_home");
     await checkoutUrl(f.ws.id, "starter", "a@b.test");
     const sub = lastCheckout.subscription_data as Record<string, unknown>;

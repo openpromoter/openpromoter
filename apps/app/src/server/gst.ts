@@ -27,5 +27,15 @@ export function regionOf(address: Stripe.Address | null | undefined): BillingReg
   return state === home || state === `IN-${home}` || state === STATE_NAMES[home] ? "in_home" : "in_other";
 }
 
+/**
+ * True when Cloudflare places the visitor outside India (CF-IPCountry). Their business is billed abroad,
+ * so the billing location question is skipped; the address typed at Checkout still corrects renewals.
+ * Unknown (no header, XX, T1 for Tor) asks the question.
+ */
+export const outsideIndia = (country: string | null | undefined) => {
+  const c = (country ?? "").toUpperCase();
+  return /^[A-Z]{2}$/.test(c) && !["IN", "XX", "T1"].includes(c);
+};
+
 export const sameRates = (a: string[], b: string[]) =>
   a.length === b.length && [...a].sort().join() === [...b].sort().join();

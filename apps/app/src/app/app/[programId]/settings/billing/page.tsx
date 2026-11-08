@@ -1,10 +1,12 @@
 import { Badge, Card, CardBody, CardHeader, Progress } from "@openpromoter/ui";
 import { Check } from "@openpromoter/ui/icons";
+import { headers } from "next/headers";
 import { formatMoney } from "@/lib/money";
 import { PLANS } from "@/lib/plans";
 import { aiBudget } from "@/server/ai/provider";
 import { planStatus } from "@/server/billing-plans";
 import { programCtx } from "@/server/context";
+import { outsideIndia } from "@/server/gst";
 import { PlanButton } from "./plan-button";
 import { BillingRegion } from "./region";
 
@@ -47,6 +49,8 @@ export default async function BillingPage({
   const s = await planStatus(p.workspaceId);
   const ai = s.hosted ? await aiBudget(p.workspaceId) : null;
   const line = statusLine(s);
+  // GST only concerns Indian businesses: visitors Cloudflare places abroad skip the question
+  const ask = s.hosted && s.gst && !outsideIndia((await headers()).get("cf-ipcountry"));
   return (
     <>
       {paid ? (
@@ -99,9 +103,7 @@ export default async function BillingPage({
           ) : null}
         </CardBody>
       </Card>
-      {s.hosted && s.gst && role === "owner" ? (
-        <BillingRegion programId={programId} region={s.region} />
-      ) : null}
+      {ask && role === "owner" ? <BillingRegion programId={programId} region={s.region} /> : null}
       <div className="grid gap-3 md:grid-cols-4">
         {PLANS.map((pl) => (
           <Card key={pl.id} className={`flex flex-col p-5 ${pl.id === s.plan.id ? "border-accent" : ""}`}>
@@ -123,7 +125,7 @@ export default async function BillingPage({
                 programId={programId}
                 plan={pl.id}
                 current={pl.id === s.plan.id}
-                needsRegion={s.hosted && s.gst && !s.region}
+                needsRegion={ask && !s.region}
               />
             ) : null}
           </Card>

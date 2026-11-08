@@ -1,8 +1,10 @@
 "use server";
 
+import { headers } from "next/headers";
 import { z } from "zod";
 import { checkoutUrl, portalUrl, setBillingRegion } from "@/server/billing-plans";
 import { actionCtx, safe } from "@/server/context";
+import { outsideIndia } from "@/server/gst";
 
 export async function choosePlanAction(programId: string, plan: string) {
   return safe(async () => {
@@ -12,6 +14,7 @@ export async function choosePlanAction(programId: string, plan: string) {
       z.enum(["free", "starter", "growth", "scale"]).parse(plan),
       ctx.user.email,
       `/app/${programId}/settings/billing`,
+      outsideIndia((await headers()).get("cf-ipcountry")),
     );
   });
 }

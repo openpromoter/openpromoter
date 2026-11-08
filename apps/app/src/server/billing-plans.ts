@@ -37,7 +37,14 @@ export async function planStatus(workspaceId: string) {
   };
 }
 
-export async function checkoutUrl(workspaceId: string, planId: PlanId, email: string, returnPath = "/app") {
+export async function checkoutUrl(
+  workspaceId: string,
+  planId: PlanId,
+  email: string,
+  returnPath = "/app",
+  /** the visitor is outside India (Cloudflare): no location question, billed abroad */
+  outside = false,
+) {
   if (!env.PLATFORM_STRIPE_SECRET_KEY)
     throw new Error("Billing isn't configured (PLATFORM_STRIPE_SECRET_KEY)");
   const [current] = await db().select().from(workspace).where(eq(workspace.id, workspaceId));
@@ -50,8 +57,13 @@ export async function checkoutUrl(workspaceId: string, planId: PlanId, email: st
   if (!price) throw new Error(`No Stripe price with lookup key ${lookupKey(planId)}`);
   const [ws] = await db().select().from(workspace).where(eq(workspace.id, workspaceId));
   // India GST is charged from the first payment, so where the business is billed is asked before Checkout
-  if (gstOn() && !ws?.billingRegion) throw new Error("Choose where your business is billed first");
-  const tax = gstRates(ws?.billingRegion);
+  let region = ws?.billingRegion ?? null;
+  if (gstOn() && !region) {
+    if (!outside) throw new Error("Choose where your business is billed first");
+    region = "abroad";
+    await setBillingRegion(workspaceId, region);
+  }
+  const tax = gstRates(region);
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: price.id, quantity: 1 }],
@@ -82,8 +94,8 @@ export async function checkoutUrl(workspaceId: string, planId: PlanId, email: st
       // the brand: white page, beacon blue button (the account default is a slate panel shared with other products)
       background_color: "#ffffff",
       button_color: "#2442F5",
-      // served by the marketing site (openpromoter-site public/icon-512.png); until it is live Checkout shows the name only
-      icon: { type: "url", url: `https://${PRODUCT.domain}/icon-512.png` },
+      // the header logo (black bot, blue beacon) on white, padded for Stripe's round crop: public/checkout-icon.png
+      icon: { type: "url", url: `${env.APP_URL}/checkout-icon.png` },
     },
     // no trial: the Free plan already has every feature, so a paid plan is charged the day it is chosen
     subscription_data: {
