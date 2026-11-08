@@ -21,11 +21,13 @@ export function SignupForm({
   email,
   social,
   captcha,
+  via,
 }: {
   next: string;
   email: string;
   social: Social[];
   captcha?: string;
+  via?: string;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +75,7 @@ export function SignupForm({
         </>
       }
     >
-      <SocialButtons providers={social} next={next} verb="Continue with" />
+      <SocialButtons providers={social} next={next} verb="Continue with" via={via} />
       <form onSubmit={onSubmit} className="flex flex-col gap-5">
         <Field label="Name" htmlFor="name">
           <Input id="name" name="name" autoComplete="name" required className="h-10" />

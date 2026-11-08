@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { safeNext } from "@/lib/url";
 import { socialProviders } from "@/server/auth";
-import { captchaFor } from "@/server/captcha";
+import { captchaFor, isAppHost } from "@/server/captcha";
+import { env } from "@/server/env";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -34,6 +35,7 @@ export default async function LoginPage({
           : null
       }
       captcha={captchaFor(await headers())}
+      via={isAppHost(await headers()) ? undefined : env.APP_URL}
     />
   );
 }

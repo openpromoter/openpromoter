@@ -23,6 +23,7 @@ export function LoginForm({
   initialError,
   notice,
   captcha,
+  via,
 }: {
   next: string;
   twoFactor: boolean;
@@ -30,6 +31,7 @@ export function LoginForm({
   initialError: string | null;
   notice?: string | null;
   captcha?: string;
+  via?: string;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(initialError);
@@ -83,7 +85,7 @@ export function LoginForm({
         )
       }
     >
-      {twoFactor ? null : <SocialButtons providers={social} next={next} verb="Continue with" />}
+      {twoFactor ? null : <SocialButtons providers={social} next={next} verb="Continue with" via={via} />}
       <form onSubmit={onSubmit} className="flex flex-col gap-5">
         {twoFactor ? (
           <Field label="Code" htmlFor="code">

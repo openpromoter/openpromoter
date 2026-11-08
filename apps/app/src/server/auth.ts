@@ -50,9 +50,25 @@ function turnstile(): BetterAuthPlugin[] {
   ];
 }
 
+/**
+ * Partners sign in on a founder's verified custom domain (partners.acme.com), so a request from one is
+ * trusted for that host only. Unverified or unknown hosts stay refused.
+ */
+export async function customDomainOrigins(request?: Request): Promise<string[]> {
+  const host = request?.headers.get("host")?.toLowerCase();
+  if (!host || host === new URL(env.APP_URL).host || !/^[a-z0-9.-]{1,253}$/.test(host)) return [];
+  const [p] = await db()
+    .select({ id: program.id })
+    .from(program)
+    .where(and(eq(program.customDomain, host), isNotNull(program.customDomainVerifiedAt)))
+    .limit(1);
+  return p ? [`https://${host}`] : [];
+}
+
 export const auth = betterAuth({
   appName: PRODUCT.name,
   baseURL: env.APP_URL,
+  trustedOrigins: customDomainOrigins,
   secret: process.env.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db(), {
     provider: "pg",

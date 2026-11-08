@@ -50,15 +50,19 @@ export function SocialButtons({
   providers,
   next,
   verb,
+  via,
 }: {
   providers: Social[];
   next: string;
   verb: string;
+  /** On a founder's custom domain: the app's URL. Google and GitHub return to the app's own host, so sign in there. */
+  via?: string;
 }) {
   const [busy, setBusy] = useState<Social | null>(null);
   if (!providers.length) return null;
   async function go(provider: Social) {
     setBusy(provider);
+    if (via) return void (window.location.href = `${via}/login?next=${encodeURIComponent(next)}`);
     const res = await authClient.signIn.social({
       provider,
       callbackURL: next,
