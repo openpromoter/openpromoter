@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { PartnerAuthShell } from "@/app/p/[slug]/partner-auth-shell";
 import { safeNext } from "@/lib/url";
 import { socialProviders } from "@/server/auth";
 import { captchaFor, isAppHost } from "@/server/captcha";
 import { env } from "@/server/env";
+import { partnerProgram } from "@/server/partner-auth";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -22,10 +24,15 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string; "2fa"?: string; error?: string; deleted?: string }>;
 }) {
   const sp = await searchParams;
+  const h = await headers();
+  const next = safeNext(sp.next, "/app");
+  // a partner signing in to a program's portal sees that program's brand (partner-auth.ts)
+  const p = await partnerProgram(next, h);
   const error = sp.error ? (OAUTH_ERROR[sp.error.toLowerCase()] ?? "Could not sign in. Try again.") : null;
-  return (
+  const form = (
     <LoginForm
-      next={safeNext(sp.next, "/app")}
+      next={next}
+      partner={p ? { name: p.name, slug: p.slug } : undefined}
       twoFactor={sp["2fa"] === "1"}
       social={socialProviders}
       initialError={error}
@@ -34,8 +41,9 @@ export default async function LoginPage({
           ? "Your account and its programs were deleted. Signing in again starts a new account."
           : null
       }
-      captcha={captchaFor(await headers())}
-      via={isAppHost(await headers()) ? undefined : env.APP_URL}
+      captcha={captchaFor(h)}
+      via={isAppHost(h) ? undefined : env.APP_URL}
     />
   );
+  return p ? <PartnerAuthShell p={p}>{form}</PartnerAuthShell> : form;
 }

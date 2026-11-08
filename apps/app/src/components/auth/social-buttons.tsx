@@ -62,7 +62,7 @@ export function SocialButtons({
   if (!providers.length) return null;
   async function go(provider: Social) {
     setBusy(provider);
-    if (via) return void (window.location.href = `${via}/login?next=${encodeURIComponent(next)}`);
+    if (via) return window.location.assign(`${via}/login?next=${encodeURIComponent(next)}`);
     const res = await authClient.signIn.social({
       provider,
       callbackURL: next,

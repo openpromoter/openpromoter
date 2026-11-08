@@ -26,6 +26,7 @@ import { defineJob, enqueue, pruneJobs, runDueJobs } from "./jobs";
 import { matureCommissions } from "./ledger";
 import { createPayoutBatch, reconcilePayouts } from "./payouts";
 import { pruneRateLimits } from "./ratelimit";
+import { codeUrl } from "./ref-link";
 import { importStripe } from "./stripe-service";
 
 const portal = (slug: string, path = "") => `${env.APP_URL}/p/${slug}/portal${path}`;
@@ -181,7 +182,7 @@ export function registerJobs() {
       preview: "Your application was approved",
       title: "Your partner account is ready",
       paragraphs: [
-        `Your partner account for ${row.prog.name} is ready. Your link is ${env.APP_URL}/r/${row.prog.slug}/${row.pt.code}.`,
+        `Your partner account for ${row.prog.name} is ready. Your link is ${codeUrl(row.prog, row.pt.code)}.`,
         "Add a payout method in the portal so we can pay you. Then grab ready-made posts from the content kit.",
       ],
       cta: { label: "Open your portal", href: portal(row.prog.slug) },

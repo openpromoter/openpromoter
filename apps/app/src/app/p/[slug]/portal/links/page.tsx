@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/page";
 import { partnerCtx } from "@/server/context";
 import { db } from "@/server/db";
 import { env } from "@/server/env";
+import { linkUrl } from "@/server/ref-link";
 import { PartnerLinks } from "./client";
 
 export default async function PortalLinks({ params }: { params: Promise<{ slug: string }> }) {
@@ -47,7 +48,7 @@ export default async function PortalLinks({ params }: { params: Promise<{ slug: 
         direct={{ clicks: direct?.clicks ?? 0, customers: direct?.customers ?? 0 }}
         links={links.map(({ l, clicks, customers }) => ({
           id: l.id,
-          url: `${env.APP_URL}/r/${slug}/l/${l.key}`,
+          url: linkUrl(p, l.key),
           destination: l.destination,
           subId: l.subId,
           label: l.label,

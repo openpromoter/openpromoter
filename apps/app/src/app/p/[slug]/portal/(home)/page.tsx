@@ -11,9 +11,9 @@ import { formatMoney, formatNumber } from "@/lib/money";
 import { durationLabel, rateLabel } from "@/lib/program-labels";
 import { partnerCtx } from "@/server/context";
 import { db } from "@/server/db";
-import { env } from "@/server/env";
 import { balances } from "@/server/ledger";
 import { timeseriesForPartner } from "@/server/partner-stats";
+import { codeUrl, linkUrl } from "@/server/ref-link";
 import { scheduleLabel } from "../../offer";
 import { PayoutSlip } from "../slip";
 import { LinkTicket } from "../ticket";
@@ -51,9 +51,7 @@ export default async function PortalHome({ params }: { params: Promise<{ slug: s
   ]);
   const b = bal.find((x) => x.currency === p.currency) ?? { approved: 0, pending: 0, held: 0, paid: 0 };
   const host = p.websiteUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
-  const short = firstLink
-    ? `${env.APP_URL}/r/${slug}/l/${firstLink.key}`
-    : `${env.APP_URL}/r/${slug}/${pt.code}`;
+  const short = firstLink ? linkUrl(p, firstLink.key) : codeUrl(p, pt.code);
   const steps = [
     {
       done: !!pt.payoutMethod && (pt.payoutMethod !== "stripe" || pt.stripePayoutsEnabled),

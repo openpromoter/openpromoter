@@ -13,7 +13,16 @@ import {
 } from "@/components/auth/captcha";
 import { authClient } from "@/lib/auth-client";
 
-export function ForgotForm({ captcha }: { captcha?: string }) {
+export function ForgotForm({
+  captcha,
+  next,
+  partner = false,
+}: {
+  captcha?: string;
+  next?: string;
+  /** Inside a program's own frame (partners): the form only. */
+  partner?: boolean;
+}) {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,10 +46,14 @@ export function ForgotForm({ captcha }: { captcha?: string }) {
   }
   return (
     <AuthCard
+      bare={partner}
       title="Reset your password"
       subtitle="We'll email you a link to choose a new one."
       footer={
-        <Link href="/login" className="font-medium text-fg hover:underline">
+        <Link
+          href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}
+          className="font-medium text-fg hover:underline"
+        >
           Back to sign in
         </Link>
       }

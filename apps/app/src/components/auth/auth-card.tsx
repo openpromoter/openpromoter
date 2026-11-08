@@ -28,14 +28,28 @@ export function AuthCard({
   children,
   footer,
   scene = "signin",
+  bare = false,
 }: {
   title: string;
   subtitle?: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
   scene?: SceneKind;
+  /** Inside a program's own frame (PartnerAuthShell): the form only, without OpenPromoter's page and panel. */
+  bare?: boolean;
 }) {
   const s = SCENE[scene];
+  if (bare)
+    return (
+      <>
+        <h1 className="text-[28px] leading-9 font-medium tracking-[-0.03em] text-fg">{title}</h1>
+        {subtitle ? <p className="mt-2 text-[14px] leading-[22px] text-muted">{subtitle}</p> : null}
+        <div className="mt-8">{children}</div>
+        {footer ? (
+          <div className="mt-8 border-t border-border pt-5 text-[13px] text-muted">{footer}</div>
+        ) : null}
+      </>
+    );
   return (
     <div className="min-h-dvh bg-surface lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
       <main className="flex min-h-dvh flex-col px-6 py-6 sm:px-10">

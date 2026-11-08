@@ -28,6 +28,7 @@ import { db } from "@/server/db";
 import { env } from "@/server/env";
 import { SIGNAL_LABELS } from "@/server/fraud";
 import { balances } from "@/server/ledger";
+import { domainOrigin } from "@/server/ref-link";
 import { LinksCard, PartnerActions, PartnerSettings, PromoCard } from "./partner-client";
 
 export default async function PartnerPage({
@@ -156,6 +157,7 @@ export default async function PartnerPage({
             slug={prog.slug}
             code={p.code}
             appUrl={env.APP_URL}
+            domain={domainOrigin(prog)}
             website={prog.websiteUrl}
             param={prog.referralParam}
             links={links.map(({ l, clicks: c }) => ({

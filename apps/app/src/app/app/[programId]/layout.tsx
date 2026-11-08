@@ -2,6 +2,7 @@ import { agentAction, fraudFlag, partner, payout, workspace } from "@openpromote
 import { and, eq, sql } from "drizzle-orm";
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
+import { isAdmin } from "@/server/admin";
 import { programCtx, userPrograms } from "@/server/context";
 import { db } from "@/server/db";
 
@@ -57,7 +58,7 @@ export default async function ProgramLayout({
         color: ctx.program.brand.color,
       }}
       programs={programs.map((p) => ({ id: p.id, name: p.name, workspaceName: p.workspaceName }))}
-      user={{ name: ctx.user.name, email: ctx.user.email }}
+      user={{ name: ctx.user.name, email: ctx.user.email, admin: isAdmin(ctx.user) }}
       role={ctx.role}
       counts={{ partners: pending, autopilot: suggestions, payouts, fraud: flags }}
     >

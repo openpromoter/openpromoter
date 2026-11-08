@@ -142,7 +142,8 @@ test.describe
         payment_intent: null,
       });
       await page.goto(`${programUrl}/commissions`);
-      await expect(page.getByText("−$70.00").first()).toBeVisible();
+      // the accepted design pays 30% for a site with no known prices: $60.00 of the $200.00 sale
+      await expect(page.getByText("−$60.00").first()).toBeVisible();
     });
 
     async function signInFounder(page: import("@playwright/test").Page) {

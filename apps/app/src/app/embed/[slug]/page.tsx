@@ -7,6 +7,7 @@ import { db } from "@/server/db";
 import { verifyEmbedToken } from "@/server/embed";
 import { env } from "@/server/env";
 import { balances } from "@/server/ledger";
+import { codeUrl, linkUrl } from "@/server/ref-link";
 import { BrandScope } from "../../p/[slug]/brand";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +54,7 @@ export default async function EmbedPage({
     balances(prog.id, [p.id]),
   ]);
   const b = bal.find((x) => x.currency === prog.currency) ?? { approved: 0, pending: 0, paid: 0, held: 0 };
-  const url = l ? `${env.APP_URL}/r/${slug}/l/${l.key}` : `${env.APP_URL}/r/${slug}/${p.code}`;
+  const url = l ? linkUrl(prog, l.key) : codeUrl(prog, p.code);
   const m = (n: number) => formatMoney(n, prog.currency);
   return (
     <BrandScope color={prog.brand.color} className="bg-surface p-4 text-[13px]">

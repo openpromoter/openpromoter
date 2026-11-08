@@ -37,6 +37,7 @@ import {
   Search,
   Settings2,
   ShieldAlert,
+  ShieldCheck,
   Sparkles,
   Sun,
   UserPlus,
@@ -63,7 +64,8 @@ interface NavItem {
 export interface ShellProps {
   program: { id: string; name: string; slug: string; color: string };
   programs: { id: string; name: string; workspaceName: string }[];
-  user: { name: string; email: string };
+  /** admin: may open the Cloud admin view (ADMIN_EMAILS). */
+  user: { name: string; email: string; admin?: boolean };
   role: string;
   counts: { partners: number; autopilot: number; payouts: number; fraud: number };
   children: React.ReactNode;
@@ -501,7 +503,7 @@ function UserMenu({
   collapsed,
   base,
 }: {
-  user: { name: string; email: string };
+  user: { name: string; email: string; admin?: boolean };
   role: string;
   collapsed: boolean;
   base: string;
@@ -535,6 +537,11 @@ function UserMenu({
         <DropdownMenuItem onSelect={() => router.push(`${base}/settings/account`)}>
           <Settings2 /> Account settings
         </DropdownMenuItem>
+        {user.admin ? (
+          <DropdownMenuItem onSelect={() => router.push("/admin")}>
+            <ShieldCheck /> Admin
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuSeparator />
         <ThemeItems />
         <DropdownMenuSeparator />

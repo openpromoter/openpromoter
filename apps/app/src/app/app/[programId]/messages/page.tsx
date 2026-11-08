@@ -4,8 +4,8 @@ import type { Metadata } from "next";
 import { formatMoney, formatNumber } from "@/lib/money";
 import { programCtx } from "@/server/context";
 import { db } from "@/server/db";
-import { env } from "@/server/env";
 import { balances } from "@/server/ledger";
+import { codeUrl } from "@/server/ref-link";
 import { MessagesView } from "./view";
 
 export const metadata: Metadata = { title: "Messages" };
@@ -105,7 +105,7 @@ export default async function MessagesPage({
       country: sel.country,
       status: sel.status === "approved" ? "active" : sel.status,
       joined: sel.createdAt.toLocaleDateString("en-US", { dateStyle: "medium" }),
-      link: `${env.APP_URL}/r/${prog.slug}/${sel.code}`,
+      link: codeUrl(prog, sel.code),
       money: [
         { label: "Owed", value: m(b.approved) },
         { label: "Pending", value: m(b.pending) },

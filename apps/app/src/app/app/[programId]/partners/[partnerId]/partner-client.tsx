@@ -135,6 +135,7 @@ export function LinksCard({
   slug,
   code,
   appUrl,
+  domain,
   website,
   param,
   links,
@@ -144,6 +145,8 @@ export function LinksCard({
   slug: string;
   code: string;
   appUrl: string;
+  /** The verified custom domain origin: links show as partners.acme.com/key. */
+  domain: string | null;
   website: string;
   param: string;
   links: L[];
@@ -162,7 +165,7 @@ export function LinksCard({
       clicks: -1,
       url: direct,
     },
-    ...links.map((l) => ({ ...l, url: `${appUrl}/r/${slug}/l/${l.key}` })),
+    ...links.map((l) => ({ ...l, url: domain ? `${domain}/${l.key}` : `${appUrl}/r/${slug}/l/${l.key}` })),
   ];
   return (
     <Card>

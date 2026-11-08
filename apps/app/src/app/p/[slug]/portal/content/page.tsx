@@ -3,7 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { PageHeader } from "@/components/page";
 import { partnerCtx } from "@/server/context";
 import { db } from "@/server/db";
-import { env } from "@/server/env";
+import { codeUrl, linkUrl } from "@/server/ref-link";
 import { PartnerContent } from "./client";
 
 export default async function PortalContent({
@@ -40,7 +40,7 @@ export default async function PortalContent({
       .from(campaign)
       .where(and(eq(campaign.programId, p.id), eq(campaign.status, "active"))),
   ]);
-  const myLink = l ? `${env.APP_URL}/r/${slug}/l/${l.key}` : `${env.APP_URL}/r/${slug}/${pt.code}`;
+  const myLink = l ? linkUrl(p, l.key) : codeUrl(p, pt.code);
   return (
     <>
       <PageHeader

@@ -24,6 +24,7 @@ export function LoginForm({
   notice,
   captcha,
   via,
+  partner,
 }: {
   next: string;
   twoFactor: boolean;
@@ -32,6 +33,8 @@ export function LoginForm({
   notice?: string | null;
   captcha?: string;
   via?: string;
+  /** Signing in to a program's partner portal: its name and slug, for the program's own wording and links. */
+  partner?: { name: string; slug: string };
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(initialError);
@@ -65,14 +68,27 @@ export function LoginForm({
 
   return (
     <AuthCard
-      title={twoFactor ? "Two-factor code" : "Welcome back"}
+      bare={!!partner}
+      title={twoFactor ? "Two-factor code" : partner ? "Sign in to your partner portal" : "Welcome back"}
       subtitle={
         twoFactor
           ? "Enter the 6-digit code from your authenticator app."
-          : "Sign in to your program dashboard or partner portal."
+          : partner
+            ? `See your link, earnings and payouts with ${partner.name}.`
+            : "Sign in to your program dashboard or partner portal."
       }
       footer={
-        twoFactor ? null : (
+        twoFactor ? null : partner ? (
+          <>
+            Not a partner yet?{" "}
+            <Link
+              className="-my-2 inline-block py-2 font-medium text-accent-text hover:underline"
+              href={`/p/${partner.slug}/apply`}
+            >
+              Apply to join
+            </Link>
+          </>
+        ) : (
           <>
             New here?{" "}
             <Link
@@ -107,7 +123,10 @@ export function LoginForm({
               label="Password"
               htmlFor="password"
               hint={
-                <Link href="/forgot" className="text-muted transition-colors hover:text-fg">
+                <Link
+                  href={partner ? `/forgot?next=${encodeURIComponent(next)}` : "/forgot"}
+                  className="text-muted transition-colors hover:text-fg"
+                >
                   Forgot password?
                 </Link>
               }

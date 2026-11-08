@@ -32,6 +32,8 @@ const schema = z.object({
   /** Connect webhook on the platform account ("events on connected accounts"): sales of founders who used Connect with Stripe. */
   STRIPE_CONNECT_WEBHOOK_SECRET: z.string().optional(),
   /** Cloudflare for SaaS: issues HTTPS certificates for founders' custom domains (read in custom-hostnames.ts). */
+  /** Comma-separated emails that may open /admin (Cloud owner view). */
+  ADMIN_EMAILS: z.string().optional(),
   CLOUDFLARE_API_TOKEN: z.string().optional(),
   CLOUDFLARE_ZONE_ID: z.string().optional(),
   /** Hostname founders CNAME to (defaults to the APP_URL host). */

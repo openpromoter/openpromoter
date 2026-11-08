@@ -148,7 +148,7 @@ test("00 setup: founder A, program A on a local static site, Stripe webhook secr
   await page.getByRole("button", { name: "Connect" }).first().click();
   await expect(page.getByText("Webhook secret missing")).toHaveCount(0);
 
-  // default tier pays 35%; 10% recruiter override, 30-day cookie, last click, $10 minimum payout
+  // default tier pays 30% (the design's rate for a site with no known prices); 10% recruiter override, 30-day cookie, last click, $10 minimum payout
   // workaround: with any duration but "months" the Months input is disabled and the save fails (see test 90)
   await saveProgram(page, programPath, async (p) => {
     await choose(p, "#commissionDuration", "Recurring for N months");
@@ -953,7 +953,7 @@ async function earningsRow(page: Page, slug: string, amount: string) {
   return row.first();
 }
 
-test("41 E2E: op.js click → signup lead → Stripe invoice.paid → $70.00 pending commission in the portal", async ({
+test("41 E2E: op.js click → signup lead → Stripe invoice.paid → $60.00 pending commission in the portal", async ({
   browser,
   request,
 }) => {
@@ -979,16 +979,16 @@ test("41 E2E: op.js click → signup lead → Stripe invoice.paid → $70.00 pen
   await stripeEvent(request, s.webhookUrl, "invoice.paid", invoice(id, buyer, 20000));
 
   const p = await partnerAs(browser, "p1");
-  const row = await earningsRow(p.page, s.slug, "$70.00");
+  const row = await earningsRow(p.page, s.slug, "$60.00");
   await expect(row).toContainText("Pending");
   await p.page.goto(`/p/${s.slug}/portal`);
-  await expect(p.page.getByText("$70").first()).toBeVisible();
+  await expect(p.page.getByText("$60").first()).toBeVisible();
   await expect(p.page.getByText("became paying customers")).toBeVisible();
   // replaying the same Stripe event id is idempotent
   await p.ctx.close();
 });
 
-test("42 two-tier: sub-partner's sale pays them 35% and the recruiter a 10% override", async ({
+test("42 two-tier: sub-partner's sale pays them 30% and the recruiter a 10% override", async ({
   browser,
   request,
 }) => {
@@ -1013,14 +1013,14 @@ test("42 two-tier: sub-partner's sale pays them 35% and the recruiter a 10% over
   await stripeEvent(request, s.webhookUrl, "invoice.paid", invoice(id, email, 10000));
 
   const sub = await partnerAs(browser, "sub");
-  await expect(await earningsRow(sub.page, s.slug, "$35.00")).toContainText("Pending");
+  await expect(await earningsRow(sub.page, s.slug, "$30.00")).toContainText("Pending");
   await sub.ctx.close();
 
   const p1 = await partnerAs(browser, "p1");
-  await earningsRow(p1.page, s.slug, "$3.50");
+  await earningsRow(p1.page, s.slug, "$3.00");
   await p1.page.goto(`/p/${s.slug}/portal/recruits`);
-  await expect(p1.page.getByText("You've earned $3.50 from their sales.", { exact: false })).toBeVisible();
-  await expect(p1.page.locator("li", { hasText: "Sam Sub" })).toContainText("$3.50");
+  await expect(p1.page.getByText("You've earned $3.00 from their sales.", { exact: false })).toBeVisible();
+  await expect(p1.page.locator("li", { hasText: "Sam Sub" })).toContainText("$3.00");
   await p1.ctx.close();
 });
 
@@ -1056,7 +1056,7 @@ test("51 founder pays the commission; the partner sees the payout and its self-b
   const page = f.page;
   page.on("dialog", (d) => d.accept(d.type() === "prompt" ? "bank-ref-qa" : undefined));
   await page.goto(`${s.programPath}/commissions?status=pending`);
-  const row = page.getByRole("row", { name: /Paula One/ }).filter({ hasText: "$70.00" });
+  const row = page.getByRole("row", { name: /Paula One/ }).filter({ hasText: "$60.00" });
   await row.getByRole("checkbox").check();
   await page
     .getByRole("toolbar", { name: "Bulk actions" })
@@ -1073,12 +1073,12 @@ test("51 founder pays the commission; the partner sees the payout and its self-b
 
   const { ctx, page: pp } = await partnerAs(browser, "p1");
   await pp.goto(`/p/${s.slug}/portal/payouts`);
-  const hist = pp.locator("li", { hasText: "$70.00" }).filter({ hasText: "Invoice" });
+  const hist = pp.locator("li", { hasText: "$60.00" }).filter({ hasText: "Invoice" });
   await expect(hist).toBeVisible();
   const href = (await hist.getByRole("link", { name: "Invoice" }).getAttribute("href"))!;
   expect(href).toMatch(new RegExp(`^/p/${s.slug}/portal/payouts/[A-Za-z0-9_]+$`));
   await pp.goto(href);
-  await expect(pp.getByText("$70.00").first()).toBeVisible();
+  await expect(pp.getByText("$60.00").first()).toBeVisible();
   await expect(pp.getByText("Paula One").first()).toBeVisible();
   patchState((st) => {
     (st as Record<string, unknown>).payoutId = href.split("/").pop();

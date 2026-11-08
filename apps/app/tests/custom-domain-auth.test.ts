@@ -28,3 +28,35 @@ describe("sign-in on custom domains", () => {
     expect(await customDomainOrigins(undefined)).toEqual([]);
   });
 });
+
+describe("partner pages on custom domains", () => {
+  it("sign-in finds the program from next or from a verified custom domain", async () => {
+    const { partnerProgram } = await import("@/server/partner-auth");
+    const f = await fixture();
+    const host = `ref-${Date.now()}.example.test`;
+    const h = (hst: string) => new Headers({ host: hst });
+    const app = new URL(env.APP_URL).host;
+    expect((await partnerProgram(`/p/${f.program.slug}/portal`, h(app)))?.id).toBe(f.program.id);
+    expect(await partnerProgram("/app", h(app))).toBeNull();
+    await db().update(program).set({ customDomain: host }).where(eq(program.id, f.program.id));
+    expect(await partnerProgram("/app", h(host))).toBeNull();
+    await db()
+      .update(program)
+      .set({ customDomainVerifiedAt: new Date() })
+      .where(eq(program.id, f.program.id));
+    expect((await partnerProgram("/app", h(`${host}:443`)))?.id).toBe(f.program.id);
+  });
+
+  it("referral links use the verified custom domain", async () => {
+    const { codeUrl, linkUrl } = await import("@/server/ref-link");
+    const p = {
+      slug: "acme",
+      customDomain: "partners.acme.test",
+      customDomainVerifiedAt: null as Date | null,
+    };
+    expect(linkUrl(p, "maya1")).toBe(`${env.APP_URL}/r/acme/l/maya1`);
+    p.customDomainVerifiedAt = new Date();
+    expect(linkUrl(p, "maya1")).toBe("https://partners.acme.test/maya1");
+    expect(codeUrl(p, "maya")).toBe("https://partners.acme.test/r/acme/maya");
+  });
+});
