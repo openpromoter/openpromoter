@@ -22,6 +22,7 @@ import { encrypt, randomToken, sha256 } from "@/lib/crypto";
 import { createId } from "@/lib/id";
 import { toMinor } from "@/lib/money";
 import { API_SCOPES } from "@/lib/scopes";
+import { subdomainRoot } from "@/lib/subdomain";
 import { HTTP_URL } from "@/lib/url";
 import { assertPublicUrl, fetchSite } from "@/server/ai/brand";
 import { audit } from "@/server/audit";
@@ -306,6 +307,9 @@ export async function setDomainAction(programId: string, domain: string) {
       .replace(/\/.*$/, "");
     if (d && !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d))
       throw new Error("Enter a domain like partners.yourapp.com");
+    const root = subdomainRoot();
+    if (d && root && (d === root || d.endsWith(`.${root}`)))
+      throw new Error(`Use a domain you own. Your program already has a free address on ${root}.`);
     const old = ctx.program.customDomain;
     if (d && d !== old) {
       const [taken] = await db()

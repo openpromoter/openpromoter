@@ -21,6 +21,7 @@ export function BrandingForm({
   brand,
   name,
   publicUrl,
+  freeAddress,
   domain,
   verified,
   cnameTarget,
@@ -36,6 +37,8 @@ export function BrandingForm({
   brand: { color: string; logoUrl: string; headline: string; description: string };
   name: string;
   publicUrl: string;
+  /** acme.openpromoter.com when free subdomains are on */
+  freeAddress: string | null;
   domain: string | null;
   verified: boolean;
   cnameTarget: string;
@@ -147,7 +150,11 @@ export function BrandingForm({
       </SettingsCard>
       <SettingsCard
         title="Custom domain"
-        description={`Host the program page and portal on your own domain such as partners.yourapp.com. Add a CNAME record pointing to ${cnameTarget}.`}
+        description={
+          freeAddress
+            ? `Your program page and portal already live at ${freeAddress} for free. To use your own domain such as partners.yourapp.com, add a CNAME record pointing to ${cnameTarget}.`
+            : `Host the program page and portal on your own domain such as partners.yourapp.com. Add a CNAME record pointing to ${cnameTarget}.`
+        }
       >
         <form
           className="flex gap-2"

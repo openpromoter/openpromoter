@@ -1,4 +1,5 @@
 import { PROGRAM_CATEGORIES } from "@openpromoter/db";
+import { subdomainOrigin } from "@/lib/subdomain";
 import { programCtx } from "@/server/context";
 import { cloudflareOn, cnameTarget } from "@/server/custom-hostnames";
 import { env } from "@/server/env";
@@ -21,6 +22,10 @@ export default async function BrandingSettings({ params }: { params: Promise<{ p
       name={p.name}
       publicUrl={programUrl(p)}
       domain={p.customDomain}
+      // a verified custom domain is the program's one address (its subdomain redirects there)
+      freeAddress={
+        p.customDomainVerifiedAt ? null : (subdomainOrigin(p.slug)?.replace(/^https?:\/\//, "") ?? null)
+      }
       verified={!!p.customDomainVerifiedAt}
       cnameTarget={cnameTarget()}
       autoHttps={cloudflareOn()}

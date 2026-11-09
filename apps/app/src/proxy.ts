@@ -1,11 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { subdomainRoot, subdomainSlug } from "./lib/subdomain";
 
 /**
  * Custom domain → program slug, cached per process. A trigger bumps kv 'domains:version' whenever a program's
  * domain or slug changes (migration 0002); each replica polls that row at most every 5s and drops its cache
  * when it moves, so a domain change reaches every replica within seconds. Entries also expire after 5 minutes.
  */
-const cache = new Map<string, { slug: string | null; at: number }>();
+const cache = new Map<string, { slug: string | null; home: string | null; at: number }>();
 const MAX_ENTRIES = 10_000;
 const TTL = 5 * 60_000;
 const VERSION_EVERY = 5_000;
@@ -34,42 +35,59 @@ async function syncVersion() {
   version = { value: v, checkedAt: version.checkedAt };
 }
 
-async function slugFor(host: string): Promise<string | null> {
+/**
+ * The program a host serves: a verified custom domain, or a free subdomain (acme.openpromoter.com). `home` is set
+ * when a subdomain's program also has a verified custom domain: that domain is its one address, so we redirect.
+ */
+async function programFor(host: string): Promise<{ slug: string | null; home: string | null }> {
   await syncVersion().catch(() => {});
   const hit = cache.get(host);
-  if (hit && Date.now() - hit.at < TTL) return hit.slug;
+  if (hit && Date.now() - hit.at < TTL) return hit;
   const { db: d, schema, orm } = await db();
+  const sub = subdomainSlug(host);
   const [p] = await d()
-    .select({ slug: schema.program.slug })
+    .select({
+      slug: schema.program.slug,
+      domain: schema.program.customDomain,
+      verified: schema.program.customDomainVerifiedAt,
+    })
     .from(schema.program)
     .where(
-      orm.and(
-        orm.eq(schema.program.customDomain, host),
-        orm.isNotNull(schema.program.customDomainVerifiedAt),
-      ),
+      sub
+        ? orm.eq(schema.program.slug, sub)
+        : orm.and(
+            orm.eq(schema.program.customDomain, host),
+            orm.isNotNull(schema.program.customDomainVerifiedAt),
+          ),
     );
+  const r = { slug: p?.slug ?? null, home: sub && p?.domain && p.verified ? p.domain : null };
   // bounded: random Host headers can't grow the map without limit
   if (cache.size >= MAX_ENTRIES) cache.delete(cache.keys().next().value!);
-  cache.set(host, { slug: p?.slug ?? null, at: Date.now() });
-  return p?.slug ?? null;
+  cache.set(host, { ...r, at: Date.now() });
+  return r;
 }
 
-/** Custom domains: partners.yourapp.com → program page, portal and short links. */
+/** Custom domains (partners.yourapp.com) and free subdomains (acme.openpromoter.com) → program page, portal and short links. */
 export async function proxy(req: NextRequest) {
   const host = req.headers.get("host") ?? "";
   if (!host || host === appHost() || host.startsWith("localhost") || host.startsWith("127.0.0.1"))
     return NextResponse.next();
   const name = host.split(":")[0]!.toLowerCase();
   if (!/^[a-z0-9.-]{1,253}$/.test(name)) return NextResponse.next();
-  const slug = await slugFor(name);
+  const { slug, home } = await programFor(name);
+  // under the subdomain root, only programs answer: a typo or a reserved name is not the app
+  const root = subdomainRoot();
+  if (!slug && root && name.endsWith(`.${root}`)) return new NextResponse("Not found", { status: 404 });
   if (!slug) return NextResponse.next();
   const path = req.nextUrl.pathname;
+  if (home) return NextResponse.redirect(new URL(path + req.nextUrl.search, `https://${home}`), 308);
   // the program lives at this domain's root: old /p/<slug>/... links land on the clean path. Built from the
   // Host header, since behind the tunnel the request URL carries the internal host.
   const own =
     path === `/p/${slug}` || path.startsWith(`/p/${slug}/`) ? path.slice(slug.length + 3) || "/" : null;
   if (own) {
-    const proto = req.headers.get("x-forwarded-proto")?.split(",")[0] ?? req.nextUrl.protocol.replace(":", "");
+    const proto =
+      req.headers.get("x-forwarded-proto")?.split(",")[0] ?? req.nextUrl.protocol.replace(":", "");
     return NextResponse.redirect(new URL(own + req.nextUrl.search, `${proto}://${host}`), 307);
   }
   if (/^\/(api|_next|op\.js|favicon|login|signup|forgot|reset)/.test(path)) return NextResponse.next();

@@ -17,6 +17,7 @@ import { captcha, twoFactor as twoFactorPlugin } from "better-auth/plugins";
 import { and, eq, isNotNull, ne } from "drizzle-orm";
 import { headers } from "next/headers";
 import { PRODUCT } from "@/lib/config";
+import { subdomainOrigin, subdomainSlug } from "@/lib/subdomain";
 import { cancelPlan } from "./billing-plans";
 import { captchaSiteKey, isAppHost } from "./captcha";
 import { cloudflareOn, removeHostname } from "./custom-hostnames";
@@ -56,7 +57,13 @@ function turnstile(): BetterAuthPlugin[] {
  */
 export async function customDomainOrigins(request?: Request): Promise<string[]> {
   const host = request?.headers.get("host")?.toLowerCase();
-  if (!host || host === new URL(env.APP_URL).host || !/^[a-z0-9.-]{1,253}$/.test(host)) return [];
+  if (!host || host === new URL(env.APP_URL).host || !/^[a-z0-9.:-]{1,260}$/.test(host)) return [];
+  // a program's free subdomain (acme.openpromoter.com): trusted when that program exists
+  const sub = subdomainSlug(host);
+  if (sub) {
+    const [p] = await db().select({ id: program.id }).from(program).where(eq(program.slug, sub)).limit(1);
+    return p ? [subdomainOrigin(sub)!] : [];
+  }
   const [p] = await db()
     .select({ id: program.id })
     .from(program)

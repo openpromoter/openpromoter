@@ -1,6 +1,7 @@
 import { billingPrice, member, partnerGroup, program, workspace } from "@openpromoter/db";
 import { and, asc, eq } from "drizzle-orm";
 import { createCode, createId, slugify } from "@/lib/id";
+import { RESERVED_SUBDOMAINS } from "@/lib/subdomain";
 import { fetchSite } from "./ai/brand";
 import { designProgram, type ProgramDesign } from "./ai/designer";
 import { type Actor, audit } from "./audit";
@@ -8,10 +9,11 @@ import { db } from "./db";
 import { enqueue } from "./jobs";
 
 async function uniqueSlug(table: typeof program | typeof workspace, base: string) {
-  let slug = slugify(base) || "program";
+  let slug = slugify(base).slice(0, 48).replace(/-+$/, "") || "program";
   for (let i = 0; i < 6; i++) {
     const [taken] = await db().select({ id: table.id }).from(table).where(eq(table.slug, slug));
-    if (!taken) return slug;
+    // a program's slug is also its free subdomain, so our own host names stay free
+    if (!taken && !(table === program && RESERVED_SUBDOMAINS.has(slug))) return slug;
     slug = `${slugify(base).slice(0, 30)}-${createCode(4)}`;
   }
   return `${slug}-${createCode(6)}`;

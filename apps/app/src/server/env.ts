@@ -36,6 +36,8 @@ const schema = z.object({
   ADMIN_EMAILS: z.string().optional(),
   CLOUDFLARE_API_TOKEN: z.string().optional(),
   CLOUDFLARE_ZONE_ID: z.string().optional(),
+  /** Free program subdomains: acme.<this> serves program "acme". Needs a wildcard DNS record first. */
+  PROGRAM_SUBDOMAINS: z.string().optional(),
   /** Hostname founders CNAME to (defaults to the APP_URL host). */
   CUSTOM_DOMAIN_TARGET: z.string().optional(),
   /** Cloudflare Turnstile on sign-up, sign-in, password reset and partner applications (read in captcha.ts). */
