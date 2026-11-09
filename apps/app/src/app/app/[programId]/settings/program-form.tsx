@@ -183,7 +183,7 @@ export function ProgramForm({
         </SettingsCard>
         <SettingsCard
           title="Reward for the customer"
-          description="Double-sided: give referred customers a discount. Use a Stripe coupon id so it applies at checkout."
+          description="Double-sided: offer referred customers a discount. Partners see it on the program page and in their content kit."
         >
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Discount" htmlFor="doubleSidedPercent" hint={why("doubleSided")}>
@@ -210,7 +210,11 @@ export function ProgramForm({
                 className="num"
               />
             </Field>
-            <Field label="Stripe coupon id" htmlFor="doubleSidedCoupon">
+            <Field
+              label="Stripe coupon id"
+              htmlFor="doubleSidedCoupon"
+              hint="Create the coupon in Stripe. Give each partner a code on it from their partner page, and referred customers enter that code at checkout."
+            >
               <Input
                 id="doubleSidedCoupon"
                 name="doubleSidedCoupon"

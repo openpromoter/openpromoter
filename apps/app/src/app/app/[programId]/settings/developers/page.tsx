@@ -2,7 +2,7 @@ import { apiKey, webhookDelivery, webhookEndpoint } from "@openpromoter/db";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { programCtx } from "@/server/context";
 import { db } from "@/server/db";
-import { env } from "@/server/env";
+import { env, isHosted } from "@/server/env";
 import { EVENT_TYPES } from "@/server/events";
 import { DevelopersView } from "./view";
 
@@ -34,6 +34,7 @@ export default async function DevelopersPage({ params }: { params: Promise<{ pro
     <DevelopersView
       programId={programId}
       appUrl={env.APP_URL}
+      keyPrefix={isHosted() ? "op_live_" : "op_sk_"}
       canWrite={role === "owner" || role === "admin"}
       events={[...EVENT_TYPES]}
       keys={keys.map((k) => ({

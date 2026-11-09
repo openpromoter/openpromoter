@@ -161,7 +161,7 @@ export function AutopilotView({
           <label className="flex items-start justify-between gap-4">
             <span>
               <span className="block text-[13px] font-medium text-fg">Weekly Autopilot</span>
-              <span className="block text-xs text-muted">Reviews the program every Monday.</span>
+              <span className="block text-xs text-muted">Reviews the program once a week.</span>
             </span>
             <Switch
               checked={enabled}

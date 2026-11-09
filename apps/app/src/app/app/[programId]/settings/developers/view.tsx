@@ -53,6 +53,7 @@ type D = {
 export function DevelopersView({
   programId,
   appUrl,
+  keyPrefix,
   canWrite,
   events,
   keys,
@@ -61,6 +62,8 @@ export function DevelopersView({
 }: {
   programId: string;
   appUrl: string;
+  /** op_live_ on Cloud, op_sk_ self-hosted: what new keys start with */
+  keyPrefix: string;
   canWrite: boolean;
   events: string[];
   keys: K[];
@@ -349,7 +352,7 @@ export function DevelopersView({
                   openpromoter: {
                     command: "npx",
                     args: ["-y", "openpromoter-mcp"],
-                    env: { OPENPROMOTER_API_KEY: "op_sk_...", OPENPROMOTER_URL: appUrl },
+                    env: { OPENPROMOTER_API_KEY: `${keyPrefix}...`, OPENPROMOTER_URL: appUrl },
                   },
                 },
               },
@@ -359,7 +362,7 @@ export function DevelopersView({
           />
           <CodeBlock
             label="CLI"
-            code={`npx openpromoter-cli login --url ${appUrl}\nnpx openpromoter-cli partners list --program ${programId}`}
+            code={`npx openpromoter-cli login --url ${appUrl} --key ${keyPrefix}...\nnpx openpromoter-cli partners list --program ${programId}`}
           />
         </CardBody>
       </Card>

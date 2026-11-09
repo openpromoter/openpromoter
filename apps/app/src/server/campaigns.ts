@@ -455,11 +455,14 @@ export async function contestStandings(c: typeof campaign.$inferSelect, limit = 
 }
 
 /** Ends campaigns past their end date and pays contest prizes (as pending commissions, through the normal hold). */
-export async function settleEndedCampaigns(now = new Date()) {
+/** Pays contest prizes and closes campaigns whose end date passed (`only`: just that one, for End now). */
+export async function settleEndedCampaigns(now = new Date(), only?: string) {
   const ended = await db()
     .select()
     .from(campaign)
-    .where(and(eq(campaign.status, "active"), lt(campaign.endsAt, now)));
+    .where(
+      and(eq(campaign.status, "active"), lt(campaign.endsAt, now), only ? eq(campaign.id, only) : undefined),
+    );
   for (const c of ended) {
     const [prog] = await db().select().from(program).where(eq(program.id, c.programId));
     if (prog && c.rule.kind === "contest" && !c.settledAt) {

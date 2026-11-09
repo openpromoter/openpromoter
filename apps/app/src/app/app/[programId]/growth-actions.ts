@@ -26,7 +26,13 @@ import {
   sendInvites,
 } from "@/server/ai/recruiter";
 import { audit } from "@/server/audit";
-import { type CampaignDraft, createCampaign, draftCampaign, reviewSubmission } from "@/server/campaigns";
+import {
+  type CampaignDraft,
+  createCampaign,
+  draftCampaign,
+  reviewSubmission,
+  settleEndedCampaigns,
+} from "@/server/campaigns";
 import { actionCtx, safe } from "@/server/context";
 import { db } from "@/server/db";
 import { env } from "@/server/env";
@@ -250,10 +256,18 @@ export async function createCampaignAction(
 export async function endCampaignAction(programId: string, id: string) {
   return safe(async () => {
     const ctx = await actionCtx(programId, "program.write");
-    await db()
+    // end it the way the schedule does, so a contest pays its prizes now (status "ended" alone skipped them)
+    const ended = await db()
       .update(campaign)
-      .set({ endsAt: new Date(), status: "ended" })
-      .where(and(eq(campaign.id, id), eq(campaign.programId, programId)));
+      .set({ endsAt: new Date() })
+      .where(and(eq(campaign.id, id), eq(campaign.programId, programId), eq(campaign.status, "active")))
+      .returning({ id: campaign.id });
+    if (ended.length) await settleEndedCampaigns(new Date(Date.now() + 1), id);
+    else
+      await db()
+        .update(campaign)
+        .set({ endsAt: new Date(), status: "ended" })
+        .where(and(eq(campaign.id, id), eq(campaign.programId, programId)));
     await audit(ctx.program.workspaceId, ctx.actor, "campaign.end", { type: "campaign", id });
     rv(programId, "/campaigns");
     return true;

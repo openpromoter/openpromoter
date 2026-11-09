@@ -13,7 +13,21 @@ import {
   webhookEndpoint,
   workspace,
 } from "@openpromoter/db";
-import { and, count, desc, eq, gte, ilike, isNotNull, isNull, like, lt, or, type SQL, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  isNotNull,
+  isNull,
+  like,
+  lt,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import { db } from "./db";
 
 /**
@@ -26,7 +40,11 @@ const U = sql.raw('"user"."id"');
 const P = sql.raw('"partner"."id"');
 const page = (p: number, size: number) => ({ limit: size, offset: (p - 1) * size });
 /** A search term safe for LIKE: lower case, wildcards stripped. */
-const term = (q: string) => q.trim().toLowerCase().replace(/[%_\\]/g, "");
+const term = (q: string) =>
+  q
+    .trim()
+    .toLowerCase()
+    .replace(/[%_\\]/g, "");
 
 /** Every partner on the platform, for "a partner emailed me" questions. Email searches by prefix. */
 export async function adminPartners(q: string, p: number, size = 50) {
@@ -78,7 +96,9 @@ export async function adminUsers(q: string, p: number, size = 50) {
         createdAt: user.createdAt,
         methods: sql<string>`coalesce((select string_agg(distinct ${account.providerId}, ',') from ${account} where ${account.userId} = ${U}),'')`,
         lastActive: sql<Date | null>`(select max(${session.updatedAt}) from ${session} where ${session.userId} = ${U})`,
-        workspaceId: sql<string | null>`(select ${member.workspaceId} from ${member} where ${member.userId} = ${U} limit 1)`,
+        workspaceId: sql<
+          string | null
+        >`(select ${member.workspaceId} from ${member} where ${member.userId} = ${U} limit 1)`,
         workspaces: sql<number>`(select count(*) from ${member} where ${member.userId} = ${U})::int`,
         partnerOf: sql<number>`(select count(*) from ${partner} where ${partner.userId} = ${U})::int`,
       })
@@ -137,7 +157,10 @@ export async function adminJobs(tab: string, p: number, size = 50) {
 
 /** Partner webhook deliveries that failed in the last 7 days, with the founder they belong to. */
 export async function adminWebhooks(p: number, size = 50) {
-  const where = and(eq(webhookDelivery.status, "failed"), gte(webhookDelivery.createdAt, new Date(Date.now() - 7 * DAY)));
+  const where = and(
+    eq(webhookDelivery.status, "failed"),
+    gte(webhookDelivery.createdAt, new Date(Date.now() - 7 * DAY)),
+  );
   const [rows, [total]] = await Promise.all([
     db()
       .select({

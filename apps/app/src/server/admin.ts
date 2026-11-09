@@ -29,12 +29,12 @@ import {
   sql,
 } from "drizzle-orm";
 import { notFound } from "next/navigation";
+import { DEMO } from "@/lib/demo-accounts";
 import { planById } from "@/lib/plans";
 import { currentUser } from "./context";
 import { db } from "./db";
-import { env } from "./env";
-import { DEMO } from "@/lib/demo-accounts";
 import { demoOn } from "./demo";
+import { env } from "./env";
 
 /**
  * The owner's read-only view of OpenPromoter Cloud. Only signed-in, email-verified users listed in
@@ -150,52 +150,56 @@ export async function adminWorkspaces(only?: string) {
   for (const c of conns) providers.set(c.ws, [...(providers.get(c.ws) ?? []), c.provider]);
   const month = new Date().toISOString().slice(0, 7);
   // the public demo's sample company is not a customer: kept out of every business figure
-  const demo = demoOn() ? new Set(wss.filter((w) => own.get(w.id)?.email === DEMO.email).map((w) => w.id)) : null;
-  return wss.filter((w) => !demo?.has(w.id)).map((w) => {
-    const plan = planById(w.plan);
-    const paying = w.plan !== "free" && PAYING.includes(w.billingStatus ?? "");
-    const usage = Number(rev.get(w.id)?.n ?? 0);
-    const p = prg.get(w.id);
-    const steps: Record<StepKey, boolean> = {
-      program: (p?.n ?? 0) > 0,
-      billing: providers.has(w.id),
-      tracking: (p?.tracking ?? 0) > 0,
-      partner: (prt.get(w.id)?.n ?? 0) > 0,
-      sale: sal.has(w.id),
-      paying,
-    };
-    const aiSpent = w.aiMonth === month ? w.aiSpentMicros : 0;
-    const lastActive = act.get(w.id)?.at ?? null;
-    const o = own.get(w.id);
-    return {
-      id: w.id,
-      name: w.name,
-      owner: o?.email ?? null,
-      ownerName: o?.name ?? null,
-      createdAt: w.createdAt,
-      lastActive,
-      plan,
-      paying,
-      mrr: paying ? plan.price : 0,
-      status: w.billingStatus,
-      cancelAt: w.billingCancelAt,
-      region: w.billingRegion,
-      customerId: w.billingCustomerId,
-      subscriptionId: w.billingSubscriptionId,
-      programs: p?.n ?? 0,
-      domains: p?.domains ?? 0,
-      providers: providers.get(w.id) ?? [],
-      partners: prt.get(w.id)?.n ?? 0,
-      clicks30: clk.get(w.id)?.n ?? 0,
-      sales: sal.get(w.id)?.n ?? 0,
-      usage,
-      usageShare: usage / plan.revenueLimit,
-      aiSpent,
-      aiShare: aiSpent / plan.aiBudgetMicros,
-      steps,
-      done: STEPS.filter((s) => steps[s.key]).length,
-    };
-  });
+  const demo = demoOn()
+    ? new Set(wss.filter((w) => own.get(w.id)?.email === DEMO.email).map((w) => w.id))
+    : null;
+  return wss
+    .filter((w) => !demo?.has(w.id))
+    .map((w) => {
+      const plan = planById(w.plan);
+      const paying = w.plan !== "free" && PAYING.includes(w.billingStatus ?? "");
+      const usage = Number(rev.get(w.id)?.n ?? 0);
+      const p = prg.get(w.id);
+      const steps: Record<StepKey, boolean> = {
+        program: (p?.n ?? 0) > 0,
+        billing: providers.has(w.id),
+        tracking: (p?.tracking ?? 0) > 0,
+        partner: (prt.get(w.id)?.n ?? 0) > 0,
+        sale: sal.has(w.id),
+        paying,
+      };
+      const aiSpent = w.aiMonth === month ? w.aiSpentMicros : 0;
+      const lastActive = act.get(w.id)?.at ?? null;
+      const o = own.get(w.id);
+      return {
+        id: w.id,
+        name: w.name,
+        owner: o?.email ?? null,
+        ownerName: o?.name ?? null,
+        createdAt: w.createdAt,
+        lastActive,
+        plan,
+        paying,
+        mrr: paying ? plan.price : 0,
+        status: w.billingStatus,
+        cancelAt: w.billingCancelAt,
+        region: w.billingRegion,
+        customerId: w.billingCustomerId,
+        subscriptionId: w.billingSubscriptionId,
+        programs: p?.n ?? 0,
+        domains: p?.domains ?? 0,
+        providers: providers.get(w.id) ?? [],
+        partners: prt.get(w.id)?.n ?? 0,
+        clicks30: clk.get(w.id)?.n ?? 0,
+        sales: sal.get(w.id)?.n ?? 0,
+        usage,
+        usageShare: usage / plan.revenueLimit,
+        aiSpent,
+        aiShare: aiSpent / plan.aiBudgetMicros,
+        steps,
+        done: STEPS.filter((s) => steps[s.key]).length,
+      };
+    });
 }
 
 /** Why a workspace needs the owner today, most urgent first. Empty when it is fine. */

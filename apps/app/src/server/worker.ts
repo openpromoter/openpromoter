@@ -215,38 +215,51 @@ export function registerJobs() {
       });
     }
   });
-  defineJob("reports.send", async (p) => sendProgramReport(String(p.programId), String(p.email)));
+  defineJob("reports.send", async (p) =>
+    sendProgramReport(String(p.programId), String(p.email), p.frequency === "monthly" ? "monthly" : "weekly"),
+  );
 }
 
-export async function sendProgramReport(programId: string, email: string) {
+/** The report email: the last 7 days against the 7 before, or for a monthly report the last 30 against 30. */
+export async function sendProgramReport(
+  programId: string,
+  email: string,
+  frequency: "weekly" | "monthly" = "weekly",
+) {
   const prog = await brandOf(programId);
   if (!prog) return;
   const now = new Date();
-  const r = { from: new Date(now.getTime() - 7 * 86_400_000), to: now };
+  const monthly = frequency === "monthly";
+  const r = { from: new Date(now.getTime() - (monthly ? 30 : 7) * 86_400_000), to: now };
   const cur = await overview(programId, r);
   const prev = await overview(programId, previous(r));
   const top = (await topPartners(programId, r, 3)).filter((t) => t.revenue > 0);
   const m = (n: number) => formatMoney(n, prog.currency);
   const d = (a: number, b: number) =>
-    `${delta(a, b) >= 0 ? "+" : ""}${formatPercent(delta(a, b), 0)} vs last week`;
-  await sendReport(email, `${prog.name} partners: ${m(cur.revenue)} this week`, {
-    brandName: prog.name,
-    periodLabel: `Week ending ${now.toLocaleDateString("en-US", { dateStyle: "medium", timeZone: "UTC" })}`,
-    stats: [
-      { label: "referred revenue", value: m(cur.revenue), delta: d(cur.revenue, prev.revenue) },
-      { label: "new customers", value: String(cur.customers), delta: d(cur.customers, prev.customers) },
-      { label: "clicks", value: formatNumber(cur.clicks), delta: d(cur.clicks, prev.clicks) },
-      { label: "MRR from partners", value: m(cur.mrr) },
-      { label: "owed to partners", value: m(cur.owed) },
-    ],
-    highlights: top.map((t) => `${t.name}: ${m(t.revenue)} from ${t.customers} customers`),
-    nextSteps: [
-      cur.owed > 0 ? `Approve payouts (${m(cur.owed)} owed)` : null,
-      cur.held > 0 ? `Review ${m(cur.held)} in held commissions` : null,
-      "Check Autopilot's suggestions",
-    ].filter(Boolean) as string[],
-    dashboardUrl: `${env.APP_URL}/app/${programId}`,
-  });
+    `${delta(a, b) >= 0 ? "+" : ""}${formatPercent(delta(a, b), 0)} vs the ${monthly ? "30 days" : "week"} before`;
+  const ending = now.toLocaleDateString("en-US", { dateStyle: "medium", timeZone: "UTC" });
+  await sendReport(
+    email,
+    `${prog.name} partners: ${m(cur.revenue)} ${monthly ? "in the last 30 days" : "this week"}`,
+    {
+      brandName: prog.name,
+      periodLabel: `${monthly ? "30 days" : "Week"} ending ${ending}`,
+      stats: [
+        { label: "referred revenue", value: m(cur.revenue), delta: d(cur.revenue, prev.revenue) },
+        { label: "new customers", value: String(cur.customers), delta: d(cur.customers, prev.customers) },
+        { label: "clicks", value: formatNumber(cur.clicks), delta: d(cur.clicks, prev.clicks) },
+        { label: "MRR from partners", value: m(cur.mrr) },
+        { label: "owed to partners", value: m(cur.owed) },
+      ],
+      highlights: top.map((t) => `${t.name}: ${m(t.revenue)} from ${t.customers} customers`),
+      nextSteps: [
+        cur.owed > 0 ? `Approve payouts (${m(cur.owed)} owed)` : null,
+        cur.held > 0 ? `Review ${m(cur.held)} in held commissions` : null,
+        "Check Autopilot's suggestions",
+      ].filter(Boolean) as string[],
+      dashboardUrl: `${env.APP_URL}/app/${programId}`,
+    },
+  );
 }
 
 /** Cron-like schedule. Each task runs at most once per period across all workers (kv lock). */
@@ -363,7 +376,7 @@ const SCHEDULE: { key: string; every: number; run: () => Promise<unknown> }[] = 
           await db().delete(reportSubscription).where(eq(reportSubscription.id, s.id));
           continue;
         }
-        await enqueue("reports.send", { programId: s.programId, email: s.email });
+        await enqueue("reports.send", { programId: s.programId, email: s.email, frequency: s.frequency });
         await db().update(reportSubscription).set({ lastSentAt: now }).where(eq(reportSubscription.id, s.id));
       }
     },

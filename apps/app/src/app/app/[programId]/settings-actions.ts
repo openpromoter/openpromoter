@@ -28,6 +28,7 @@ import { subdomainRoot } from "@/lib/subdomain";
 import { HTTP_URL } from "@/lib/url";
 import { assertPublicUrl, fetchSite } from "@/server/ai/brand";
 import { audit } from "@/server/audit";
+import { planStatus } from "@/server/billing-plans";
 import { actionCtx, currentUser, safe, userPrograms } from "@/server/context";
 import {
   addHostname,
@@ -38,7 +39,7 @@ import {
 } from "@/server/custom-hostnames";
 import { db } from "@/server/db";
 import { sendNotice } from "@/server/email";
-import { env } from "@/server/env";
+import { env, isHosted } from "@/server/env";
 import { EVENT_TYPES } from "@/server/events";
 import { enqueue } from "@/server/jobs";
 import { createProgramFromUrl } from "@/server/setup";
@@ -363,6 +364,11 @@ export async function setDomainAction(programId: string, domain: string) {
     if (d && root && (d === root || d.endsWith(`.${root}`)))
       throw new Error(`Use a domain you own. Your program already has a free address on ${root}.`);
     const old = ctx.program.customDomain;
+    // on Cloud a custom domain is a paid feature (Starter and up); a domain already connected keeps working
+    if (d && d !== old && isHosted() && (await planStatus(ctx.program.workspaceId)).plan.id === "free")
+      throw new Error(
+        "Custom domains come with the Starter plan and up. Upgrade in Settings > Plan & billing.",
+      );
     if (d && d !== old) {
       const [taken] = await db()
         .select({ id: program.id })

@@ -8,6 +8,9 @@ import { isHosted } from "./env";
 import { enqueue } from "./jobs";
 import { safeFetch } from "./safe-fetch";
 
+/** How many times a webhook is tried (30 s doubling backoff, capped at 6 h: about a day). */
+const WEBHOOK_TRIES = 14;
+
 export const EVENT_TYPES = [
   "partner.applied",
   "partner.approved",
@@ -46,7 +49,7 @@ export async function emitEvent(workspaceId: string, event: string, data: Record
     const payload = { id, type: event, created: Math.floor(Date.now() / 1000), data };
     await db().insert(webhookDelivery).values({ id, endpointId: ep.id, event, payload });
     // 14 tries with 30 s doubling backoff (capped at 6 h) spread over about a day, as the docs say
-    await enqueue("webhook.deliver", { deliveryId: id }, { maxAttempts: 14 });
+    await enqueue("webhook.deliver", { deliveryId: id }, { maxAttempts: WEBHOOK_TRIES });
   }
   return endpoints.length;
 }
@@ -136,7 +139,8 @@ export async function deliver(deliveryId: string) {
       attempts,
       responseStatus: status || null,
       lastError: error,
-      status: error ? (attempts >= 8 ? "failed" : "pending") : "succeeded",
+      // failed only after the last try: until then the queue retries and a later success still counts
+      status: error ? (attempts >= WEBHOOK_TRIES ? "failed" : "pending") : "succeeded",
     })
     .where(eq(webhookDelivery.id, d.id));
   if (error) throw new Error(error); // job queue retries with backoff
