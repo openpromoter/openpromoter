@@ -40,7 +40,7 @@ async function run(fn: () => Promise<void>) {
 
 const out = (v: unknown, json?: boolean) => console.log(json ? JSON.stringify(v, null, 2) : v);
 
-const program = new Command().name("openpromoter").description("OpenPromoter command line").version("0.1.1");
+const program = new Command().name("openpromoter").description("OpenPromoter command line").version("0.1.2");
 
 program
   .command("login")

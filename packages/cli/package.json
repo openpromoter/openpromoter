@@ -1,6 +1,6 @@
 {
   "name": "openpromoter-cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Command line for OpenPromoter: partners, commissions, payouts and agent-skill install",
   "keywords": [
     "affiliate",
