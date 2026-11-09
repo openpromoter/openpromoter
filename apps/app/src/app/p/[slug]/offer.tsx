@@ -30,6 +30,11 @@ export async function OfferStatement({ p, className }: { p: P; className?: strin
   const earns =
     p.commissionType === "percent" ? Math.round((example * p.commissionValue) / 10_000) : p.commissionValue;
   const rows: [string, string][] = [
+    // product rates first, right under the headline rate they replace
+    ...p.productRates.map((r): [string, string] => [
+      `On ${r.label}`,
+      rateLabel({ ...p, commissionType: r.type }, r.value),
+    ]),
     ["Paid for", termLabel(p)],
     ["Cookie window", `${p.cookieDays} days`],
     ["Refund window", `${p.holdDays} days`],

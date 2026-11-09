@@ -1,4 +1,4 @@
-import type { CampaignRule, CommissionDuration, CommissionType } from "@openpromoter/db";
+import type { CampaignRule, CommissionDuration, CommissionType, ProductRate } from "@openpromoter/db";
 
 export interface CommissionPlan {
   type: CommissionType;
@@ -49,7 +49,28 @@ export function addMonths(d: Date, months: number): Date {
   return r;
 }
 
-/** Resolve the plan for a partner: tier/group overrides the program default. */
+/**
+ * The product rate for a payment: its price id wins over its product id.
+ * ponytail: one rate per payment from its main line; split by invoice line if plan + add-on invoices need it.
+ */
+export function productRateFor(
+  rates: ProductRate[] | null | undefined,
+  payment: { priceId?: string | null; productId?: string | null },
+): ProductRate | null {
+  if (!rates?.length) return null;
+  return (
+    (payment.priceId && rates.find((r) => r.id === payment.priceId)) ||
+    (payment.productId && rates.find((r) => r.id === payment.productId)) ||
+    null
+  );
+}
+
+/**
+ * Resolve the plan for a partner. Precedence, strongest first:
+ * partner override > product rate > tier/group rate > program rate.
+ * Duration and months always come from the program. The program's later rate (commissionAfterValue)
+ * is in the program's unit, so it follows only a plan of the program's commission type.
+ */
 export function resolvePlan(
   program: {
     commissionType: CommissionType;
@@ -60,26 +81,24 @@ export function resolvePlan(
   },
   group?: { commissionType: CommissionType | null; commissionValue: number | null } | null,
   partnerOverride?: number | null,
+  product?: Pick<ProductRate, "type" | "value"> | null,
 ): CommissionPlan {
-  const overridden = group?.commissionType && group.commissionValue != null;
-  const type = overridden ? group!.commissionType! : program.commissionType;
-  const value =
-    partnerOverride != null
-      ? partnerOverride
-      : overridden
-        ? group!.commissionValue!
-        : program.commissionValue;
+  const grouped = !!group?.commissionType && group.commissionValue != null;
   // a partner override always uses the program's commission type (percent stays percent)
+  const [type, value] =
+    partnerOverride != null
+      ? [program.commissionType, partnerOverride]
+      : product
+        ? [product.type, product.value]
+        : grouped
+          ? [group!.commissionType!, group!.commissionValue!]
+          : [program.commissionType, program.commissionValue];
   return {
-    type: partnerOverride != null ? program.commissionType : type,
+    type,
     value,
     duration: program.commissionDuration,
     months: program.commissionMonths,
-    // the later rate is in the program's unit, so it only follows a plan of the same type
-    after:
-      partnerOverride != null || !overridden || type === program.commissionType
-        ? (program.commissionAfterValue ?? null)
-        : null,
+    after: type === program.commissionType ? (program.commissionAfterValue ?? null) : null,
   };
 }
 

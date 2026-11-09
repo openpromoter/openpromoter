@@ -1,9 +1,10 @@
-import { partnerGroup } from "@openpromoter/db";
-import { asc, eq } from "drizzle-orm";
+import { billingPrice, partnerGroup } from "@openpromoter/db";
+import { and, asc, eq } from "drizzle-orm";
 import type { Metadata } from "next";
+import { priceLabel } from "@/lib/program-labels";
 import { programCtx } from "@/server/context";
 import { db } from "@/server/db";
-import { ProgramForm, TiersCard } from "./program-form";
+import { ProductRatesCard, ProgramForm, TiersCard } from "./program-form";
 
 export const metadata: Metadata = { title: "Program settings" };
 
@@ -15,6 +16,12 @@ export default async function ProgramSettings({ params }: { params: Promise<{ pr
     .from(partnerGroup)
     .where(eq(partnerGroup.programId, programId))
     .orderBy(asc(partnerGroup.rank));
+  const prices = await db()
+    .select()
+    .from(billingPrice)
+    .where(and(eq(billingPrice.workspaceId, p.workspaceId), eq(billingPrice.active, true)))
+    .orderBy(asc(billingPrice.productName), asc(billingPrice.unitAmount))
+    .limit(200);
   const canWrite = role === "owner" || role === "admin";
   return (
     <>
@@ -66,6 +73,18 @@ export default async function ProgramSettings({ params }: { params: Promise<{ pr
           promoteAt: g.promoteAtRevenue != null ? String(g.promoteAtRevenue / 100) : "",
           isDefault: g.isDefault,
         }))}
+      />
+      <ProductRatesCard
+        programId={programId}
+        canWrite={canWrite}
+        currency={p.currency}
+        rates={p.productRates.map((r) => ({
+          id: r.id,
+          label: r.label,
+          type: r.type,
+          rate: r.type === "percent" ? String(r.value / 100) : (r.value / 100).toFixed(2),
+        }))}
+        prices={prices.map((x) => ({ id: x.externalId, label: priceLabel(x) }))}
       />
     </>
   );

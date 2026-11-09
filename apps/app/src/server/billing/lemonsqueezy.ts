@@ -39,6 +39,8 @@ export function normalizeLemonSqueezy(body: Json): ParsedWebhook {
           paidAt: toDate(a.created_at),
           attribution: { metadata: custom, email: a.user_email, promoCode: a.discount_code ?? null },
           description: a.first_order_item?.product_name ?? "Order",
+          priceId: a.first_order_item?.variant_id != null ? String(a.first_order_item.variant_id) : null,
+          productId: a.first_order_item?.product_id != null ? String(a.first_order_item.product_id) : null,
         });
       }
       break;

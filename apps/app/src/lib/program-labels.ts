@@ -21,3 +21,14 @@ export const durationLabel = (p: P) =>
     : p.commissionDuration === "months"
       ? `for ${p.commissionMonths} months per customer${afterLabel(p)}`
       : "on each customer's first payment";
+
+/** "Pro, $49.00/month" for a synced billing price. */
+export const priceLabel = (x: {
+  productName: string;
+  unitAmount: number | null;
+  currency: string;
+  interval: string | null;
+}) =>
+  x.unitAmount == null
+    ? x.productName
+    : `${x.productName}, ${formatMoney(x.unitAmount, x.currency)}${x.interval ? `/${x.interval}` : ""}`;

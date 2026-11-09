@@ -63,6 +63,11 @@ export function normalizeChargebee(body: Json, livemode = true): ParsedWebhook {
             email: c.customer?.email,
           },
           description: "Chargebee payment",
+          // Chargebee's price is an item price; the item (product) id isn't on the payment
+          priceId:
+            inv.line_items?.find?.((l: Json) => l.entity_type === "plan_item_price")?.entity_id ??
+            c.subscription?.subscription_items?.[0]?.item_price_id ??
+            null,
         });
       }
       break;

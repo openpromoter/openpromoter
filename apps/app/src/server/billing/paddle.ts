@@ -65,6 +65,8 @@ export function normalizePaddle(body: Json, livemode = true): ParsedWebhook {
           // webhooks carry only discount_id; it matches a partner code whose external id is that Paddle discount
           attribution: { metadata: custom, promoCode: d.discount?.code ?? d.discount_id ?? null },
           description: price.description ?? "Paddle transaction",
+          priceId: price.id ?? null,
+          productId: price.product_id ?? null,
         });
       }
       break;

@@ -362,6 +362,16 @@ export interface DoubleSided {
   stripeCouponId?: string | null;
 }
 
+/** A rate for one billing price or product. `id` is the provider's price or product id. */
+export interface ProductRate {
+  id: string;
+  /** What the founder and partners see, e.g. "Pro, $49/month". */
+  label: string;
+  type: CommissionType;
+  /** Basis points for percent, minor units of the program currency for fixed. */
+  value: number;
+}
+
 export const program = pgTable(
   "program",
   {
@@ -380,6 +390,8 @@ export const program = pgTable(
     commissionMonths: integer("commission_months").notNull().default(12),
     /** After the first commissionMonths, keep paying this rate for life (same unit as commissionValue). null = stop. */
     commissionAfterValue: integer("commission_after_value"),
+    /** Per-product rates; a payment for a listed price or product earns that rate instead of the tier or program rate. */
+    productRates: jsonb("product_rates").$type<ProductRate[]>().notNull().default([]),
     cookieDays: integer("cookie_days").notNull().default(60),
     attributionModel: text("attribution_model")
       .$type<"first_click" | "last_click">()

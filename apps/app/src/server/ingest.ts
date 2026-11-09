@@ -16,7 +16,14 @@ import { and, desc, eq, gte, inArray, isNull, like, lt, sql } from "drizzle-orm"
 import { createId } from "@/lib/id";
 import { ATTRIBUTION_ORDER, type AttributionHints, hintsFromStripe, pickClick } from "./attribution";
 import type { Attribution, BillingEvent, ParsedWebhook, Provider } from "./billing/types";
-import { computeCommission, overrideAmount, refundShare, resolvePlan, toMrr } from "./commission";
+import {
+  computeCommission,
+  overrideAmount,
+  productRateFor,
+  refundShare,
+  resolvePlan,
+  toMrr,
+} from "./commission";
 import { type AppDb, db, type Tx } from "./db";
 import { scoreReferral, selfRecruited } from "./fraud";
 import { enqueue } from "./jobs";
@@ -440,7 +447,7 @@ async function handlePayment(
     .from(campaign)
     .where(and(eq(campaign.programId, prog.id), eq(campaign.status, "active")));
 
-  const plan = resolvePlan(prog, group, p.commissionOverride);
+  const plan = resolvePlan(prog, group, p.commissionOverride, productRateFor(prog.productRates, ev));
   // a fixed commission is an amount in the program's currency, whatever the customer paid in
   const fixedOther = plan.type !== "percent" && ev.currency.toLowerCase() !== prog.currency.toLowerCase();
   const result = computeCommission(

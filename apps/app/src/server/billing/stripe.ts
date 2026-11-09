@@ -92,6 +92,9 @@ export function invoiceFields(inv: Json) {
       ...strRecord(inv.metadata),
     },
     description: line.description ?? inv.description ?? "Payment",
+    // since API 2025-03 the ids sit under pricing.price_details; before that on price (or plan)
+    priceId: id(line.pricing?.price_details?.price) ?? id(line.price) ?? id(line.plan),
+    productId: id(line.pricing?.price_details?.product) ?? id(line.price?.product) ?? id(line.plan?.product),
   };
 }
 
@@ -190,6 +193,8 @@ export async function normalizeStripe(evt: Stripe.Event, lookup: StripeLookup = 
           paidAt: toDate(o.status_transitions?.paid_at ?? o.created),
           attribution: { metadata: f.metadata, promoCode: code, email: o.customer_email },
           description: f.description,
+          priceId: f.priceId,
+          productId: f.productId,
         });
       }
       break;
