@@ -9,6 +9,7 @@ import {
   user,
 } from "@openpromoter/db";
 import { and, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { DEMO } from "@/lib/demo-accounts";
 import { formatMoney, formatNumber, formatPercent } from "@/lib/money";
 import { runAutopilot } from "./ai/autopilot";
 import { generateContentKit } from "./ai/content";
@@ -250,12 +251,18 @@ export async function sendProgramReport(programId: string, email: string) {
 
 /** Cron-like schedule. Each task runs at most once per period across all workers (kv lock). */
 const SCHEDULE: { key: string; every: number; run: () => Promise<unknown> }[] = [
-  // the public demo: built on first boot, rebuilt daily so whatever visitors saw yesterday is fresh again
+  // the public demo: built when missing, rebuilt once it is a day old, so yesterday's visits are gone.
+  // Checked every 15 minutes, so turning PUBLIC_DEMO on (or a failed build) is picked up quickly.
   {
     key: "demo.reset",
-    every: 86_400_000,
+    every: 15 * 60_000,
     run: async () => {
       if (!demoOn()) return;
+      const [p] = await db()
+        .select({ at: program.createdAt })
+        .from(program)
+        .where(eq(program.slug, DEMO.slug));
+      if (p && Date.now() - p.at.getTime() < 86_400_000) return;
       const { seed } = await import("../../scripts/seed");
       await seed({ reset: true, clicks: 40_000, conversions: 4_000, publicDemo: true });
     },
