@@ -361,9 +361,12 @@ export async function seed({
     const sources = ["youtube", "newsletter", "twitter", "blog", "linkedin", "reddit"];
     await tx.execute(sql`
       insert into click (id, program_id, partner_id, link_id, visitor_id, ip_hash, user_agent, referrer, landing_url, country, sub_id, utm, is_bot, created_at)
-      select 'clk_seed' || g, ${programId}, p.id, null, 'vis_seed' || g, md5('ip' || (g % 40000)), 'Mozilla/5.0 (Macintosh) Safari/605.1', 'https://' || (array[${sql.raw(sources.map((s) => `'${s}.com'`).join(","))}])[1 + g % 6] || '/',
-        ${prog!.websiteUrl} || '/?via=x', (array['US','GB','DE','IN','BR','FR'])[1 + g % 6], case when g % 7 = 0 then 'yt' end,
-        jsonb_build_object('utm_source', (array[${sql.raw(sources.map((s) => `'${s}'`).join(","))}])[1 + g % 6]), g % 97 = 0,
+      select 'clk_seed' || g, ${programId}, p.id, null, 'vis_seed' || g, md5('ip' || (g % 40000)), (array['Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) Mobile/15E148 Safari/604.1','Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) Safari/605.1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0','Mozilla/5.0 (Linux; Android 15; Pixel 9) Mobile Chrome/131.0','Mozilla/5.0 (iPad; CPU OS 18_1 like Mac OS X) Safari/604.1'])[1 + (g * 7) % 5],
+        'https://' || (array[${sql.raw(sources.map((s) => `'${s}.com'`).join(","))}])[1 + g % 6] || '/',
+        ${prog!.websiteUrl} || (array['/','/pricing','/features','/blog/privacy-first-analytics','/','/signup','/','/pricing'])[1 + (g * 5) % 8] || '?via=x',
+        (array['US','US','US','US','GB','GB','DE','DE','IN','IN','IN','CA','BR','FR','NL','AU','ES'])[1 + (g * 11) % 17],
+        (array[null,null,null,'yt-review','newsletter-oct','twitter-thread',null])[1 + g % 7],
+        case when g % 6 = 2 then jsonb_build_object('utm_source', 'newsletter') end, g % 97 = 0,
         now() - (power(random(), 1.3) * interval '180 days')
       from generate_series(1, ${clicks}) g
       cross join lateral (select id from seed_cdf where hi >= ((g * 0.6180339887) - floor(g * 0.6180339887)) order by hi limit 1) p`);

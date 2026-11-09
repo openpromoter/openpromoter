@@ -21,7 +21,8 @@ import {
 import { and, desc, eq, sql } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Stat } from "@/components/page";
+import { Section, Stat } from "@/components/page";
+import { TrafficPanels } from "@/components/traffic";
 import { formatMoney, formatNumber } from "@/lib/money";
 import { programCtx } from "@/server/context";
 import { db } from "@/server/db";
@@ -29,6 +30,7 @@ import { env } from "@/server/env";
 import { SIGNAL_LABELS } from "@/server/fraud";
 import { balances } from "@/server/ledger";
 import { domainOrigin } from "@/server/ref-link";
+import { trafficReport } from "@/server/traffic";
 import { LinksCard, PartnerActions, PartnerSettings, PromoCard } from "./partner-client";
 
 export default async function PartnerPage({
@@ -43,6 +45,13 @@ export default async function PartnerPage({
     .from(partner)
     .where(and(eq(partner.id, partnerId), eq(partner.programId, programId)));
   if (!p) notFound();
+  const now = new Date();
+  const traffic = await trafficReport({
+    programId,
+    partnerId,
+    from: new Date(now.getTime() - 30 * 86_400_000),
+    to: now,
+  });
   const m = (n: number) => formatMoney(n, prog.currency);
   const mw = (n: number) => formatMoney(n, prog.currency, { whole: true });
   // two-tier: who recruited this partner and how many they recruited
@@ -298,6 +307,13 @@ export default async function PartnerPage({
           ) : null}
         </div>
       </div>
+      <Section
+        className="mt-4"
+        title="Traffic"
+        description="This partner's visitors in the last 30 days: sources, countries, devices and the latest clicks."
+      >
+        <TrafficPanels t={traffic} />
+      </Section>
     </>
   );
 }

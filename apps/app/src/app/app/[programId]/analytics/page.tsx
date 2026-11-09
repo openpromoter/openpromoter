@@ -2,8 +2,9 @@ import { Button, Card, CardBody, CardHeader } from "@openpromoter/ui";
 import { Banknote, Coins, Download, MousePointerClick, UserPlus } from "@openpromoter/ui/icons";
 import type { Metadata } from "next";
 import { BarChart, DotChart } from "@/components/charts";
-import { PageHeader, Stat } from "@/components/page";
+import { PageHeader, Section, Stat } from "@/components/page";
 import { RangePicker } from "@/components/range-picker";
+import { TrafficPanels } from "@/components/traffic";
 import { formatMoney, formatNumber, formatPercent } from "@/lib/money";
 import {
   cohorts,
@@ -17,6 +18,7 @@ import {
   topSources,
 } from "@/server/analytics";
 import { programCtx } from "@/server/context";
+import { trafficReport } from "@/server/traffic";
 import { ReportSubscribe } from "./subscribe";
 
 export const metadata: Metadata = { title: "Analytics" };
@@ -45,6 +47,7 @@ export default async function AnalyticsPage({
     topSources(programId, r, 8),
     cohorts(programId, 6),
   ]);
+  const visitors = await trafficReport({ programId, from: r.from, to: r.to });
   const max = Math.max(1, steps[0]?.value ?? 1);
   return (
     <>
@@ -271,6 +274,12 @@ export default async function AnalyticsPage({
           </div>
         </Card>
       </div>
+      <Section
+        title="Visitors"
+        description={`Where people who clicked partner links came from, in the last ${days} days. Humans only.`}
+      >
+        <TrafficPanels t={visitors} />
+      </Section>
       <ReportSubscribe programId={programId} email={user.email} />
     </>
   );

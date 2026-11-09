@@ -22,6 +22,7 @@ import {
   LogOut,
   MessageSquare,
   Moon,
+  MousePointerClick,
   Settings2,
   Sun,
   UserPlus,
@@ -37,6 +38,7 @@ const GROUPS: { label: string; items: [string, string, Icon][] }[] = [
     items: [
       ["", "Overview", Home],
       ["/links", "Links", Link2],
+      ["/traffic", "Traffic", MousePointerClick],
       ["/earnings", "Earnings", Coins],
       ["/payouts", "Payouts", Banknote],
     ],
