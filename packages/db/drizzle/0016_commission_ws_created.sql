@@ -1,0 +1,1 @@
+CREATE INDEX "commission_ws_created" ON "commission" USING btree ("workspace_id","created_at");

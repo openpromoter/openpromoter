@@ -51,4 +51,15 @@ describe("admin", () => {
     expect(w.mrr).toBe(0);
     expect(attention(w).map((a) => a.text)).toEqual(["Stuck before tracking"]);
   });
+
+  it("a workspace's page reads only that workspace, and the overview reuses its figures", async () => {
+    const { adminWorkspaces, adminWorkspacesCached } = await admin();
+    const a = await fixture();
+    await fixture();
+    const one = await adminWorkspaces(a.ws.id);
+    expect(one.map((w) => w.id)).toEqual([a.ws.id]);
+    const first = await adminWorkspacesCached(true);
+    expect((await adminWorkspacesCached()).at).toBe(first.at);
+    expect((await adminWorkspacesCached(true)).at).not.toBe(first.at);
+  });
 });

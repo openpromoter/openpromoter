@@ -71,24 +71,26 @@ export type StepKey = (typeof STEPS)[number]["key"];
 export type AdminWorkspace = Awaited<ReturnType<typeof adminWorkspaces>>[number];
 
 /**
- * Every workspace with what the owner acts on: plan and payment state, setup progress, use and
- * last activity. ponytail: one grouped query per figure, all in memory; past a few thousand
- * workspaces move the filters and paging into SQL.
+ * Every workspace (or just `only`) with what the owner acts on: plan and payment state, setup progress,
+ * use and last activity. One grouped query per figure; with `only` each one is narrowed to that workspace
+ * through its workspace index, so a workspace's page reads a few rows, not the whole database.
  */
-export async function adminWorkspaces() {
+export async function adminWorkspaces(only?: string) {
   const since30 = new Date(Date.now() - 30 * DAY);
   const day30 = since30.toISOString().slice(0, 10);
+  const one = (col: Parameters<typeof eq>[0]) => (only ? eq(col, only) : undefined);
   const [wss, owners, active, progs, conns, partners, revenue, sales, clicks] = await Promise.all([
-    db().select().from(workspace).orderBy(desc(workspace.createdAt)),
+    db().select().from(workspace).where(one(workspace.id)).orderBy(desc(workspace.createdAt)),
     db()
       .select({ ws: member.workspaceId, email: user.email, name: user.name })
       .from(member)
       .innerJoin(user, eq(user.id, member.userId))
-      .where(eq(member.role, "owner")),
+      .where(and(eq(member.role, "owner"), one(member.workspaceId))),
     db()
       .select({ ws: member.workspaceId, at: max(session.updatedAt) })
       .from(member)
       .innerJoin(session, eq(session.userId, member.userId))
+      .where(one(member.workspaceId))
       .groupBy(member.workspaceId),
     db()
       .select({
@@ -98,30 +100,40 @@ export async function adminWorkspaces() {
         domains: count(program.customDomainVerifiedAt),
       })
       .from(program)
+      .where(one(program.workspaceId))
       .groupBy(program.workspaceId),
     db()
       .select({ ws: billingConnection.workspaceId, provider: billingConnection.provider })
       .from(billingConnection)
-      .where(or(isNotNull(billingConnection.webhookSecretEnc), eq(billingConnection.mode, "oauth"))),
-    db().select({ ws: partner.workspaceId, n: count() }).from(partner).groupBy(partner.workspaceId),
+      .where(
+        and(
+          or(isNotNull(billingConnection.webhookSecretEnc), eq(billingConnection.mode, "oauth")),
+          one(billingConnection.workspaceId),
+        ),
+      ),
+    db()
+      .select({ ws: partner.workspaceId, n: count() })
+      .from(partner)
+      .where(one(partner.workspaceId))
+      .groupBy(partner.workspaceId),
     db()
       .select({
         ws: commission.workspaceId,
         n: sql<number>`coalesce(sum(${commission.saleAmount}),0)::bigint`,
       })
       .from(commission)
-      .where(gte(commission.createdAt, monthStart()))
+      .where(and(gte(commission.createdAt, monthStart()), one(commission.workspaceId)))
       .groupBy(commission.workspaceId),
     db()
       .select({ ws: commission.workspaceId, n: count(), first: min(commission.createdAt) })
       .from(commission)
-      .where(and(eq(commission.test, false), ne(commission.amount, 0)))
+      .where(and(eq(commission.test, false), ne(commission.amount, 0), one(commission.workspaceId)))
       .groupBy(commission.workspaceId),
     db()
       .select({ ws: program.workspaceId, n: sql<number>`coalesce(sum(${clickDaily.clicks}),0)::int` })
       .from(clickDaily)
       .innerJoin(program, eq(program.id, clickDaily.programId))
-      .where(gte(clickDaily.day, day30))
+      .where(and(gte(clickDaily.day, day30), one(program.workspaceId)))
       .groupBy(program.workspaceId),
   ]);
   const by = <T extends { ws: string }>(rows: T[]) => new Map(rows.map((r) => [r.ws, r]));
@@ -243,8 +255,7 @@ export async function adminPulse(rows: AdminWorkspace[]) {
 
 /** One workspace in full: members, programs and the latest audit events. */
 export async function adminWorkspace(id: string) {
-  const rows = await adminWorkspaces();
-  const w = rows.find((r) => r.id === id);
+  const [w] = await adminWorkspaces(id);
   if (!w) notFound();
   const [members, programs, events] = await Promise.all([
     db()
@@ -310,4 +321,16 @@ export async function adminWorkspace(id: string) {
     })),
     events,
   };
+}
+
+/**
+ * The overview's full list, worked out at most every 5 minutes: totals over every workspace read whole
+ * tables, and MRR doesn't need to be second-accurate. `fresh` (the page's refresh link) recomputes now.
+ * ponytail: per-process memo; past ~50k workspaces keep these figures in a table a job refreshes.
+ */
+let memo: { at: Date; rows: AdminWorkspace[] } | null = null;
+export async function adminWorkspacesCached(fresh = false) {
+  if (!fresh && memo && Date.now() - memo.at.getTime() < 5 * 60_000) return memo;
+  memo = { at: new Date(), rows: await adminWorkspaces() };
+  return memo;
 }

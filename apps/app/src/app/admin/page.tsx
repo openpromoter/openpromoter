@@ -6,7 +6,7 @@ import { BarChart, DotChart } from "@/components/charts";
 import { PageHeader, Section, Stat } from "@/components/page";
 import { listParams } from "@/lib/list";
 import { formatMoney } from "@/lib/money";
-import { adminPulse, adminWorkspaces, attention, requireAdmin } from "@/server/admin";
+import { adminPulse, adminWorkspacesCached, attention, requireAdmin } from "@/server/admin";
 import { WorkspacesTable } from "./table";
 
 export const metadata: Metadata = { title: "Admin" };
@@ -16,8 +16,9 @@ const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : "0%
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   await requireAdmin(); // the layout checks too, but a page renders alongside it
-  const lp = listParams(await searchParams, 25);
-  const rows = await adminWorkspaces();
+  const sp = await searchParams;
+  const lp = listParams(sp, 25);
+  const { at, rows } = await adminWorkspacesCached(sp.fresh === "1");
   const pulse = await adminPulse(rows);
   const flagged = rows.map((w) => ({ w, why: attention(w) })).filter((x) => x.why.length);
   const tab = lp.status ?? "all";
@@ -41,14 +42,22 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         title="Cloud admin"
         description="Every workspace on OpenPromoter Cloud. Read-only: nothing here changes a customer's data."
         actions={
-          <a
-            href="https://dashboard.stripe.com/subscriptions"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 text-[13px] text-muted hover:text-fg"
-          >
-            Stripe subscriptions <ExternalLink className="size-3.5" />
-          </a>
+          <>
+            <span className="text-[13px] text-subtle">
+              Figures from {at.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} ·{" "}
+              <a href="/admin?fresh=1" className="text-muted hover:text-fg">
+                Refresh
+              </a>
+            </span>
+            <a
+              href="https://dashboard.stripe.com/subscriptions"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-[13px] text-muted hover:text-fg"
+            >
+              Stripe subscriptions <ExternalLink className="size-3.5" />
+            </a>
+          </>
         }
       />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

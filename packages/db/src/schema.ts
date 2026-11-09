@@ -711,6 +711,7 @@ export const commission = pgTable(
     // text_pattern_ops so `source_key like 'refund:<id>:%'` uses the index under any collation
     uniqueIndex("commission_program_source_key").on(t.programId, t.sourceKey.op("text_pattern_ops")),
     index("commission_program_created_cov").on(t.programId, t.createdAt),
+    index("commission_ws_created").on(t.workspaceId, t.createdAt),
     index("commission_partner_created").on(t.partnerId, t.createdAt),
     index("commission_program_status").on(t.programId, t.status),
     index("commission_charge").on(t.externalChargeId),
