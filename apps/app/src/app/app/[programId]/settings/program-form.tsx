@@ -5,7 +5,13 @@ import { Plus, Sparkles, Trash2 } from "@openpromoter/ui/icons";
 import { useState } from "react";
 import { SettingsCard } from "@/components/page";
 import { useAction } from "@/components/use-action";
-import { deleteGroupAction, saveGroupAction, updateProgramAction } from "../settings-actions";
+import {
+  deleteGroupAction,
+  deleteProductRateAction,
+  saveGroupAction,
+  saveProductRateAction,
+  updateProgramAction,
+} from "../settings-actions";
 
 type P = Record<string, string>;
 
@@ -420,6 +426,143 @@ export function TiersCard({
       />
       {groups.map((g) => row(g))}
       {adding ? row({}, true) : null}
+    </Card>
+  );
+}
+
+type R = { id: string; label: string; type: string; rate: string };
+
+function ProductRateRow({
+  programId,
+  canWrite,
+  currency,
+  free,
+  r,
+  onDone,
+}: {
+  programId: string;
+  canWrite: boolean;
+  currency: string;
+  /** Synced prices without a rate yet; only the new row uses them. */
+  free: { id: string; label: string }[];
+  r: Partial<R>;
+  /** Set on the new row: closes it. */
+  onDone?: () => void;
+}) {
+  const { pending, run } = useAction();
+  const [type, setType] = useState(r.type ?? "percent");
+  const isNew = !r.id;
+  const key = r.id ?? "new";
+  return (
+    <form
+      className="grid grid-cols-2 items-end gap-3 border-t border-border px-5 py-3 sm:grid-cols-[1fr_150px_120px_auto]"
+      action={(f) =>
+        run(
+          () =>
+            saveProductRateAction(programId, {
+              id: r.id ?? String(f.get("price")),
+              type: String(f.get("type")),
+              rate: String(f.get("rate")),
+            }),
+          "Product rate saved",
+          onDone,
+        )
+      }
+    >
+      <Field label="Price" htmlFor={`pr-p-${key}`} className="col-span-2 sm:col-span-1">
+        {!isNew ? (
+          <Input id={`pr-p-${key}`} value={r.label} title={r.id} readOnly disabled />
+        ) : free.length ? (
+          <Select id={`pr-p-${key}`} name="price">
+            {free.map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.label}
+              </option>
+            ))}
+          </Select>
+        ) : (
+          <Input id={`pr-p-${key}`} name="price" placeholder="Price or product id" required />
+        )}
+      </Field>
+      <Field label="Type" htmlFor={`pr-t-${key}`}>
+        <Select id={`pr-t-${key}`} name="type" value={type} onValueChange={setType} disabled={!canWrite}>
+          <option value="percent">Percent</option>
+          <option value="fixed">Fixed amount</option>
+        </Select>
+      </Field>
+      <Field
+        label={type === "percent" ? "Rate %" : `Amount (${currency.toUpperCase()})`}
+        htmlFor={`pr-r-${key}`}
+      >
+        <Input
+          id={`pr-r-${key}`}
+          name="rate"
+          defaultValue={r.rate}
+          required
+          inputMode="decimal"
+          disabled={!canWrite}
+          className="num"
+        />
+      </Field>
+      {canWrite ? (
+        <div className="flex gap-1">
+          <Button type="submit" size="md" loading={pending}>
+            {isNew ? "Add" : "Save"}
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            aria-label={isNew ? "Cancel" : "Delete product rate"}
+            onClick={() => (isNew ? onDone?.() : run(() => deleteProductRateAction(programId, r.id!)))}
+          >
+            <Trash2 />
+          </Button>
+        </div>
+      ) : null}
+    </form>
+  );
+}
+
+/** Per-product rates. A payment for a listed price or product earns this rate instead of the tier or program rate. */
+export function ProductRatesCard({
+  programId,
+  canWrite,
+  currency,
+  rates,
+  prices,
+}: {
+  programId: string;
+  canWrite: boolean;
+  currency: string;
+  rates: R[];
+  prices: { id: string; label: string }[];
+}) {
+  const [adding, setAdding] = useState(false);
+  const free = prices.filter((x) => !rates.some((r) => r.id === x.id));
+  const row = { programId, canWrite, currency, free };
+  return (
+    <Card>
+      <CardHeader
+        title="Product rates"
+        description="Pay a different rate on a product. It replaces the tier and program rate for that product. A rate set on one partner still comes first."
+        action={
+          canWrite ? (
+            <Button size="sm" onClick={() => setAdding(true)} disabled={adding}>
+              <Plus /> Add product rate
+            </Button>
+          ) : null
+        }
+      />
+      {rates.map((r) => (
+        <ProductRateRow key={`${r.id}:${r.type}:${r.rate}`} {...row} r={r} />
+      ))}
+      {adding ? <ProductRateRow {...row} r={{}} onDone={() => setAdding(false)} /> : null}
+      {!rates.length && !adding ? (
+        <p className="border-t border-border px-5 py-3 text-[13px] text-muted">
+          Every product earns the program rate.
+        </p>
+      ) : null}
     </Card>
   );
 }

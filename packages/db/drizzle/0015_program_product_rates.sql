@@ -1,0 +1,1 @@
+ALTER TABLE "program" ADD COLUMN "product_rates" jsonb DEFAULT '[]'::jsonb NOT NULL;

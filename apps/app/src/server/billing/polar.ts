@@ -75,6 +75,8 @@ export function normalizePolar(body: Json, livemode = true): ParsedWebhook {
             email: d.customer?.email,
           },
           description: d.product?.name ?? "Polar order",
+          priceId: d.product_price_id ?? d.items?.[0]?.product_price_id ?? null,
+          productId: d.product_id ?? d.product?.id ?? null,
         });
       }
       break;

@@ -40,6 +40,9 @@ export type BillingEvent =
       paidAt: Date;
       attribution: Attribution;
       description: string;
+      /** The main line's price and product ids, when the provider sends them (product rates match on these). */
+      priceId?: string | null;
+      productId?: string | null;
     }
   | {
       type: "refund";

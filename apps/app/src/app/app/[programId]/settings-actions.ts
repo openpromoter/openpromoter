@@ -4,6 +4,7 @@ import { resolveCname } from "node:dns/promises";
 import {
   apiKey,
   billingConnection,
+  billingPrice,
   invitation,
   member,
   PROGRAM_CATEGORIES,
@@ -21,6 +22,7 @@ import { z } from "zod";
 import { encrypt, randomToken, sha256 } from "@/lib/crypto";
 import { createId } from "@/lib/id";
 import { toMinor } from "@/lib/money";
+import { priceLabel } from "@/lib/program-labels";
 import { API_SCOPES } from "@/lib/scopes";
 import { subdomainRoot } from "@/lib/subdomain";
 import { HTTP_URL } from "@/lib/url";
@@ -183,6 +185,56 @@ export async function deleteGroupAction(programId: string, id: string) {
     rv(programId);
     return true;
   }, "Tier deleted");
+}
+
+/** Add or update the rate for one billing price or product (keyed by its provider id). */
+export async function saveProductRateAction(
+  programId: string,
+  input: { id: string; type: string; rate: string },
+) {
+  return safe(async () => {
+    const ctx = await actionCtx(programId, "program.write");
+    const v = z
+      .object({
+        id: z.string().trim().min(1).max(200),
+        type: z.enum(["percent", "fixed"]),
+        rate: z.string().regex(/^\d+(\.\d{1,2})?$/, "Enter a rate"),
+      })
+      .parse(input);
+    const value =
+      v.type === "percent" ? Math.round(Number(v.rate) * 100) : toMinor(v.rate, ctx.program.currency);
+    if (v.type === "percent" && value > 10_000) throw new Error("A percent rate can be at most 100%");
+    const [price] = await db()
+      .select()
+      .from(billingPrice)
+      .where(and(eq(billingPrice.workspaceId, ctx.program.workspaceId), eq(billingPrice.externalId, v.id)));
+    const rates = ctx.program.productRates.filter((r) => r.id !== v.id);
+    if (rates.length >= 100) throw new Error("A program can have up to 100 product rates");
+    rates.push({ id: v.id, label: price ? priceLabel(price) : v.id, type: v.type, value });
+    await db().update(program).set({ productRates: rates }).where(eq(program.id, programId));
+    await audit(ctx.program.workspaceId, ctx.actor, "program.product_rate_save", {
+      type: "program",
+      id: programId,
+    });
+    rv(programId);
+    return true;
+  }, "Product rate saved");
+}
+
+export async function deleteProductRateAction(programId: string, id: string) {
+  return safe(async () => {
+    const ctx = await actionCtx(programId, "program.write");
+    await db()
+      .update(program)
+      .set({ productRates: ctx.program.productRates.filter((r) => r.id !== id) })
+      .where(eq(program.id, programId));
+    await audit(ctx.program.workspaceId, ctx.actor, "program.product_rate_delete", {
+      type: "program",
+      id: programId,
+    });
+    rv(programId);
+    return true;
+  }, "Product rate deleted");
 }
 
 export async function updateApplicationAction(
