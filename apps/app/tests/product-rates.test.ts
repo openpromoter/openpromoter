@@ -59,7 +59,11 @@ describe("product rates: matching and precedence", () => {
     expect(plan).toMatchObject({ type: "fixed", value: 700, after: null });
     expect(computeCommission(plan, pay()).amount).toBe(700);
     // after the 12 months a fixed product rate stops: the later rate is a percent
-    const late = pay({ firstPaidAt: new Date("2025-01-01"), paidAt: new Date("2026-02-01"), priorPayments: 13 });
+    const late = pay({
+      firstPaidAt: new Date("2025-01-01"),
+      paidAt: new Date("2026-02-01"),
+      priorPayments: 13,
+    });
     expect(computeCommission(plan, late).eligible).toBe(false);
   });
 
@@ -67,7 +71,11 @@ describe("product rates: matching and precedence", () => {
     const plan = resolvePlan(prog, null, null, rates[0]);
     expect(plan.after).toBe(1000);
     expect(computeCommission(plan, pay()).amount).toBe(5000);
-    const late = pay({ firstPaidAt: new Date("2025-01-01"), paidAt: new Date("2026-02-01"), priorPayments: 13 });
+    const late = pay({
+      firstPaidAt: new Date("2025-01-01"),
+      paidAt: new Date("2026-02-01"),
+      priorPayments: 13,
+    });
     expect(computeCommission(plan, late).amount).toBe(1000);
   });
 
@@ -184,24 +192,23 @@ describe("product rates in the ledger", () => {
         },
       ]),
     );
-    const payment = (paymentId: string, priceId: string | null, productId: string | null): BillingEvent =>
-      ({
-        type: "payment",
-        paymentId,
-        chargeIds: [`ch_${paymentId}`],
-        customerId: "cus_PR",
-        email: null,
-        subscriptionId: "sub_PR",
-        amount: 10000,
-        currency: "usd",
-        interval: "month",
-        intervalCount: 1,
-        paidAt: new Date(),
-        attribution: {},
-        description: "Pro plan",
-        priceId,
-        productId,
-      });
+    const payment = (paymentId: string, priceId: string | null, productId: string | null): BillingEvent => ({
+      type: "payment",
+      paymentId,
+      chargeIds: [`ch_${paymentId}`],
+      customerId: "cus_PR",
+      email: null,
+      subscriptionId: "sub_PR",
+      amount: 10000,
+      currency: "usd",
+      interval: "month",
+      intervalCount: 1,
+      paidAt: new Date(),
+      attribution: {},
+      description: "Pro plan",
+      priceId,
+      productId,
+    });
     await ingest(f.ws.id, "stripe", evt([payment("in_a", "price_yearly", "prod_x")]));
     await ingest(f.ws.id, "stripe", evt([payment("in_b", "price_x", "prod_addon")]));
     await ingest(f.ws.id, "stripe", evt([payment("in_c", null, null)]));

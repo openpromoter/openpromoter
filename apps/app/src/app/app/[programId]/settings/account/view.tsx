@@ -279,7 +279,7 @@ export function AccountView({
               if (r.error)
                 return void toast.error(
                   r.error.code === "SESSION_EXPIRED"
-                    ? "For your safety, sign out and sign in again, then delete within a day."
+                    ? "For your safety, sign out and sign in again. Then delete within a day."
                     : (r.error.message ?? "Couldn't delete the account"),
                 );
               window.location.href = "/login?deleted=1";

@@ -22,7 +22,12 @@ describe("free program subdomains", () => {
     on();
     expect(subdomainSlug("acme.openpromoter.com")).toBe("acme");
     expect(subdomainSlug("Acme.OpenPromoter.com:443")).toBe("acme");
-    for (const h of ["app.openpromoter.com", "www.openpromoter.com", "api.openpromoter.com", "openpromoter.com"])
+    for (const h of [
+      "app.openpromoter.com",
+      "www.openpromoter.com",
+      "api.openpromoter.com",
+      "openpromoter.com",
+    ])
       expect(subdomainSlug(h)).toBeNull();
     expect(subdomainSlug("a.b.openpromoter.com")).toBeNull();
     expect(subdomainSlug("acme.evil-openpromoter.com")).toBeNull();
@@ -33,9 +38,9 @@ describe("free program subdomains", () => {
     const p = { slug: "acme", customDomain: null, customDomainVerifiedAt: null };
     expect(domainOrigin(p)).toBe("https://acme.openpromoter.com");
     expect(linkUrl(p, "maya1")).toBe("https://acme.openpromoter.com/maya1");
-    expect(domainOrigin({ ...p, customDomain: "partners.acme.com", customDomainVerifiedAt: new Date() })).toBe(
-      "https://partners.acme.com",
-    );
+    expect(
+      domainOrigin({ ...p, customDomain: "partners.acme.com", customDomainVerifiedAt: new Date() }),
+    ).toBe("https://partners.acme.com");
     // a slug that can't be a hostname label stays on the app's /p/ path
     expect(domainOrigin({ ...p, slug: "app" })).toBeNull();
   });

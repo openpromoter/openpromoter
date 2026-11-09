@@ -1,6 +1,6 @@
 {
   "name": "openpromoter-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for OpenPromoter: let Claude, Cursor and other agents run your affiliate program (money movement always needs a human)",
   "keywords": [
     "mcp",

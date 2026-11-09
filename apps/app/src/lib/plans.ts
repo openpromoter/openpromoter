@@ -45,12 +45,7 @@ export const PLANS = [
     revenueLimit: 25_000_000,
     /** Monthly AI allowance in micro-dollars (Cloud). */
     aiBudgetMicros: 10_000_000,
-    features: [
-      "Up to $250k/mo partner revenue",
-      "Everything in Growth",
-      "10x the AI of Starter",
-      "SSO-ready with audit export",
-    ],
+    features: ["Up to $250k/mo partner revenue", "Everything in Growth", "10x the AI of Starter"],
   },
 ] as const;
 

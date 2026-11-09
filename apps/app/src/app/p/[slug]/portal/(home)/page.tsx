@@ -93,7 +93,7 @@ export default async function PortalHome({ params }: { params: Promise<{ slug: s
         <p className="mb-4 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-[13px] text-fg">
           {pt.status === "pending"
             ? "Your application is waiting for approval. Your link starts tracking once you're approved."
-            : "Your partner account isn't active, so your link doesn't track."}
+            : "Your partner account isn't active. Your link doesn't track until it is."}
         </p>
       ) : null}
       <LinkTicket
@@ -160,7 +160,6 @@ export default async function PortalHome({ params }: { params: Promise<{ slug: s
               className="col-span-2 sm:col-span-1"
               label="Earned"
               icon={Coins}
-              iconClass="text-accent"
               value={mw(month?.n ?? 0)}
               sub={
                 <>
@@ -223,7 +222,7 @@ export default async function PortalHome({ params }: { params: Promise<{ slug: s
                 {live.map((c) => (
                   <li key={c.id} className="flex flex-col gap-2 px-5 py-3">
                     <div className="flex items-start gap-2.5 text-[13px]">
-                      <Megaphone className="mt-0.5 size-4 shrink-0 text-accent" />
+                      <Megaphone className="mt-0.5 size-4 shrink-0 text-subtle" />
                       <span className="min-w-0">
                         <span className="block font-medium text-fg">{c.name}</span>
                         {describeRule(c.rule, p.currency) !== c.name ? (

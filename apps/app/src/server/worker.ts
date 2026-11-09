@@ -196,6 +196,32 @@ export function registerJobs() {
       cta: { label: "Open your portal", href: portal(row.prog) },
     });
   });
+  defineJob("notify.partner_rejected", async (p) => {
+    const [row] = await db()
+      .select({ pt: partner, prog: program })
+      .from(partner)
+      .innerJoin(program, eq(program.id, partner.programId))
+      .where(eq(partner.id, String(p.partnerId)));
+    if (row?.pt.status !== "rejected") return; // approved again before the job ran
+    await sendNotice(
+      row.pt.email,
+      `Your application to the ${row.prog.name} partner program`,
+      {
+        brandName: row.prog.name,
+        brandColor: row.prog.brand.color,
+        logoUrl: row.prog.brand.logoUrl,
+        preview: "An update on your application",
+        title: "Thanks for applying",
+        paragraphs: [
+          `Thank you for applying to the ${row.prog.name} partner program. The team reviewed your application and can't accept it right now.`,
+          "Programs often look for a close fit with their customers. Reply to this email if you have questions.",
+        ],
+      },
+      // the reply reaches the program owner, who made the call
+      (await teamEmails(row.prog.workspaceId, ["owner"]))[0],
+      row.prog.id,
+    );
+  });
   defineJob("notify.new_application", async (p) => {
     const [row] = await db()
       .select({ pt: partner, prog: program })

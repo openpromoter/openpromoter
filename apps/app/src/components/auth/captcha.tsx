@@ -87,6 +87,6 @@ export function resetCaptcha() {
   if (widget) window.turnstile?.reset(widget);
 }
 
-export const CAPTCHA_ERROR = "Please complete the check above the button, then try again.";
+export const CAPTCHA_ERROR = "Please complete the check above the button and try again.";
 export const isCaptchaError = (code?: string) =>
   !!code && /CAPTCHA|VERIFICATION_FAILED|MISSING_RESPONSE/i.test(code);

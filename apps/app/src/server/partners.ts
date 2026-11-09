@@ -235,6 +235,24 @@ export async function setPartnerStatus(
   status: Partner["status"],
   actor: Actor,
 ) {
+  // applicants who are turned down hear back once; partners moved between other states do not
+  const applicants =
+    status === "rejected"
+      ? new Set(
+          (
+            await db()
+              .select({ id: partner.id })
+              .from(partner)
+              .where(
+                and(
+                  eq(partner.programId, programId),
+                  inArray(partner.id, ids),
+                  eq(partner.status, "pending"),
+                ),
+              )
+          ).map((r) => r.id),
+        )
+      : new Set<string>();
   const rows = await db()
     .update(partner)
     .set({ status, ...(status === "approved" ? { approvedAt: new Date() } : {}) })
@@ -259,6 +277,7 @@ export async function setPartnerStatus(
   }
   for (const p of rows) {
     await audit(p.workspaceId, actor, `partner.${status}`, { type: "partner", id: p.id });
+    if (applicants.has(p.id)) await enqueue("notify.partner_rejected", { partnerId: p.id });
     if (status === "approved") {
       await enqueue("notify.partner_approved", { partnerId: p.id });
       await enqueue("events.emit", {

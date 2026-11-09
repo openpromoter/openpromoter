@@ -13,7 +13,7 @@
 
 A self-hosted alternative to Rewardful, FirstPromoter and Tolt. Track referrals from Stripe, stop affiliate fraud and pay partners with 0% payout fees.
 
-[Website](https://openpromoter.com) · [Docs](https://openpromoter.com/docs/) · [Self-hosting](https://openpromoter.com/docs/self-hosting/) · [API](https://openpromoter.com/docs/api/) · [Discussions](https://github.com/openpromoter/openpromoter/discussions)
+[Website](https://openpromoter.com) · [Live demo](https://openpromoter.com/demo/) · [Docs](https://openpromoter.com/docs/) · [Self-hosting](https://openpromoter.com/docs/self-hosting/) · [API](https://openpromoter.com/docs/api/) · [Discussions](https://github.com/openpromoter/openpromoter/discussions)
 
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-2442F5)](LICENSE)
 [![Self-host with Docker](https://img.shields.io/badge/self--host-docker%20compose%20up-16171A)](#quick-start)
@@ -47,6 +47,10 @@ Affiliate software for SaaS usually costs $49 to $99 a month, and some tools als
 
 <sub>List prices from each vendor's pricing page as of November 2026. Sources and full comparisons: [Rewardful](https://openpromoter.com/vs/rewardful/), [FirstPromoter](https://openpromoter.com/vs/firstpromoter/), [Tolt](https://openpromoter.com/vs/tolt/) and [Dub Partners](https://openpromoter.com/vs/dub-partners/).</sub>
 
+## Try the live demo
+
+Open the [live demo](https://openpromoter.com/demo/) to use a working account with sample data. It has the founder dashboard and the partner portal with no sign-up and no card. It rebuilds every day and is read-only.
+
 ## Quick start
 
 ```bash
@@ -79,7 +83,7 @@ The container refuses to start on a public URL with the placeholder secrets. Eve
 1. **Paste your website.** OpenPromoter pulls your logo, color and copy to brand the partner portal.
 2. **Connect Stripe** with a restricted key, or OAuth on Cloud. It imports products, customers and subscriptions and registers the webhook.
 3. **Accept the AI-designed program.** Rate, duration, cookie window, customer discount, tiers and payout rules each come with a short reason.
-4. **Install the tracking script.** Add one script tag, use the npm SDK or paste a prompt into Claude Code or Cursor.
+4. **Install the tracking script.** Add one script tag, use the npm SDK or paste one prompt into any coding agent.
 5. **Invite partners.** The recruiter has already ranked your happiest paying customers.
 
 ## Features
@@ -90,6 +94,7 @@ The container refuses to start on a public URL with the placeholder secrets. Eve
 - Consent mode, cookieless mode and a first-party route that ad blockers leave alone.
 - Server-side attribution through Stripe Checkout `client_reference_id`, customer metadata and promotion codes.
 - Coupon attribution without a click and signup (lead) tracking.
+- A discount for referred customers, applied at Stripe Checkout by the SDK.
 - Short links, deep links, sub-IDs, UTM capture, QR codes and custom domains such as `partners.yourapp.com`.
 - Trials, upgrades, refunds, chargebacks and cancellations adjust commissions automatically.
 
@@ -100,7 +105,7 @@ Every referral gets a risk score from 0 to 100. It checks self-referral, shared 
 ### Partner and affiliate management
 
 - A branded partner portal on your own domain or embedded in your app.
-- Applications with custom questions and auto-approve rules.
+- Applications with custom questions and auto-approve rules. Approved and rejected applicants each get an email.
 - Tiers with automatic promotion and per-partner rates.
 - Public, private or invite-only programs.
 - Messages, announcements, campaigns, bounties and contests.
@@ -133,6 +138,7 @@ AI never moves money. API keys, the MCP server and AI can prepare payouts, and o
 
 - Referred revenue, MRR, clicks, signups, conversion, EPC and LTV for each partner.
 - Funnel, cohorts, top sources and links, owed against paid and period comparison.
+- Visitor analytics for every partner: clicks per day, sources, countries, devices, landing pages and sub-IDs. Partners see their own on a Traffic page.
 - CSV exports and weekly or monthly email reports.
 
 ### Team and security
@@ -166,8 +172,8 @@ Any other billing system can report payments through `POST /api/v1/conversions`.
 - **Webhooks** signed with HMAC-SHA256, with retries and a delivery log.
 - **TypeScript SDK:** `npm install openpromoter`. See [packages/sdk](packages/sdk).
 - **CLI:** `npx openpromoter-cli`. Its `listen` command forwards events to localhost. See [packages/cli](packages/cli).
-- **MCP server** for Claude, Cursor and other agents. It is read-only by default and no tool can send money. See [packages/mcp](packages/mcp).
-- **Agent skill:** `npx openpromoter-cli skill` installs an "add an affiliate program" skill for Claude Code and Cursor.
+- **MCP server** for any MCP client: Claude Desktop, Claude Code, Codex, Cursor, VS Code with GitHub Copilot, Windsurf, Gemini CLI and Zed. It is read-only by default and no tool can send money. See [packages/mcp](packages/mcp).
+- **Agent skill:** `npx -y openpromoter-cli skill` installs an "add an affiliate program" skill for Claude Code, Codex and Cursor. Any other coding agent works with the [one-prompt install](https://openpromoter.com/docs/agent-skill/).
 
 ```json
 {
@@ -214,4 +220,8 @@ The app and server are [AGPL-3.0](LICENSE). Anyone can use and self-host them fo
 
 The pieces you install in your own code or website are [MIT](packages/sdk/LICENSE). They are the SDK, the CLI, the MCP server and the scripts served to your site (`op.js` and `embed.js`).
 
-Built by [DevDiggers](https://devdiggers.com).
+## Who builds it
+
+OpenPromoter is built by [Yash Kapoor](https://openpromoter.com/blog/author/yash-kapoor/), founder of [DevDiggers](https://devdiggers.com). DevDiggers also makes a [WooCommerce affiliate plugin](https://devdiggers.com/product/woocommerce-affiliates/) that online stores use to run their own affiliate programs. OpenPromoter brings that experience to SaaS as open source.
+
+Follow along on [X](https://x.com/IamYashKapoor), [GitHub](https://github.com/IamYashKapoor) or [LinkedIn](https://www.linkedin.com/in/iamyashkapoor/).

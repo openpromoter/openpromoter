@@ -40,12 +40,12 @@ async function run(fn: () => Promise<void>) {
 
 const out = (v: unknown, json?: boolean) => console.log(json ? JSON.stringify(v, null, 2) : v);
 
-const program = new Command().name("openpromoter").description("OpenPromoter command line").version("0.1.0");
+const program = new Command().name("openpromoter").description("OpenPromoter command line").version("0.1.1");
 
 program
   .command("login")
   .description("Save your OpenPromoter URL and API key")
-  .requiredOption("--key <key>", "API key (Settings → API & webhooks)")
+  .requiredOption("--key <key>", "API key (Settings > API & webhooks)")
   .option("--url <url>", "OpenPromoter URL", "https://app.openpromoter.com")
   .action((o) =>
     run(async () => {
@@ -62,6 +62,7 @@ program
 
 program
   .command("programs")
+  .description("List the programs your key can see")
   .option("--json")
   .action((o) =>
     run(async () => {
@@ -74,6 +75,7 @@ program
 
 program
   .command("stats")
+  .description("Revenue, clicks, customers and amounts owed for a program")
   .requiredOption("--program <id>")
   .option("--days <n>", "look-back days", "30")
   .option("--json")
@@ -136,6 +138,7 @@ for (const [cmd, status] of [
 
 program
   .command("commissions")
+  .description("List a program's commissions")
   .requiredOption("--program <id>")
   .option("--status <status>")
   .option("--json")
@@ -193,6 +196,7 @@ payouts
 
 program
   .command("ask <question...>")
+  .description("Ask a question about your program in plain English")
   .requiredOption("--program <id>")
   .action((q: string[], o) =>
     run(async () => {

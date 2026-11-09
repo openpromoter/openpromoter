@@ -371,13 +371,27 @@ export async function trackSignup(
   }
 }
 
-/** Metadata to put on Stripe Checkout Sessions so the sale is attributed without cookies. */
-export function stripeCheckoutParams(ref: ReferralCookie | null): {
+/**
+ * Fields to spread into `stripe.checkout.sessions.create` so the sale is attributed without cookies.
+ * Pass `coupon` (your Stripe coupon id for referred customers) and a referred visitor gets it applied
+ * automatically. It comes from your own server config, never from the cookie, so a visitor can't pick
+ * another coupon. Stripe does not allow `discounts` together with `allow_promotion_codes`.
+ */
+export function stripeCheckoutParams(
+  ref: ReferralCookie | null,
+  opts: { coupon?: string | null } = {},
+): {
   client_reference_id?: string;
   metadata?: Record<string, string>;
   subscription_data?: { metadata: Record<string, string> };
+  discounts?: { coupon: string }[];
 } {
   if (!ref?.clickId) return {};
   const md = { op_click: ref.clickId, ...(ref.code ? { op_ref: ref.code } : {}) };
-  return { client_reference_id: ref.clickId, metadata: md, subscription_data: { metadata: md } };
+  return {
+    client_reference_id: ref.clickId,
+    metadata: md,
+    subscription_data: { metadata: md },
+    ...(opts.coupon ? { discounts: [{ coupon: opts.coupon }] } : {}),
+  };
 }

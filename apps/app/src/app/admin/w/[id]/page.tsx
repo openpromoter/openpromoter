@@ -200,7 +200,7 @@ export default async function AdminWorkspacePage({ params }: { params: Promise<{
         title="Partners"
         description={
           partners.length >= 200
-            ? "The 200 who brought in the most, then the newest."
+            ? "The 200 who brought in the most. Newest next."
             : "Everyone who joined this founder's programs, highest revenue first."
         }
       >

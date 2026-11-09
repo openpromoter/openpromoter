@@ -20,7 +20,7 @@ export const isDemoUser = (u: { email?: string | null } | null | undefined) =>
   !!u?.email && demoOn() && DEMO_EMAILS().includes(u.email.toLowerCase());
 
 export const DEMO_READ_ONLY =
-  "This is the demo, so changes aren't saved. Start free to set up your own program.";
+  "This is the demo. Changes aren't saved. Start free to set up your own program.";
 export const DEMO_SLUG = DEMO.slug;
 
 /** Account changes better-auth handles itself: refused for the demo accounts (everything else is in safe()). */

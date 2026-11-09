@@ -3,9 +3,26 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { OpenPromoter, OpenPromoterError } from "openpromoter";
 import { TOOLS } from "./tools";
 
+if (process.argv.includes("--version")) {
+  console.log("0.1.1");
+  process.exit(0);
+}
+if (process.argv.includes("--help")) {
+  console.log(`openpromoter-mcp: MCP server for OpenPromoter over stdio.
+
+Run it from your MCP client with: npx -y openpromoter-mcp
+Environment:
+  OPENPROMOTER_API_KEY    required, from Settings > API & webhooks
+  OPENPROMOTER_URL        your OpenPromoter URL (default https://app.openpromoter.com)
+  OPENPROMOTER_MCP_WRITE  true registers the write tools (off by default)
+Docs: https://openpromoter.com/docs/mcp/`);
+  process.exit(0);
+}
 const apiKey = process.env.OPENPROMOTER_API_KEY;
 if (!apiKey) {
-  console.error("Set OPENPROMOTER_API_KEY (Settings → API & webhooks in OpenPromoter).");
+  console.error(
+    "Set OPENPROMOTER_API_KEY (Settings > API & webhooks in OpenPromoter). Run with --help for details.",
+  );
   process.exit(1);
 }
 const op = new OpenPromoter({
@@ -14,7 +31,7 @@ const op = new OpenPromoter({
 });
 const allowWrite = process.env.OPENPROMOTER_MCP_WRITE === "true";
 
-const server = new McpServer({ name: "openpromoter", version: "0.1.0" });
+const server = new McpServer({ name: "openpromoter", version: "0.1.1" });
 
 for (const t of TOOLS) {
   if (t.write && !allowWrite) continue;

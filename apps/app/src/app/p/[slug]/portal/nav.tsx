@@ -125,7 +125,7 @@ export function PortalShell({
                       <I
                         className={cn(
                           "size-[18px] shrink-0",
-                          active ? "text-accent" : "text-subtle group-hover:text-muted",
+                          active ? "text-fg" : "text-subtle group-hover:text-muted",
                         )}
                         aria-hidden
                       />

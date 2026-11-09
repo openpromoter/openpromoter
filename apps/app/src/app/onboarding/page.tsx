@@ -51,7 +51,12 @@ export default async function OnboardingPage({
       // set only when STRIPE_CONNECT_CLIENT_ID is configured; the callback brings the founder back here
       oauthUrl: conn?.secretEnc ? null : stripeOAuthUrl(`${p.workspaceId}:${p.id}:onboarding`),
       installed: !!fresh?.installVerifiedAt,
-      snippets: snippets(env.APP_URL, p.slug, p.id),
+      snippets: snippets(
+        env.APP_URL,
+        p.slug,
+        p.id,
+        p.doubleSided.enabled ? p.doubleSided.stripeCouponId : null,
+      ),
       step: Number(sp.step ?? 2),
     };
   }

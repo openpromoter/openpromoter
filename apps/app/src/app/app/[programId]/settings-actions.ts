@@ -986,8 +986,7 @@ export async function deleteProgramAction(programId: string, confirmName: string
       .select({ id: payout.id })
       .from(payout)
       .where(and(eq(payout.programId, programId), eq(payout.status, "processing")));
-    if (busy)
-      throw new Error("A payout is still being sent. Wait until it finishes, then delete the program.");
+    if (busy) throw new Error("A payout is still being sent. Delete the program after it finishes.");
     await audit(
       ctx.program.workspaceId,
       ctx.actor,

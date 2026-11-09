@@ -16,7 +16,7 @@ const OAUTH_ERROR: Record<string, string> = {
   two_factor_required: "This account uses two-factor authentication. Sign in with your email and password.",
   account_not_linked: "That email already has an account. Sign in with your email and password first.",
   unable_to_link_account: "That email already has an account. Sign in with your email and password first.",
-  access_denied: "Sign-in was cancelled.",
+  access_denied: "Sign-in was canceled.",
 };
 
 export default async function LoginPage({

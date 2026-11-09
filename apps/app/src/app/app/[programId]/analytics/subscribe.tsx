@@ -9,7 +9,7 @@ export function ReportSubscribe({ programId, email }: { programId: string; email
   const { pending, run } = useAction();
   return (
     <Card className="mt-4 flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-      <Mail className="size-5 text-accent-text" />
+      <Mail className="size-5 text-subtle" />
       <div className="flex-1">
         <div className="text-[13px] font-medium text-fg">Scheduled email report</div>
         <div className="text-xs text-muted">

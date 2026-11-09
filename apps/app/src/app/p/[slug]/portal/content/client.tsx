@@ -36,7 +36,7 @@ export function PartnerContent({
           <CardHeader
             title="Submit a post for a bounty"
             description="Share the URL of your post or video. It's paid once the team approves it."
-            action={<Trophy className="size-5 text-accent" />}
+            action={<Trophy className="size-5 text-subtle" />}
           />
           <CardBody>
             <form

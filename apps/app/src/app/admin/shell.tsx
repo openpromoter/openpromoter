@@ -92,7 +92,7 @@ export function AdminShell({
                       href={h}
                       aria-current={on ? "page" : undefined}
                       className={cn(
-                        "group flex h-8 items-center gap-2.5 rounded-md px-2 text-[13px] transition-colors duration-150",
+                        "group flex h-8 items-center gap-2.5 rounded-md px-2 text-[13px]",
                         on
                           ? "bg-surface font-medium text-fg dark:bg-surface-3"
                           : "text-muted hover:bg-surface-3/70 hover:text-fg dark:hover:bg-surface-2",
@@ -101,7 +101,7 @@ export function AdminShell({
                       <I
                         className={cn(
                           "size-[18px] shrink-0",
-                          on ? "text-accent" : "text-subtle group-hover:text-muted",
+                          on ? "text-fg" : "text-subtle group-hover:text-muted",
                         )}
                         aria-hidden
                       />

@@ -404,7 +404,7 @@ export function AppShell({ program, programs, user, role, counts, children }: Sh
                 onClick={() => router.push(`${base}/assistant`)}
                 className="hidden sm:inline-flex"
               >
-                <Sparkles className="text-accent" /> Ask
+                <Sparkles /> Ask
               </Button>
               <span className="lg:hidden">
                 <UserMenu user={user} role={role} collapsed base={base} />

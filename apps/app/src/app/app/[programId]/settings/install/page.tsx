@@ -12,7 +12,7 @@ import { Recheck } from "./recheck";
 export default async function InstallSettings({ params }: { params: Promise<{ programId: string }> }) {
   const { programId } = await params;
   const { program: p } = await programCtx(programId);
-  const s = snippets(env.APP_URL, p.slug, p.id);
+  const s = snippets(env.APP_URL, p.slug, p.id, p.doubleSided.enabled ? p.doubleSided.stripeCouponId : null);
   const [[clicks], [paid], conns] = await Promise.all([
     db().select({ n: sql<number>`count(*)::int` }).from(click).where(eq(click.programId, p.id)),
     db()

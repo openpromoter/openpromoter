@@ -50,6 +50,12 @@ const session = await stripe.checkout.sessions.create({
 
 If the app already sets `metadata` or `subscription_data`, merge the objects instead of overwriting them.
 
+If the program gives referred customers a discount, pass its Stripe coupon id from the environment and remove `allow_promotion_codes` from that call (Stripe allows one or the other):
+
+```ts
+...stripeCheckoutParams(readReferralCookie(request.headers.get("cookie")), { coupon: process.env.OPENPROMOTER_COUPON }),
+```
+
 ## 4. Other billing (Paddle, Lemon Squeezy, Polar)
 
 Pass `op_click` (from `window.openpromoter.clickId`) as checkout custom data: Paddle `customData`, Lemon Squeezy `checkout[custom][op_click]`, Polar checkout `metadata`. For anything else, call `op.conversions.create(...)` after each successful payment.
@@ -58,7 +64,8 @@ Pass `op_click` (from `window.openpromoter.clickId`) as checkout custom data: Pa
 
 ```
 OPENPROMOTER_URL=https://app.openpromoter.com   # or your self-hosted URL
-OPENPROMOTER_API_KEY=op_sk_...                  # scope: tracking:write
+OPENPROMOTER_API_KEY=op_live_...                # op_sk_... when self-hosted; scope: tracking:write
+OPENPROMOTER_COUPON=...                         # optional: Stripe coupon id for referred customers
 OPENPROMOTER_PROGRAM_ID=prg_...
 ```
 

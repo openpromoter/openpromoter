@@ -49,6 +49,10 @@ describe("sdk", () => {
     );
     expect(ref).toEqual({ clickId: "clk_1", visitorId: "vis_1", code: "maya" });
     expect(stripeCheckoutParams(ref).client_reference_id).toBe("clk_1");
+    expect(stripeCheckoutParams(ref).discounts).toBeUndefined();
+    // the referred customer's coupon comes from server config and only applies to a referral
+    expect(stripeCheckoutParams(ref, { coupon: "REFER20" }).discounts).toEqual([{ coupon: "REFER20" }]);
+    expect(stripeCheckoutParams(null, { coupon: "REFER20" })).toEqual({});
     expect(readReferralCookie("x=1")).toBeNull();
   });
   it("trackSignup never throws", async () => {

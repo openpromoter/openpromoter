@@ -627,7 +627,7 @@ function AgentCard({ base, program }: { base: string; program: string }) {
     <section className="flex flex-col self-start rounded-lg border border-border bg-surface">
       <div className="flex items-center justify-between px-4 pt-3.5">
         <h2 className="flex items-center gap-2 text-[13px] font-medium text-fg">
-          <Sparkles size={14} weight="fill" className="text-accent" /> Ask about {program}
+          <Sparkles size={14} weight="fill" className="text-subtle" /> Ask about {program}
         </h2>
         <Link
           href={`${base}/assistant`}

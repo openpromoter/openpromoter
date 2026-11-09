@@ -90,10 +90,7 @@ export function PartnerLinks({
       </Card>
 
       <Card className="mt-4">
-        <CardHeader
-          title="Your links"
-          description="Clicks and paying customers for each way you share, so you can see what works."
-        />
+        <CardHeader title="Your links" description="Clicks and paying customers for each link you share." />
         <ul className="divide-y divide-border border-t border-border">
           <li className="hidden h-9 items-center gap-4 bg-surface-2 px-5 sm:flex" aria-hidden>
             <span className="eyebrow flex-1">Link</span>

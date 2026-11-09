@@ -12,7 +12,15 @@ describe("contests", () => {
     const start = new Date(Date.now() - 3 * 86_400_000);
     await db()
       .insert(click)
-      .values([1, 2, 3].map((i) => ({ id: `clk_c${i}_${Date.now()}`, programId: f.program.id, partnerId: p.id, visitorId: `v${i}`, createdAt: new Date() })) as never);
+      .values(
+        [1, 2, 3].map((i) => ({
+          id: `clk_c${i}_${Date.now()}`,
+          programId: f.program.id,
+          partnerId: p.id,
+          visitorId: `v${i}`,
+          createdAt: new Date(),
+        })) as never,
+      );
     const id = `cmp_${Date.now()}`;
     await db()
       .insert(campaign)

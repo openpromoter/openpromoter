@@ -33,7 +33,7 @@ export function ProgramForm({
   const why = (k: string) =>
     rationale?.[k] ? (
       <span className="flex gap-1">
-        <Sparkles className="mt-0.5 size-3 shrink-0 text-accent-text" />
+        <Sparkles className="mt-0.5 size-3 shrink-0 text-subtle" />
         {rationale[k]}
       </span>
     ) : undefined;
@@ -213,7 +213,7 @@ export function ProgramForm({
             <Field
               label="Stripe coupon id"
               htmlFor="doubleSidedCoupon"
-              hint="Create the coupon in Stripe. Give each partner a code on it from their partner page, and referred customers enter that code at checkout."
+              hint="Create the coupon in Stripe. Settings > Install then shows the checkout code that applies it to referred customers. Partner codes can use it too."
             >
               <Input
                 id="doubleSidedCoupon"
