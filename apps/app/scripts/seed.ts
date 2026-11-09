@@ -2,7 +2,7 @@
  * Demo workspace for self-hosters and performance testing.
  *   pnpm db:seed            # creates the demo if it doesn't exist
  *   pnpm db:seed --reset    # deletes and recreates it
- * Sign in: demo@openpromoter.test / openpromoter-demo
+ * Sign in: demo@openpromoter.test (founder) or leo@partners.example (partner), password openpromoter-demo
  */
 import {
   account,
@@ -323,6 +323,15 @@ export async function seed({
   const dp = partners[DEMO.partnerIndex]!;
   if (dp.email !== DEMO.partnerEmail) throw new Error(`demo partner email drifted: ${dp.email}`);
   await d.insert(user).values({ id: demoPartnerUser, name: dp.name, email: dp.email, emailVerified: true });
+  // self-hosted demos sign in as this partner too (same demo password); the public demo has no passwords
+  if (!publicDemo)
+    await d.insert(account).values({
+      id: crypto.randomUUID(),
+      accountId: demoPartnerUser,
+      providerId: "credential",
+      userId: demoPartnerUser,
+      password: await hashPassword(DEMO.password),
+    });
   Object.assign(dp, { userId: demoPartnerUser });
   await d.insert(partner).values(partners);
   await d.insert(link).values(
