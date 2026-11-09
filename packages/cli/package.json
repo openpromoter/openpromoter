@@ -20,7 +20,7 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "openpromoter": "./dist/index.js"
+    "openpromoter": "dist/index.js"
   },
   "files": [
     "dist",
@@ -28,7 +28,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/openpromoter/openpromoter",
+    "url": "git+https://github.com/openpromoter/openpromoter.git",
     "directory": "packages/cli"
   },
   "scripts": {
