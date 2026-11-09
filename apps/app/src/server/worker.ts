@@ -17,6 +17,7 @@ import { delta, overview, previous, topPartners } from "./analytics";
 import { SYSTEM } from "./audit";
 import { evaluateBounties, evaluateTiers, settleEndedCampaigns } from "./campaigns";
 import { db } from "./db";
+import { demoOn } from "./demo";
 import { sendNotice, sendReport } from "./email";
 import { env } from "./env";
 import { deliver, emitEvent } from "./events";
@@ -249,6 +250,16 @@ export async function sendProgramReport(programId: string, email: string) {
 
 /** Cron-like schedule. Each task runs at most once per period across all workers (kv lock). */
 const SCHEDULE: { key: string; every: number; run: () => Promise<unknown> }[] = [
+  // the public demo: built on first boot, rebuilt daily so whatever visitors saw yesterday is fresh again
+  {
+    key: "demo.reset",
+    every: 86_400_000,
+    run: async () => {
+      if (!demoOn()) return;
+      const { seed } = await import("../../scripts/seed");
+      await seed({ reset: true, clicks: 40_000, conversions: 4_000, publicDemo: true });
+    },
+  },
   { key: "mature", every: 15 * 60_000, run: () => matureCommissions() },
   { key: "payouts.reconcile", every: 10 * 60_000, run: () => reconcilePayouts() },
   {

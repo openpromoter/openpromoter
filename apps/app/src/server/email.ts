@@ -47,6 +47,12 @@ async function logEmail(
 
 /** Sends and records it in the email log. */
 export async function sendMail(mail: Mail): Promise<{ delivered: boolean }> {
+  // reserved names (RFC 2606/6761) never receive mail: sending would only bounce and hurt our sender score.
+  // The demo and seed data live there. Production only: local test runs read these from Mailpit.
+  if (process.env.NODE_ENV === "production" && /\.(test|example|invalid|localhost)$/i.test(mail.to.trim())) {
+    await logEmail(mail, "not_sent", null, "Reserved address, never delivered");
+    return { delivered: false };
+  }
   try {
     const r = await deliver(mail);
     await logEmail(mail, r.delivered ? "sent" : "not_sent", r.messageId);

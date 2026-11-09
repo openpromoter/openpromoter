@@ -1,10 +1,12 @@
 import { agentAction, fraudFlag, partner, payout, workspace } from "@openpromoter/db";
 import { and, eq, sql } from "drizzle-orm";
 import Link from "next/link";
+import { DemoBanner } from "@/components/demo-banner";
 import { AppShell } from "@/components/shell/app-shell";
 import { isAdmin } from "@/server/admin";
 import { programCtx, userPrograms } from "@/server/context";
 import { db } from "@/server/db";
+import { isDemoUser } from "@/server/demo";
 
 export default async function ProgramLayout({
   children,
@@ -62,6 +64,7 @@ export default async function ProgramLayout({
       role={ctx.role}
       counts={{ partners: pending, autopilot: suggestions, payouts, fraud: flags }}
     >
+      {isDemoUser(ctx.user) ? <DemoBanner className="mb-6" /> : null}
       {failed ? (
         <p className="mb-6 rounded-lg border border-border bg-warning-soft px-4 py-3 text-[13px] text-warning">
           Your last payment didn't go through. Stripe will try again.{" "}

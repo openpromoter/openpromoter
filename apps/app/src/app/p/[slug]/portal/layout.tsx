@@ -1,8 +1,10 @@
 import { partner, program } from "@openpromoter/db";
 import { eq } from "drizzle-orm";
+import { DemoBanner } from "@/components/demo-banner";
 import { planStatus } from "@/server/billing-plans";
 import { partnerCtx } from "@/server/context";
 import { db } from "@/server/db";
+import { isDemoUser } from "@/server/demo";
 import { programBase } from "@/server/program-base";
 import { BrandMark } from "../brand";
 import { PortalShell } from "./nav";
@@ -33,7 +35,11 @@ export default async function PortalLayout({
       programs={others}
       recruiting={ctx.program.overrideRate > 0}
       banner={
-        ctx.partner.status !== "approved" ? (
+        isDemoUser(ctx.user) ? (
+          <div className="border-b border-border px-4 py-2.5 md:px-8">
+            <DemoBanner />
+          </div>
+        ) : ctx.partner.status !== "approved" ? (
           <div className="flex items-center gap-2.5 border-b border-border bg-warning-soft px-4 py-2.5 text-[13px] text-warning md:px-8">
             <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-warning" />
             {ctx.partner.status === "pending"

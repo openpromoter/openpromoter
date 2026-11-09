@@ -6,6 +6,7 @@ import { AccessError, type Permission, requireProgram } from "./access";
 import type { Actor } from "./audit";
 import { getSession } from "./auth";
 import { db } from "./db";
+import { DEMO_READ_ONLY, isDemoUser } from "./demo";
 import { programBase } from "./program-base";
 
 export const currentUser = cache(async () => (await getSession())?.user ?? null);
@@ -78,6 +79,8 @@ export type ActionResult<T = unknown> =
 
 /** Wraps a server action body: maps thrown errors to a result the client toasts. */
 export async function safe<T>(fn: () => Promise<T>, message?: string): Promise<ActionResult<T>> {
+  // every dashboard and portal change runs through here: the public demo stays read-only
+  if (isDemoUser(await currentUser().catch(() => null))) return { ok: false, error: DEMO_READ_ONLY };
   try {
     return { ok: true, data: await fn(), message };
   } catch (err) {

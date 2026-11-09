@@ -14,6 +14,7 @@ import { hashIp } from "@/lib/crypto";
 import { createCode, createId, slugify } from "@/lib/id";
 import { type Actor, audit } from "./audit";
 import { db } from "./db";
+import { DEMO_READ_ONLY, DEMO_SLUG, demoOn } from "./demo";
 import { sendNotice } from "./email";
 import { enqueue } from "./jobs";
 import { followOverrides } from "./ledger";
@@ -115,6 +116,8 @@ export async function applyToProgram(
   input: ApplicationInput,
   invited = false,
 ): Promise<{ partner: Partner; autoApproved: boolean; reason: string }> {
+  // the public demo program is a showcase: nobody joins it for real
+  if (demoOn() && prog.slug === DEMO_SLUG) throw new Error(DEMO_READ_ONLY);
   const email = input.email.trim().toLowerCase();
   const [existing] = await db()
     .select()

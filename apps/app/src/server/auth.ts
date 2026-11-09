@@ -22,6 +22,7 @@ import { cancelPlan } from "./billing-plans";
 import { captchaSiteKey, isAppHost } from "./captcha";
 import { cloudflareOn, removeHostname } from "./custom-hostnames";
 import { db } from "./db";
+import { demoPlugin } from "./demo";
 import { sendNotice } from "./email";
 import { env } from "./env";
 import { limit } from "./ratelimit";
@@ -191,7 +192,7 @@ export const auth = betterAuth({
       throw ctx.redirect(`${env.APP_URL}/login?error=two_factor_required`);
     }),
   },
-  plugins: [twoFactorPlugin({ issuer: PRODUCT.name }), ...turnstile(), nextCookies()],
+  plugins: [twoFactorPlugin({ issuer: PRODUCT.name }), ...turnstile(), demoPlugin(), nextCookies()],
 });
 
 export async function getSession() {

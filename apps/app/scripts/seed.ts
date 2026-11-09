@@ -25,18 +25,16 @@ import {
 } from "@openpromoter/db";
 import { hashPassword } from "better-auth/crypto";
 import { eq, sql } from "drizzle-orm";
+import { DEMO } from "../src/lib/demo-accounts";
 import { createId } from "../src/lib/id";
+
+export { DEMO };
+
 import { templateKit } from "../src/server/ai/content";
 import { db } from "../src/server/db";
 import { payableBalances } from "../src/server/ledger";
 import { createPayoutBatch } from "../src/server/payouts";
 import { defaultTerms } from "../src/server/setup";
-
-export const DEMO = {
-  email: "demo@openpromoter.test",
-  password: "openpromoter-demo",
-  slug: "acme-analytics",
-};
 
 /** Demo partner conversations, so the inbox isn't empty on first run. */
 const DEMO_THREADS: { partner: number; lines: { from: "partner" | "you"; body: string }[] }[] = [
@@ -131,7 +129,16 @@ const NAMES = [
   "Theo Laurent",
 ];
 
-export async function seed({ reset = false, clicks = 100_000, conversions = 10_000 } = {}) {
+/**
+ * `publicDemo`: the hosted demo anyone can open (demo.ts). No password (visitors get in through the demo
+ * button), autopilot off (no AI spend) and kept out of the partner marketplace, which lists real programs.
+ */
+export async function seed({
+  reset = false,
+  clicks = 100_000,
+  conversions = 10_000,
+  publicDemo = false,
+} = {}) {
   const d = db();
   const [existing] = await d.select().from(program).where(eq(program.slug, DEMO.slug));
   if (existing && !reset) {
@@ -140,16 +147,18 @@ export async function seed({ reset = false, clicks = 100_000, conversions = 10_0
   }
   if (existing) await d.delete(workspace).where(eq(workspace.id, existing.workspaceId));
   await d.delete(user).where(eq(user.email, DEMO.email));
+  await d.delete(user).where(eq(user.email, DEMO.partnerEmail));
 
   const userId = crypto.randomUUID();
   await d.insert(user).values({ id: userId, name: "Demo Founder", email: DEMO.email, emailVerified: true });
-  await d.insert(account).values({
-    id: crypto.randomUUID(),
-    accountId: userId,
-    providerId: "credential",
-    userId,
-    password: await hashPassword(DEMO.password),
-  });
+  if (!publicDemo)
+    await d.insert(account).values({
+      id: crypto.randomUUID(),
+      accountId: userId,
+      providerId: "credential",
+      userId,
+      password: await hashPassword(DEMO.password),
+    });
 
   const wsId = createId("ws");
   await d
@@ -174,7 +183,8 @@ export async function seed({ reset = false, clicks = 100_000, conversions = 10_0
       cookieDays: 90,
       // two-tier: recruiters earn 10% of their recruits' commissions; listed in the marketplace
       overrideRate: 1000,
-      listedInNetwork: true,
+      listedInNetwork: !publicDemo,
+      autopilotEnabled: !publicDemo,
       category: "Analytics",
       brand: {
         color: "#4F46E5",
@@ -308,6 +318,12 @@ export async function seed({ reset = false, clicks = 100_000, conversions = 10_0
   });
   // two-tier: partners 10-12 joined through partner 1's recruit link
   for (const i of [10, 11, 12]) Object.assign(partners[i]!, { recruitedBy: partners[1]!.id });
+  // one partner can sign in to the portal (the public demo's partner side; no password there either)
+  const demoPartnerUser = crypto.randomUUID();
+  const dp = partners[DEMO.partnerIndex]!;
+  if (dp.email !== DEMO.partnerEmail) throw new Error(`demo partner email drifted: ${dp.email}`);
+  await d.insert(user).values({ id: demoPartnerUser, name: dp.name, email: dp.email, emailVerified: true });
+  Object.assign(dp, { userId: demoPartnerUser });
   await d.insert(partner).values(partners);
   await d.insert(link).values(
     partners.map((p) => ({
@@ -329,80 +345,84 @@ export async function seed({ reset = false, clicks = 100_000, conversions = 10_0
 
   // Clicks, referrals and commissions are generated in SQL for speed. Partner weight follows a power law.
   const active = partners.filter((p, i) => p.status === "approved" && !(i > 28 && i < 32));
-  await d.execute(sql`create temp table seed_partner (idx int, id text, w float) on commit preserve rows`);
-  await d.execute(
-    sql`insert into seed_partner values ${sql.join(
-      active.map((p, i) => sql`(${i}, ${p.id}, ${1 / (i + 1) ** 0.9})`),
-      sql`, `,
-    )}`,
-  );
-  await d.execute(
-    sql`create temp table seed_cdf as select id, sum(w) over (order by idx) / sum(w) over () as hi from seed_partner`,
-  );
-  const sources = ["youtube", "newsletter", "twitter", "blog", "linkedin", "reddit"];
-  await d.execute(sql`
-    insert into click (id, program_id, partner_id, link_id, visitor_id, ip_hash, user_agent, referrer, landing_url, country, sub_id, utm, is_bot, created_at)
-    select 'clk_seed' || g, ${programId}, p.id, null, 'vis_seed' || g, md5('ip' || (g % 40000)), 'Mozilla/5.0 (Macintosh) Safari/605.1', 'https://' || (array[${sql.raw(sources.map((s) => `'${s}.com'`).join(","))}])[1 + g % 6] || '/',
-      ${prog!.websiteUrl} || '/?via=x', (array['US','GB','DE','IN','BR','FR'])[1 + g % 6], case when g % 7 = 0 then 'yt' end,
-      jsonb_build_object('utm_source', (array[${sql.raw(sources.map((s) => `'${s}'`).join(","))}])[1 + g % 6]), g % 97 = 0,
-      now() - (power(random(), 1.3) * interval '180 days')
-    from generate_series(1, ${clicks}) g
-    cross join lateral (select id from seed_cdf where hi >= ((g * 0.6180339887) - floor(g * 0.6180339887)) order by hi limit 1) p`);
-  // referrals: leads from clicks; ~70% of them convert
-  const leads = Math.round(conversions / 0.7);
-  await d.execute(sql`
-    insert into referral (id, program_id, partner_id, click_id, visitor_id, email, external_customer_id, via, status, mrr, revenue, paid_invoices, converted_at, canceled_at, created_at)
-    select 'ref_seed' || c.n, ${programId}, c.partner_id, c.id, c.visitor_id, 'customer' || c.n || '@example.com',
-      case when c.n <= ${conversions} then 'cus_seed' || c.n end, 'link',
-      (case when c.n > ${conversions} then 'lead' when c.n % 9 = 0 then 'canceled' when c.n % 31 = 0 then 'refunded' when c.n % 13 = 0 then 'trialing' else 'active' end)::text,
-      case when c.n <= ${conversions} and c.n % 9 <> 0 and c.n % 31 <> 0 then (array[1900,4900,4083])[1 + c.n % 3] else 0 end, 0, 0,
-      case when c.n <= ${conversions} then c.created_at + interval '2 days' end,
-      case when c.n <= ${conversions} and c.n % 9 = 0 then c.created_at + interval '40 days' end,
-      c.created_at + interval '1 hour'
-    from (select *, row_number() over (order by random()) n from click where program_id = ${programId} and is_bot = false and created_at < now() - interval '3 days') c
-    where c.n <= ${leads}`);
-  // one commission per paid month since conversion (cap 12), 30% (35/40% for higher tiers)
-  await d.execute(sql`
-    insert into commission (id, program_id, workspace_id, partner_id, referral_id, kind, source_key, sale_amount, amount, currency, status, hold_until, external_charge_id, description, created_at, updated_at)
-    select 'com_seed' || r.id || '_' || m, ${programId}, ${wsId}, r.partner_id, r.id, 'sale', 'stripe:in_seed_' || r.id || '_' || m,
-      p.price, round(p.price * coalesce(g.commission_value, 3000) / 10000.0), 'usd',
-      case when r.status = 'refunded' and m = 0 then 'reversed' when r.converted_at + (m || ' months')::interval > now() - interval '30 days' then 'pending' else 'approved' end,
-      r.converted_at + (m || ' months')::interval + interval '30 days', 'ch_seed_' || r.id || '_' || m,
-      (array['Starter','Pro','Pro (annual)'])[1 + (substring(r.id from 9)::int % 3)] || ' · ' || coalesce(g.commission_value, 3000) / 100 || '% of the payment',
-      r.converted_at + (m || ' months')::interval, now()
-    from referral r
-    join partner pt on pt.id = r.partner_id
-    left join partner_group g on g.id = pt.group_id
-    cross join lateral (select (array[1900,4900,49000])[1 + (substring(r.id from 9)::int % 3)] as price) p
-    cross join lateral generate_series(0, least(11, floor(extract(epoch from (coalesce(r.canceled_at, now()) - r.converted_at)) / 2592000)::int)) m
-    where r.program_id = ${programId} and r.converted_at is not null and r.status <> 'trialing'
-      and (p.price <> 49000 or m = 0)
-      and r.converted_at + (m || ' months')::interval <= now()`);
-  await d.execute(sql`
-    update referral r set revenue = s.rev, paid_invoices = s.n
-    from (select referral_id, sum(sale_amount)::int rev, count(*)::int n from commission where program_id = ${programId} and status <> 'reversed' group by referral_id) s
-    where s.referral_id = r.id`);
-  // two-tier: the recruiter's 10% override on each recruit's sale commission
-  await d.execute(sql`
-    insert into commission (id, program_id, workspace_id, partner_id, referral_id, kind, parent_id, source_key, sale_amount, amount, currency, status, hold_until, external_charge_id, description, created_at, updated_at)
-    select 'com_ovr' || substring(c.id from 4), c.program_id, c.workspace_id, sub.recruited_by, c.referral_id, 'override', c.id, 'override:' || c.id,
-      0, round(c.amount * 0.1), c.currency, c.status, c.hold_until, c.external_charge_id, '10% of ' || sub.name || '''s commission', c.created_at, now()
-    from commission c join partner sub on sub.id = c.partner_id
-    where c.program_id = ${programId} and c.kind = 'sale' and sub.recruited_by is not null`);
-  // pay out everything approved before 60 days ago, one payout per partner
-  await d.execute(sql`
-    with owed as (
-      select partner_id, sum(amount)::int total from commission where program_id = ${programId} and status = 'approved' and created_at < now() - interval '60 days' group by partner_id
-    ), ins as (
-      insert into payout (id, program_id, workspace_id, partner_id, amount, currency, method, status, approved_by, approved_at, paid_at, invoice_number, external_id, created_at)
-      select 'pay_seed_' || o.partner_id, ${programId}, ${wsId}, o.partner_id, o.total, 'usd', coalesce(p.payout_method, 'manual'), 'paid', ${userId}, now() - interval '20 days', now() - interval '20 days',
-        'OP-' || lpad((row_number() over ())::text, 5, '0'), 'seed_ref_' || row_number() over (), now() - interval '21 days'
-      from owed o join partner p on p.id = o.partner_id
-      returning partner_id, id
-    )
-    update commission c set status = 'paid', payout_id = ins.id from ins
-    where c.partner_id = ins.partner_id and c.program_id = ${programId} and c.status = 'approved' and c.created_at < now() - interval '60 days'`);
-  await d.execute(sql`drop table if exists seed_cdf; drop table if exists seed_partner`);
+  // temp tables live on one connection: one transaction keeps every step on it (the app's pool has many)
+  await d.transaction(async (tx) => {
+    await tx.execute(sql`drop table if exists seed_cdf; drop table if exists seed_partner`);
+    await tx.execute(sql`create temp table seed_partner (idx int, id text, w float) on commit drop`);
+    await tx.execute(
+      sql`insert into seed_partner values ${sql.join(
+        active.map((p, i) => sql`(${i}, ${p.id}, ${1 / (i + 1) ** 0.9})`),
+        sql`, `,
+      )}`,
+    );
+    await tx.execute(
+      sql`create temp table seed_cdf on commit drop as select id, sum(w) over (order by idx) / sum(w) over () as hi from seed_partner`,
+    );
+    const sources = ["youtube", "newsletter", "twitter", "blog", "linkedin", "reddit"];
+    await tx.execute(sql`
+      insert into click (id, program_id, partner_id, link_id, visitor_id, ip_hash, user_agent, referrer, landing_url, country, sub_id, utm, is_bot, created_at)
+      select 'clk_seed' || g, ${programId}, p.id, null, 'vis_seed' || g, md5('ip' || (g % 40000)), 'Mozilla/5.0 (Macintosh) Safari/605.1', 'https://' || (array[${sql.raw(sources.map((s) => `'${s}.com'`).join(","))}])[1 + g % 6] || '/',
+        ${prog!.websiteUrl} || '/?via=x', (array['US','GB','DE','IN','BR','FR'])[1 + g % 6], case when g % 7 = 0 then 'yt' end,
+        jsonb_build_object('utm_source', (array[${sql.raw(sources.map((s) => `'${s}'`).join(","))}])[1 + g % 6]), g % 97 = 0,
+        now() - (power(random(), 1.3) * interval '180 days')
+      from generate_series(1, ${clicks}) g
+      cross join lateral (select id from seed_cdf where hi >= ((g * 0.6180339887) - floor(g * 0.6180339887)) order by hi limit 1) p`);
+    // referrals: leads from clicks; ~70% of them convert
+    const leads = Math.round(conversions / 0.7);
+    await tx.execute(sql`
+      insert into referral (id, program_id, partner_id, click_id, visitor_id, email, external_customer_id, via, status, mrr, revenue, paid_invoices, converted_at, canceled_at, created_at)
+      select 'ref_seed' || c.n, ${programId}, c.partner_id, c.id, c.visitor_id, 'customer' || c.n || '@example.com',
+        case when c.n <= ${conversions} then 'cus_seed' || c.n end, 'link',
+        (case when c.n > ${conversions} then 'lead' when c.n % 9 = 0 then 'canceled' when c.n % 31 = 0 then 'refunded' when c.n % 13 = 0 then 'trialing' else 'active' end)::text,
+        case when c.n <= ${conversions} and c.n % 9 <> 0 and c.n % 31 <> 0 then (array[1900,4900,4083])[1 + c.n % 3] else 0 end, 0, 0,
+        case when c.n <= ${conversions} then c.created_at + interval '2 days' end,
+        case when c.n <= ${conversions} and c.n % 9 = 0 then c.created_at + interval '40 days' end,
+        c.created_at + interval '1 hour'
+      from (select *, row_number() over (order by random()) n from click where program_id = ${programId} and is_bot = false and created_at < now() - interval '3 days') c
+      where c.n <= ${leads}`);
+    // one commission per paid month since conversion (cap 12), 30% (35/40% for higher tiers)
+    await tx.execute(sql`
+      insert into commission (id, program_id, workspace_id, partner_id, referral_id, kind, source_key, sale_amount, amount, currency, status, hold_until, external_charge_id, description, created_at, updated_at)
+      select 'com_seed' || r.id || '_' || m, ${programId}, ${wsId}, r.partner_id, r.id, 'sale', 'stripe:in_seed_' || r.id || '_' || m,
+        p.price, round(p.price * coalesce(g.commission_value, 3000) / 10000.0), 'usd',
+        case when r.status = 'refunded' and m = 0 then 'reversed' when r.converted_at + (m || ' months')::interval > now() - interval '30 days' then 'pending' else 'approved' end,
+        r.converted_at + (m || ' months')::interval + interval '30 days', 'ch_seed_' || r.id || '_' || m,
+        (array['Starter','Pro','Pro (annual)'])[1 + (substring(r.id from 9)::int % 3)] || ' · ' || coalesce(g.commission_value, 3000) / 100 || '% of the payment',
+        r.converted_at + (m || ' months')::interval, now()
+      from referral r
+      join partner pt on pt.id = r.partner_id
+      left join partner_group g on g.id = pt.group_id
+      cross join lateral (select (array[1900,4900,49000])[1 + (substring(r.id from 9)::int % 3)] as price) p
+      cross join lateral generate_series(0, least(11, floor(extract(epoch from (coalesce(r.canceled_at, now()) - r.converted_at)) / 2592000)::int)) m
+      where r.program_id = ${programId} and r.converted_at is not null and r.status <> 'trialing'
+        and (p.price <> 49000 or m = 0)
+        and r.converted_at + (m || ' months')::interval <= now()`);
+    await tx.execute(sql`
+      update referral r set revenue = s.rev, paid_invoices = s.n
+      from (select referral_id, sum(sale_amount)::int rev, count(*)::int n from commission where program_id = ${programId} and status <> 'reversed' group by referral_id) s
+      where s.referral_id = r.id`);
+    // two-tier: the recruiter's 10% override on each recruit's sale commission
+    await tx.execute(sql`
+      insert into commission (id, program_id, workspace_id, partner_id, referral_id, kind, parent_id, source_key, sale_amount, amount, currency, status, hold_until, external_charge_id, description, created_at, updated_at)
+      select 'com_ovr' || substring(c.id from 4), c.program_id, c.workspace_id, sub.recruited_by, c.referral_id, 'override', c.id, 'override:' || c.id,
+        0, round(c.amount * 0.1), c.currency, c.status, c.hold_until, c.external_charge_id, '10% of ' || sub.name || '''s commission', c.created_at, now()
+      from commission c join partner sub on sub.id = c.partner_id
+      where c.program_id = ${programId} and c.kind = 'sale' and sub.recruited_by is not null`);
+    // pay out everything approved before 60 days ago, one payout per partner
+    await tx.execute(sql`
+      with owed as (
+        select partner_id, sum(amount)::int total from commission where program_id = ${programId} and status = 'approved' and created_at < now() - interval '60 days' group by partner_id
+      ), ins as (
+        insert into payout (id, program_id, workspace_id, partner_id, amount, currency, method, status, approved_by, approved_at, paid_at, invoice_number, external_id, created_at)
+        select 'pay_seed_' || o.partner_id, ${programId}, ${wsId}, o.partner_id, o.total, 'usd', coalesce(p.payout_method, 'manual'), 'paid', ${userId}, now() - interval '20 days', now() - interval '20 days',
+          'OP-' || lpad((row_number() over ())::text, 5, '0'), 'seed_ref_' || row_number() over (), now() - interval '21 days'
+        from owed o join partner p on p.id = o.partner_id
+        returning partner_id, id
+      )
+      update commission c set status = 'paid', payout_id = ins.id from ins
+      where c.partner_id = ins.partner_id and c.program_id = ${programId} and c.status = 'approved' and c.created_at < now() - interval '60 days'`);
+    await tx.execute(sql`drop table if exists seed_cdf; drop table if exists seed_partner`);
+  });
 
   // a held self-referral and a brand-bidding partner for the fraud screen
   const risky = partners[33]!;
@@ -577,7 +597,7 @@ export async function seed({ reset = false, clicks = 100_000, conversions = 10_0
     owed.map((o) => o.partnerId),
   );
   console.log(
-    `Seeded demo program ${programId}: ${partners.length} partners, ${clicks} clicks, ${conversions} conversions. Sign in as ${DEMO.email} / ${DEMO.password}`,
+    `Seeded demo program ${programId}: ${partners.length} partners, ${clicks} clicks, ${conversions} conversions. ${publicDemo ? "Public demo: open /demo" : `Sign in as ${DEMO.email} / ${DEMO.password}`}`,
   );
   return programId;
 }
