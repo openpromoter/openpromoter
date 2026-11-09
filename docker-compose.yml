@@ -36,6 +36,8 @@ services:
       - "127.0.0.1:${MAILPIT_PORT:-8025}:8025"
 
   app:
+    # pulls the released image; `docker compose up --build` builds from source instead
+    image: ghcr.io/openpromoter/openpromoter:${OPENPROMOTER_VERSION:-latest}
     build: .
     depends_on:
       postgres:
