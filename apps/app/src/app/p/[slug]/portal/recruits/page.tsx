@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/page";
 import { formatMoney } from "@/lib/money";
 import { partnerCtx } from "@/server/context";
 import { db } from "@/server/db";
-import { env } from "@/server/env";
+import { programUrl } from "@/server/ref-link";
 
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
 
@@ -46,7 +46,7 @@ export default async function PortalRecruits({ params }: { params: Promise<{ slu
   const bySub = new Map(earned.map((e) => [e.subId, e.amount]));
   const total = earned.reduce((s, e) => s + e.amount, 0);
   const rate = `${p.overrideRate / 100}%`;
-  const url = `${env.APP_URL}/p/${slug}/apply?recruit=${encodeURIComponent(pt.code)}`;
+  const url = `${programUrl(p, "/apply")}?recruit=${encodeURIComponent(pt.code)}`;
   return (
     <>
       <PageHeader

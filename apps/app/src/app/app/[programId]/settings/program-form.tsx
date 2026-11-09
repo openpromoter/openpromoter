@@ -124,6 +124,23 @@ export function ProgramForm({
               />
             </Field>
             <Field
+              label="Then, for life"
+              htmlFor="commissionAfterValue"
+              hint="Optional. A lower rate paid after those months, for as long as the customer pays. Leave empty to stop."
+            >
+              <InputAdornment suffix={type === "percent" ? "%" : p.currency}>
+                <Input
+                  id="commissionAfterValue"
+                  name="commissionAfterValue"
+                  defaultValue={p.commissionAfterValue}
+                  inputMode="decimal"
+                  placeholder="None"
+                  disabled={duration !== "months"}
+                  className="num pr-12 text-right"
+                />
+              </InputAdornment>
+            </Field>
+            <Field
               label="Per signup (lead) reward"
               htmlFor="leadCommission"
               hint="Paid when a referred visitor signs up and before they pay. Enter 0 to turn it off."

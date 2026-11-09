@@ -63,9 +63,12 @@ export function PortalShell({
   banner,
   footer,
   recruiting = false,
+  home,
   children,
 }: {
   slug: string;
+  /** "" on the program's own domain, /p/slug on the app's host. */
+  home: string;
   name: string;
   logo: React.ReactNode;
   user: string;
@@ -78,7 +81,7 @@ export function PortalShell({
   children: React.ReactNode;
 }) {
   const path = usePathname();
-  const base = `/p/${slug}/portal`;
+  const base = `${home}/portal`;
   const isActive = (h: string) => (h === "" ? path === base : path.startsWith(base + h));
   const groups = GROUPS.map((g) => ({
     ...g,
@@ -134,13 +137,13 @@ export function PortalShell({
         </nav>
         <div className="flex flex-col gap-2 px-3 pb-3">
           <Link
-            href={`/p/${slug}`}
+            href={home || "/"}
             className="flex h-8 items-center gap-2.5 rounded-md px-2 text-[13px] text-muted transition-colors hover:bg-surface-3/70 hover:text-fg dark:hover:bg-surface-2"
           >
             <ArrowUpRight className="size-[18px] text-subtle" aria-hidden />
             Program page
           </Link>
-          <AccountMenu slug={slug} user={user} email={email} programs={programs} />
+          <AccountMenu slug={slug} home={home} user={user} email={email} programs={programs} />
         </div>
       </aside>
 
@@ -155,7 +158,7 @@ export function PortalShell({
                 <span className="truncate font-medium text-fg">{current?.[1] ?? "Portal"}</span>
               </nav>
               <div className="ml-auto lg:hidden">
-                <AccountMenu slug={slug} user={user} email={email} programs={programs} compact />
+                <AccountMenu slug={slug} home={home} user={user} email={email} programs={programs} compact />
               </div>
             </div>
             <nav
@@ -190,12 +193,14 @@ export function PortalShell({
 
 function AccountMenu({
   slug,
+  home,
   user,
   email,
   programs,
   compact,
 }: {
   slug: string;
+  home: string;
   user: string;
   email: string;
   programs: { slug: string; name: string }[];
@@ -243,7 +248,7 @@ function AccountMenu({
         <DropdownMenuItem
           onSelect={async () => {
             await authClient.signOut();
-            router.push(`/p/${slug}`);
+            router.push(home || "/");
           }}
         >
           <LogOut /> Sign out

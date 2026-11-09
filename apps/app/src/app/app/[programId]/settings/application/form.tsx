@@ -152,7 +152,9 @@ export function ApplicationForm({
           >
             <Input
               value={q.label}
-              placeholder="How will you promote us?"
+              placeholder={
+                q.type === "checkbox" ? "I have read the brand guidelines" : "How will you promote us?"
+              }
               aria-label="Question"
               disabled={!canWrite}
               onChange={(e) => setQs(qs.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))}
@@ -161,11 +163,16 @@ export function ApplicationForm({
               value={q.type}
               aria-label="Answer type"
               disabled={!canWrite}
-              onValueChange={(v) => setQs(qs.map((x, j) => (j === i ? { ...x, type: v as "text" } : x)))}
+              onValueChange={(v) =>
+                setQs(qs.map((x, j) => (j === i ? { ...x, type: v as ApplicationQuestion["type"] } : x)))
+              }
             >
               <option value="text">Short text</option>
               <option value="textarea">Long text</option>
               <option value="url">URL</option>
+              <option value="select">Dropdown</option>
+              <option value="multi">Multiple choice</option>
+              <option value="checkbox">Checkbox</option>
             </Select>
             <label className="flex items-center gap-2 text-xs text-muted">
               <Switch
@@ -185,6 +192,22 @@ export function ApplicationForm({
               >
                 <Trash2 />
               </Button>
+            ) : null}
+            {q.type === "select" || q.type === "multi" ? (
+              <Input
+                className="col-span-full"
+                defaultValue={(q.options ?? []).join(", ")}
+                placeholder="Options, separated by commas: Blog, YouTube, Newsletter"
+                aria-label="Options"
+                disabled={!canWrite}
+                onChange={(e) => {
+                  const options = e.target.value
+                    .split(",")
+                    .map((o) => o.trim())
+                    .filter(Boolean);
+                  setQs(qs.map((x, j) => (j === i ? { ...x, options } : x)));
+                }}
+              />
             ) : null}
           </div>
         ))}

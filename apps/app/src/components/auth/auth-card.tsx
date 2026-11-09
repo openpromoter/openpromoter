@@ -76,7 +76,7 @@ export function AuthCard({
         </div>
       </main>
       <aside className="hidden p-2 pl-0 lg:block" aria-hidden>
-        <div className="auth-stage relative isolate flex h-full min-h-[calc(100dvh-16px)] flex-col overflow-hidden rounded-[16px] bg-[#0e0f11] text-white ring-1 ring-white/8">
+        <div className="auth-stage relative isolate flex h-full min-h-[calc(100dvh-16px)] flex-col overflow-hidden rounded-[16px] bg-[#0e0f11] text-white">
           <div className="auth-grid absolute inset-0 -z-10" />
           {/* Lit cells on the grid, one with Beacon's eyes, as on the website's heroes. */}
           {[

@@ -26,10 +26,10 @@ import { defineJob, enqueue, pruneJobs, runDueJobs } from "./jobs";
 import { matureCommissions } from "./ledger";
 import { createPayoutBatch, reconcilePayouts } from "./payouts";
 import { pruneRateLimits } from "./ratelimit";
-import { codeUrl } from "./ref-link";
+import { codeUrl, programUrl } from "./ref-link";
 import { importStripe } from "./stripe-service";
 
-const portal = (slug: string, path = "") => `${env.APP_URL}/p/${slug}/portal${path}`;
+const portal = (p: Parameters<typeof programUrl>[0], path = "") => programUrl(p, `/portal${path}`);
 
 async function brandOf(programId: string) {
   const [p] = await db().select().from(program).where(eq(program.id, programId));
@@ -122,7 +122,7 @@ export function registerJobs() {
           ],
           total: { label: "Your commission", value: formatMoney(row.c.amount, row.c.currency) },
         },
-        cta: { label: "View earnings", href: portal(row.prog.slug, "/earnings") },
+        cta: { label: "View earnings", href: portal(row.prog, "/earnings") },
       },
     );
   });
@@ -164,7 +164,7 @@ export function registerJobs() {
           ],
           total: { label: "Paid to you", value: formatMoney(row.po.amount, row.po.currency) },
         },
-        cta: { label: "View payouts", href: portal(row.prog.slug, "/payouts") },
+        cta: { label: "View payouts", href: portal(row.prog, "/payouts") },
       },
     );
   });
@@ -185,7 +185,7 @@ export function registerJobs() {
         `Your partner account for ${row.prog.name} is ready. Your link is ${codeUrl(row.prog, row.pt.code)}.`,
         "Add a payout method in the portal so we can pay you. Then grab ready-made posts from the content kit.",
       ],
-      cta: { label: "Open your portal", href: portal(row.prog.slug) },
+      cta: { label: "Open your portal", href: portal(row.prog) },
     });
   });
   defineJob("notify.new_application", async (p) => {

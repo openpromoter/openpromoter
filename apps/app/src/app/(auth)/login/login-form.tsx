@@ -34,7 +34,7 @@ export function LoginForm({
   captcha?: string;
   via?: string;
   /** Signing in to a program's partner portal: its name and slug, for the program's own wording and links. */
-  partner?: { name: string; slug: string };
+  partner?: { name: string; slug: string; base: string };
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(initialError);
@@ -83,7 +83,7 @@ export function LoginForm({
             Not a partner yet?{" "}
             <Link
               className="-my-2 inline-block py-2 font-medium text-accent-text hover:underline"
-              href={`/p/${partner.slug}/apply`}
+              href={`${partner.base}/apply`}
             >
               Apply to join
             </Link>

@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { planStatus } from "@/server/billing-plans";
 import { partnerCtx } from "@/server/context";
 import { db } from "@/server/db";
+import { programBase } from "@/server/program-base";
 import { BrandMark } from "../brand";
 import { PortalShell } from "./nav";
 
@@ -24,6 +25,7 @@ export default async function PortalLayout({
   return (
     <PortalShell
       slug={slug}
+      home={await programBase(ctx.program)}
       name={ctx.program.name}
       logo={<BrandMark name={ctx.program.name} logoUrl={ctx.program.brand.logoUrl ?? null} size={28} />}
       user={ctx.user.name}

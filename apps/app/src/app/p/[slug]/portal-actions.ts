@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
+import { applicationAnswer } from "@/lib/application-answer";
 import { encrypt } from "@/lib/crypto";
 import { createId } from "@/lib/id";
 import { audit } from "@/server/audit";
@@ -13,7 +14,9 @@ import { captchaFor, verifyCaptcha } from "@/server/captcha";
 import { currentUser, partnerCtx, safe } from "@/server/context";
 import { db } from "@/server/db";
 import { applyToProgram, createLink } from "@/server/partners";
+import { programBase } from "@/server/program-base";
 import { clientIp, limit } from "@/server/ratelimit";
+import { programUrl } from "@/server/ref-link";
 import { partnerOnboardingLink } from "@/server/stripe-service";
 
 export async function applyAction(slug: string, input: Record<string, string>) {
@@ -42,8 +45,8 @@ export async function applyAction(slug: string, input: Record<string, string>) {
     if (p.visibility === "invite_only" && !base.invite) throw new Error("This program is invite-only.");
     const answers: Record<string, string> = {};
     for (const q of p.applicationQuestions) {
-      const v = (input[`q_${q.id}`] ?? "").slice(0, 4000);
-      if (q.required && !v.trim()) throw new Error(`Please answer: ${q.label}`);
+      const v = applicationAnswer(q, input[`q_${q.id}`] ?? "");
+      if (q.required && !v) throw new Error(`Please answer: ${q.label}`);
       if (v) answers[q.id] = v;
     }
     let u: { id: string; email: string } | null = await currentUser();
@@ -154,7 +157,10 @@ export async function payoutMethodAction(
 export async function stripeOnboardingAction(slug: string) {
   return safe(async () => {
     const ctx = await partnerCtx(slug);
-    return partnerOnboardingLink(ctx.program.id, ctx.partner.id, `/p/${slug}/portal/payouts`);
+    // back to the host the partner is signed in on: their program's own domain or the app
+    const base = await programBase(ctx.program);
+    const back = base ? `/p/${slug}/portal/payouts` : programUrl(ctx.program, "/portal/payouts");
+    return partnerOnboardingLink(ctx.program.id, ctx.partner.id, back);
   });
 }
 

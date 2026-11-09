@@ -15,10 +15,10 @@ import { createCode, createId, slugify } from "@/lib/id";
 import { type Actor, audit } from "./audit";
 import { db } from "./db";
 import { sendNotice } from "./email";
-import { env } from "./env";
 import { enqueue } from "./jobs";
 import { followOverrides } from "./ledger";
 import { limit } from "./ratelimit";
+import { programUrl } from "./ref-link";
 
 type Program = typeof program.$inferSelect;
 type Partner = typeof partner.$inferSelect;
@@ -377,7 +377,7 @@ export async function sendMessage(
         title: input.subject ?? `A message from ${prog.name}`,
         paragraphs: [input.body],
         programId: prog.id,
-        cta: { label: "Open partner portal", href: `${env.APP_URL}/p/${prog.slug}/portal/messages` },
+        cta: { label: "Open partner portal", href: programUrl(prog, "/portal/messages") },
       });
     }
   }

@@ -6,6 +6,7 @@ import { AccessError, type Permission, requireProgram } from "./access";
 import type { Actor } from "./audit";
 import { getSession } from "./auth";
 import { db } from "./db";
+import { programBase } from "./program-base";
 
 export const currentUser = cache(async () => (await getSession())?.user ?? null);
 
@@ -61,12 +62,13 @@ export async function userPrograms(userId: string) {
 export const partnerCtx = cache(async (slug: string) => {
   const [p] = await db().select().from(program).where(eq(program.slug, slug));
   if (!p) notFound();
-  const u = await requireUser(`/p/${slug}/portal`);
+  const base = await programBase(p);
+  const u = await requireUser(`${base}/portal`);
   const [pt] = await db()
     .select()
     .from(partner)
     .where(and(eq(partner.programId, p.id), eq(partner.userId, u.id)));
-  if (!pt) redirect(`/p/${slug}/apply`);
+  if (!pt) redirect(`${base}/apply`);
   return { user: u, program: p, partner: pt, actor: { type: "partner" as const, id: pt.id } };
 });
 

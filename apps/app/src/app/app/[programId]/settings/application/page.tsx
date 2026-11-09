@@ -1,5 +1,5 @@
 import { programCtx } from "@/server/context";
-import { env } from "@/server/env";
+import { programUrl } from "@/server/ref-link";
 import { ApplicationForm } from "./form";
 
 export default async function ApplicationSettings({ params }: { params: Promise<{ programId: string }> }) {
@@ -11,7 +11,7 @@ export default async function ApplicationSettings({ params }: { params: Promise<
       canWrite={role === "owner" || role === "admin"}
       questions={p.applicationQuestions}
       autoApprove={p.autoApprove}
-      applyUrl={`${env.APP_URL}/p/${p.slug}/apply`}
+      applyUrl={programUrl(p, "/apply")}
     />
   );
 }

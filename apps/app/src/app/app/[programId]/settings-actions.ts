@@ -55,6 +55,11 @@ const programSchema = z.object({
     (v) => (v === undefined || v === "" ? undefined : v),
     z.coerce.number().int().min(1).max(120).optional(),
   ),
+  // empty: commissions stop after the months; disabled (not sent) unless the duration is "months"
+  commissionAfterValue: z
+    .string()
+    .regex(/^(\d+(\.\d{1,2})?)?$/)
+    .optional(),
   leadCommission: z.string().regex(/^\d+(\.\d{1,2})?$/),
   overridePercent: z.coerce.number().min(0).max(100).default(0),
   cookieDays: z.coerce.number().int().min(1).max(365),
@@ -89,6 +94,15 @@ export async function updateProgramAction(programId: string, input: Record<strin
             : toMinor(v.commissionValue, cur),
         commissionDuration: v.commissionDuration,
         ...(v.commissionMonths ? { commissionMonths: v.commissionMonths } : {}),
+        ...(v.commissionAfterValue !== undefined
+          ? {
+              commissionAfterValue: !Number(v.commissionAfterValue)
+                ? null
+                : v.commissionType === "percent"
+                  ? Math.round(Number(v.commissionAfterValue) * 100)
+                  : toMinor(v.commissionAfterValue, cur),
+            }
+          : {}),
         leadCommission: toMinor(v.leadCommission, cur),
         overrideRate: Math.round(v.overridePercent * 100),
         cookieDays: v.cookieDays,
@@ -176,7 +190,7 @@ export async function updateApplicationAction(
     questions: {
       id: string;
       label: string;
-      type: "text" | "textarea" | "url" | "select";
+      type: "text" | "textarea" | "url" | "select" | "multi" | "checkbox";
       required: boolean;
       options?: string[];
     }[];
@@ -195,13 +209,17 @@ export async function updateApplicationAction(
       .object({
         questions: z
           .array(
-            z.object({
-              id: z.string().max(40),
-              label: z.string().min(1).max(200),
-              type: z.enum(["text", "textarea", "url", "select"]),
-              required: z.boolean(),
-              options: z.array(z.string().max(80)).max(20).optional(),
-            }),
+            z
+              .object({
+                id: z.string().max(40),
+                label: z.string().min(1).max(200),
+                type: z.enum(["text", "textarea", "url", "select", "multi", "checkbox"]),
+                required: z.boolean(),
+                options: z.array(z.string().trim().min(1).max(80)).max(20).optional(),
+              })
+              .refine((q) => !["select", "multi"].includes(q.type) || (q.options?.length ?? 0) >= 2, {
+                message: "Give each choice question at least two options",
+              }),
           )
           .max(15),
         autoApprove: z.object({

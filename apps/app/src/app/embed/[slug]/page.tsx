@@ -5,9 +5,8 @@ import { formatMoney, formatNumber } from "@/lib/money";
 import { durationLabel, rateLabel } from "@/lib/program-labels";
 import { db } from "@/server/db";
 import { verifyEmbedToken } from "@/server/embed";
-import { env } from "@/server/env";
 import { balances } from "@/server/ledger";
-import { codeUrl, linkUrl } from "@/server/ref-link";
+import { codeUrl, linkUrl, programUrl } from "@/server/ref-link";
 import { BrandScope } from "../../p/[slug]/brand";
 
 export const dynamic = "force-dynamic";
@@ -79,7 +78,7 @@ export default async function EmbedPage({
         ))}
       </dl>
       <a
-        href={`${env.APP_URL}/p/${slug}/portal`}
+        href={programUrl(prog, "/portal")}
         target="_blank"
         rel="noreferrer"
         className="mt-3 inline-block text-xs font-medium text-accent-text hover:underline"

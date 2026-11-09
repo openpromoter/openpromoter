@@ -1,0 +1,1 @@
+ALTER TABLE "program" ADD COLUMN "commission_after_value" integer;

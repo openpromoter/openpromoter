@@ -6,6 +6,8 @@ export interface CommissionPlan {
   value: number;
   duration: CommissionDuration;
   months: number;
+  /** "months" only: the rate paid for life once the first `months` are over. null = nothing after. */
+  after?: number | null;
 }
 
 export interface CampaignLike {
@@ -54,6 +56,7 @@ export function resolvePlan(
     commissionValue: number;
     commissionDuration: CommissionDuration;
     commissionMonths: number;
+    commissionAfterValue?: number | null;
   },
   group?: { commissionType: CommissionType | null; commissionValue: number | null } | null,
   partnerOverride?: number | null,
@@ -72,6 +75,11 @@ export function resolvePlan(
     value,
     duration: program.commissionDuration,
     months: program.commissionMonths,
+    // the later rate is in the program's unit, so it only follows a plan of the same type
+    after:
+      partnerOverride != null || !overridden || type === program.commissionType
+        ? (program.commissionAfterValue ?? null)
+        : null,
   };
 }
 
@@ -114,16 +122,22 @@ export function computeCommission(
 
   if (plan.duration === "once" && payment.priorPayments > 0)
     return none("One-time commission already earned");
+  let value = plan.value;
+  let later = false;
   if (plan.duration === "months" && payment.firstPaidAt) {
     const end = addMonths(payment.firstPaidAt, plan.months);
-    if (payment.paidAt >= end) return none(`Commission window of ${plan.months} months has ended`);
+    if (payment.paidAt >= end) {
+      if (!plan.after || plan.after <= 0) return none(`Commission window of ${plan.months} months has ended`);
+      value = plan.after;
+      later = true;
+    }
   }
 
-  const base = plan.type === "percent" ? Math.round((payment.amount * plan.value) / 10_000) : plan.value;
+  const base = plan.type === "percent" ? Math.round((payment.amount * value) / 10_000) : value;
   const boost = bestBoost(campaigns, payment.paidAt, payment.interval, groupId);
   const multiplier = boost?.multiplier ?? 1;
   const amount = Math.round(base * multiplier);
-  const rate = plan.type === "percent" ? `${plan.value / 100}% of the payment` : "fixed amount";
+  const rate = `${plan.type === "percent" ? `${value / 100}% of the payment` : "fixed amount"}${later ? ` after the first ${plan.months} months` : ""}`;
   return {
     amount,
     eligible: amount > 0,

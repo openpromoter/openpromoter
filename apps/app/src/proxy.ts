@@ -64,6 +64,14 @@ export async function proxy(req: NextRequest) {
   const slug = await slugFor(name);
   if (!slug) return NextResponse.next();
   const path = req.nextUrl.pathname;
+  // the program lives at this domain's root: old /p/<slug>/... links land on the clean path. Built from the
+  // Host header, since behind the tunnel the request URL carries the internal host.
+  const own =
+    path === `/p/${slug}` || path.startsWith(`/p/${slug}/`) ? path.slice(slug.length + 3) || "/" : null;
+  if (own) {
+    const proto = req.headers.get("x-forwarded-proto")?.split(",")[0] ?? req.nextUrl.protocol.replace(":", "");
+    return NextResponse.redirect(new URL(own + req.nextUrl.search, `${proto}://${host}`), 307);
+  }
   if (/^\/(api|_next|op\.js|favicon|login|signup|forgot|reset)/.test(path)) return NextResponse.next();
   const url = req.nextUrl.clone();
   if (path === "/" || /^\/(apply|portal)(\/|$)/.test(path))

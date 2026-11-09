@@ -9,6 +9,7 @@ import { partnerCtx } from "@/server/context";
 import { db } from "@/server/db";
 import { balances } from "@/server/ledger";
 import { timeseriesForPartner } from "@/server/partner-stats";
+import { programBase } from "@/server/program-base";
 
 const PER_PAGE = 50;
 
@@ -24,6 +25,7 @@ export default async function PortalEarnings({
   const { slug } = await params;
   const page = Math.max(1, Number.parseInt((await searchParams).page ?? "1", 10) || 1);
   const { program: p, partner: pt } = await partnerCtx(slug);
+  const home = await programBase(p);
   const [rows, series, bal] = await Promise.all([
     db()
       .select()
@@ -102,7 +104,7 @@ export default async function PortalEarnings({
           description="Every commission with the newest first."
           action={
             <Button asChild size="sm">
-              <a href={`/p/${slug}/portal/earnings/csv`}>
+              <a href={`${home}/portal/earnings/csv`}>
                 <Download /> Download CSV
               </a>
             </Button>

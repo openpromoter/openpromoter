@@ -13,6 +13,7 @@ import { partnerCtx } from "@/server/context";
 import { db } from "@/server/db";
 import { balances } from "@/server/ledger";
 import { timeseriesForPartner } from "@/server/partner-stats";
+import { programBase } from "@/server/program-base";
 import { codeUrl, linkUrl } from "@/server/ref-link";
 import { scheduleLabel } from "../../offer";
 import { PayoutSlip } from "../slip";
@@ -21,6 +22,7 @@ import { LinkTicket } from "../ticket";
 export default async function PortalHome({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { program: p, partner: pt } = await partnerCtx(slug);
+  const home = await programBase(p);
   const m = (n: number) => formatMoney(n, p.currency);
   const mw = (n: number) => formatMoney(n, p.currency, { whole: true });
   const [[clicks], [refs], bal, series, live, [firstLink]] = await Promise.all([
@@ -128,7 +130,7 @@ export default async function PortalHome({ params }: { params: Promise<{ slug: s
             {steps.map((s) => (
               <li key={s.label}>
                 <Link
-                  href={`/p/${slug}/portal${s.href}`}
+                  href={`${home}/portal${s.href}`}
                   className={`flex h-9 items-center gap-2 rounded-md text-[13px] whitespace-nowrap transition-colors ${
                     s.done
                       ? "text-subtle hover:text-muted"
@@ -212,7 +214,7 @@ export default async function PortalHome({ params }: { params: Promise<{ slug: s
             min={p.minPayout}
             schedule={scheduleLabel(p)}
             method={pt.payoutMethod}
-            href={`/p/${slug}/portal/payouts`}
+            href={`${home}/portal/payouts`}
           />
           {live.length ? (
             <Card>
@@ -231,7 +233,7 @@ export default async function PortalHome({ params }: { params: Promise<{ slug: s
                     </div>
                     {c.rule.kind === "bounty" && c.rule.trigger === "post" ? (
                       <Button asChild size="sm" className="self-start">
-                        <Link href={`/p/${slug}/portal/content?bounty=${c.id}`}>Submit a post</Link>
+                        <Link href={`${home}/portal/content?bounty=${c.id}`}>Submit a post</Link>
                       </Button>
                     ) : null}
                   </li>

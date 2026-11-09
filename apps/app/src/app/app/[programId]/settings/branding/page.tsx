@@ -2,6 +2,7 @@ import { PROGRAM_CATEGORIES } from "@openpromoter/db";
 import { programCtx } from "@/server/context";
 import { cloudflareOn, cnameTarget } from "@/server/custom-hostnames";
 import { env } from "@/server/env";
+import { programUrl } from "@/server/ref-link";
 import { BrandingForm } from "./form";
 
 export default async function BrandingSettings({ params }: { params: Promise<{ programId: string }> }) {
@@ -18,7 +19,7 @@ export default async function BrandingSettings({ params }: { params: Promise<{ p
         description: p.brand.description ?? "",
       }}
       name={p.name}
-      publicUrl={`${env.APP_URL}/p/${p.slug}`}
+      publicUrl={programUrl(p)}
       domain={p.customDomain}
       verified={!!p.customDomainVerifiedAt}
       cnameTarget={cnameTarget()}

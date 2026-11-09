@@ -1,13 +1,14 @@
 "use client";
 
 import type { ApplicationQuestion } from "@openpromoter/db";
-import { Button, Field, Input, Textarea } from "@openpromoter/ui";
+import { Button, Field, Input, Select, Textarea } from "@openpromoter/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { Captcha, captchaToken, resetCaptcha } from "@/components/auth/captcha";
 import { CountrySelect } from "@/components/country-select";
+import { MULTI_SEP } from "@/lib/application-answer";
 import { applyAction } from "../portal-actions";
 
 function Group({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
@@ -25,6 +26,7 @@ function Group({ n, title, children }: { n: string; title: string; children: Rea
 
 export function ApplyForm({
   slug,
+  base,
   signedIn,
   invite,
   recruit,
@@ -35,6 +37,8 @@ export function ApplyForm({
   captcha,
 }: {
   slug: string;
+  /** "" on the program's own domain, /p/slug on the app's host. */
+  base: string;
   signedIn: { name: string; email: string } | null;
   invite: string;
   recruit: string;
@@ -64,7 +68,10 @@ export function ApplyForm({
           const f = new FormData(form);
           const r = await applyAction(
             slug,
-            Object.fromEntries([...f.entries()].map(([k, v]) => [k, String(v)])),
+            // a multiple choice question sends one value per ticked box: joined into one field
+            Object.fromEntries(
+              [...new Set(f.keys())].map((k) => [k, f.getAll(k).map(String).join(MULTI_SEP)]),
+            ),
           );
           if (!r.ok) {
             resetCaptcha();
@@ -75,7 +82,7 @@ export function ApplyForm({
               ? "You're approved. Your portal is ready."
               : "Application received. We'll email you soon.",
           );
-          router.push(`/p/${slug}/portal`);
+          router.push(`${base}/portal`);
           router.refresh();
         });
       }}
@@ -115,7 +122,7 @@ export function ApplyForm({
                 <Link
                   className="text-muted underline decoration-border-strong underline-offset-2 hover:text-fg"
                   href={`/login?next=${encodeURIComponent(
-                    `/p/${slug}/apply${invite ? `?invite=${invite}` : recruit ? `?recruit=${recruit}` : ""}`,
+                    `${base}/apply${invite ? `?invite=${invite}` : recruit ? `?recruit=${recruit}` : ""}`,
                   )}`}
                 >
                   Sign in
@@ -143,19 +150,7 @@ export function ApplyForm({
           <CountrySelect id="ap-cc" />
         </Field>
         {questions.map((q) => (
-          <Field key={q.id} label={`${q.label}${q.required ? "" : " (optional)"}`} htmlFor={`q-${q.id}`}>
-            {q.type === "textarea" ? (
-              <Textarea id={`q-${q.id}`} name={`q_${q.id}`} required={q.required} />
-            ) : (
-              <Input
-                id={`q-${q.id}`}
-                name={`q_${q.id}`}
-                type={q.type === "url" ? "url" : "text"}
-                required={q.required}
-                className="h-10"
-              />
-            )}
-          </Field>
+          <Question key={q.id} q={q} />
         ))}
       </Group>
       <div className="flex flex-col gap-5 border-t border-border pt-6">
@@ -169,7 +164,7 @@ export function ApplyForm({
           <span>
             I agree to the{" "}
             <Link
-              href={`/p/${slug}`}
+              href={base || "/"}
               className="text-fg underline decoration-border-strong underline-offset-2"
             >
               program terms
@@ -189,5 +184,62 @@ export function ApplyForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+const choice = "flex items-start gap-3 text-[14px] leading-5 text-fg";
+const box = "mt-0.5 size-4 shrink-0 accent-[var(--primary)]";
+
+/** One of the founder's own questions (Settings > Application). */
+function Question({ q }: { q: ApplicationQuestion }) {
+  const id = `q-${q.id}`;
+  const name = `q_${q.id}`;
+  const label = `${q.label}${q.required ? "" : " (optional)"}`;
+  if (q.type === "checkbox")
+    return (
+      <label className={choice}>
+        <input type="checkbox" name={name} required={q.required} className={box} />
+        <span>{label}</span>
+      </label>
+    );
+  if (q.type === "multi")
+    return (
+      <fieldset>
+        <legend className="mb-2.5 text-[13px] font-medium text-fg">{label}</legend>
+        <div className="flex flex-col gap-2.5">
+          {(q.options ?? []).map((o) => (
+            <label key={o} className={choice}>
+              <input type="checkbox" name={name} value={o} className={box} />
+              <span>{o}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+    );
+  return (
+    <Field label={label} htmlFor={id}>
+      {q.type === "select" ? (
+        <Select id={id} name={name} required={q.required} defaultValue="" className="h-10">
+          <option value="" disabled>
+            Choose one
+          </option>
+          {(q.options ?? []).map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
+        </Select>
+      ) : q.type === "textarea" ? (
+        <Textarea id={id} name={name} required={q.required} />
+      ) : (
+        <Input
+          id={id}
+          name={name}
+          type={q.type === "url" ? "url" : "text"}
+          required={q.required}
+          className="h-10"
+        />
+      )}
+    </Field>
   );
 }

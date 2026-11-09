@@ -33,6 +33,12 @@ export default async function ProgramSettings({ params }: { params: Promise<{ pr
               : (p.commissionValue / 100).toFixed(2),
           commissionDuration: p.commissionDuration,
           commissionMonths: String(p.commissionMonths || 12),
+          commissionAfterValue:
+            p.commissionAfterValue == null
+              ? ""
+              : p.commissionType === "percent"
+                ? String(p.commissionAfterValue / 100)
+                : (p.commissionAfterValue / 100).toFixed(2),
           leadCommission: (p.leadCommission / 100).toFixed(2),
           overridePercent: String(p.overrideRate / 100),
           cookieDays: String(p.cookieDays),

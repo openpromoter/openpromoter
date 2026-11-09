@@ -21,7 +21,7 @@ const STEPS: [string, string, boolean][] = [
   ["Invite your first partners", "Drafted for your best customers", false],
 ];
 
-const CARD = "rounded-[12px] bg-[#16171a] ring-1 ring-white/10";
+const CARD = "rounded-[12px] bg-[#16171a]";
 
 /** A scene from the product on the ink panel, with Beacon standing on the card's top edge. */
 export function AuthScene({ kind, pose }: { kind: SceneKind; pose: BeaconPose }) {

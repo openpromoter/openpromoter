@@ -6,6 +6,7 @@ import { socialProviders } from "@/server/auth";
 import { captchaFor, isAppHost } from "@/server/captcha";
 import { env } from "@/server/env";
 import { partnerProgram } from "@/server/partner-auth";
+import { programBase } from "@/server/program-base";
 import { SignupForm } from "./signup-form";
 
 export const metadata: Metadata = { title: "Create account" };
@@ -19,7 +20,7 @@ export default async function SignupPage({
   const next = safeNext(sp.next, "/onboarding");
   // partners join through the program's application, which creates their account; this page is for founders
   const p = await partnerProgram(next, await headers());
-  if (p) redirect(`/p/${p.slug}/apply${sp.email ? `?email=${encodeURIComponent(sp.email)}` : ""}`);
+  if (p) redirect(`${await programBase(p)}/apply${sp.email ? `?email=${encodeURIComponent(sp.email)}` : ""}`);
   return (
     <SignupForm
       next={next}

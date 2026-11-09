@@ -6,6 +6,7 @@ import { socialProviders } from "@/server/auth";
 import { captchaFor, isAppHost } from "@/server/captcha";
 import { env } from "@/server/env";
 import { partnerProgram } from "@/server/partner-auth";
+import { programBase } from "@/server/program-base";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -32,7 +33,7 @@ export default async function LoginPage({
   const form = (
     <LoginForm
       next={next}
-      partner={p ? { name: p.name, slug: p.slug } : undefined}
+      partner={p ? { name: p.name, slug: p.slug, base: await programBase(p) } : undefined}
       twoFactor={sp["2fa"] === "1"}
       social={socialProviders}
       initialError={error}

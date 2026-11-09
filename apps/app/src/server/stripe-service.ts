@@ -292,8 +292,8 @@ export async function partnerOnboardingLink(programId: string, partnerId: string
   const link = await s.stripe.accountLinks.create({
     account: accountId,
     type: "account_onboarding",
-    refresh_url: `${env.APP_URL}${returnPath}?stripe=refresh`,
-    return_url: `${env.APP_URL}${returnPath}?stripe=return`,
+    refresh_url: `${returnPath.startsWith("https://") ? "" : env.APP_URL}${returnPath}?stripe=refresh`,
+    return_url: `${returnPath.startsWith("https://") ? "" : env.APP_URL}${returnPath}?stripe=return`,
   });
   return link.url;
 }

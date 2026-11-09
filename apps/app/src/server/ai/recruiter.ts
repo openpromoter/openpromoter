@@ -8,6 +8,7 @@ import { type Actor, audit } from "../audit";
 import { db } from "../db";
 import { sendNotice } from "../email";
 import { env } from "../env";
+import { programUrl } from "../ref-link";
 import {
   aiAllowed,
   aiJson,
@@ -223,7 +224,7 @@ export async function sendInvites(prog: Program, ids: string[], actor: Actor) {
   let sent = 0;
   for (const p of rows) {
     if (!p.email) continue;
-    const href = `${env.APP_URL}/p/${prog.slug}/apply?invite=${p.id}&email=${encodeURIComponent(p.email)}`;
+    const href = `${programUrl(prog, "/apply")}?invite=${p.id}&email=${encodeURIComponent(p.email)}`;
     await sendNotice(p.email, p.inviteSubject ?? `Join the ${prog.name} partner program`, {
       brandName: prog.name,
       brandColor: prog.brand.color,
@@ -270,7 +271,7 @@ export async function sendFollowUps(now = new Date()) {
         ],
         cta: {
           label: "Join the program",
-          href: `${env.APP_URL}/p/${prog.slug}/apply?invite=${p.id}&email=${encodeURIComponent(p.email)}`,
+          href: `${programUrl(prog, "/apply")}?invite=${p.id}&email=${encodeURIComponent(p.email)}`,
         },
       });
     }

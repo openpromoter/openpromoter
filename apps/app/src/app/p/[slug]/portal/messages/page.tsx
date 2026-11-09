@@ -6,6 +6,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page";
 import { partnerCtx } from "@/server/context";
 import { db } from "@/server/db";
+import { programBase } from "@/server/program-base";
 import { BrandMark } from "../../brand";
 import { Reply } from "./reply";
 
@@ -26,6 +27,7 @@ export default async function PortalMessages({
   const { slug } = await params;
   const { t } = await searchParams;
   const { program: p, partner: pt } = await partnerCtx(slug);
+  const home = await programBase(p);
   const rows = await db()
     .select()
     .from(message)
@@ -36,7 +38,7 @@ export default async function PortalMessages({
   const news = rows.filter((m) => !m.partnerId);
   const open = news.find((m) => m.id === t) ?? null;
   const last = direct[0];
-  const base = `/p/${slug}/portal/messages`;
+  const base = `${home}/portal/messages`;
   const logo = <BrandMark name={p.name} logoUrl={p.brand.logoUrl ?? null} size={32} />;
   return (
     <>

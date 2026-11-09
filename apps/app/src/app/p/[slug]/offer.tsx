@@ -2,7 +2,7 @@ import { billingConnection, type program } from "@openpromoter/db";
 import { cn } from "@openpromoter/ui";
 import { eq } from "drizzle-orm";
 import { formatMoney } from "@/lib/money";
-import { rateLabel } from "@/lib/program-labels";
+import { afterLabel, rateLabel } from "@/lib/program-labels";
 import { db } from "@/server/db";
 
 type P = typeof program.$inferSelect;
@@ -11,7 +11,7 @@ export const termLabel = (p: P) =>
   p.commissionDuration === "lifetime"
     ? "Lifetime of the customer"
     : p.commissionDuration === "months"
-      ? `${p.commissionMonths} months per customer`
+      ? `${p.commissionMonths} months per customer${afterLabel(p)}`
       : "First payment only";
 
 export const scheduleLabel = (p: P) =>

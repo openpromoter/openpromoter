@@ -5,7 +5,7 @@ import Link from "next/link";
 import { LedgerLine, PageHeader, Section } from "@/components/page";
 import { formatMoney } from "@/lib/money";
 import { adminWorkspace, attention, BILLING_TONE, billingLabel, requireAdmin, STEPS } from "@/server/admin";
-import { env } from "@/server/env";
+import { programUrl } from "@/server/ref-link";
 
 export const metadata: Metadata = { title: "Workspace · Admin" };
 export const dynamic = "force-dynamic";
@@ -15,12 +15,13 @@ const date = (d: Date | null) =>
 const when = (d: Date) =>
   d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 const REGION = { abroad: "Outside India", in_home: "India: Uttar Pradesh", in_other: "India: another state" };
+const PARTNER_TONE = { approved: "success", pending: "warning" } as const;
 const stripe = (path: string) => `https://dashboard.stripe.com/${path}`;
 
 export default async function AdminWorkspacePage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin(); // the layout checks too, but a page renders alongside it
   const { id } = await params;
-  const { w, members, programs, events } = await adminWorkspace(id);
+  const { w, members, programs, partners, events } = await adminWorkspace(id);
   const why = attention(w);
   return (
     <>
@@ -160,7 +161,7 @@ export default async function AdminWorkspacePage({ params }: { params: Promise<{
                 <tr key={p.id}>
                   <td className="px-5 py-3">
                     <a
-                      href={`${env.APP_URL}/p/${p.slug}`}
+                      href={programUrl(p)}
                       target="_blank"
                       rel="noreferrer"
                       className="font-medium text-fg hover:underline"
@@ -193,6 +194,52 @@ export default async function AdminWorkspacePage({ params }: { params: Promise<{
             </tbody>
           </table>
           {programs.length ? null : <p className="px-5 py-6 text-[13px] text-muted">No programs yet.</p>}
+        </Card>
+      </Section>
+      <Section
+        title="Partners"
+        description={
+          partners.length >= 200
+            ? "The 200 who brought in the most, then the newest."
+            : "Everyone who joined this founder's programs, highest revenue first."
+        }
+      >
+        <Card className="overflow-x-auto">
+          <table className="w-full min-w-[760px] text-[13px]">
+            <thead className="text-left text-xs text-subtle">
+              <tr className="border-b border-border">
+                <th className="px-5 py-2.5 font-normal">Partner</th>
+                {programs.length > 1 ? <th className="px-5 py-2.5 font-normal">Program</th> : null}
+                <th className="px-5 py-2.5 font-normal">Status</th>
+                <th className="px-5 py-2.5 font-normal">Joined</th>
+                <th className="px-5 py-2.5 text-right font-normal">Revenue</th>
+                <th className="px-5 py-2.5 text-right font-normal">Earned</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {partners.map((pt) => (
+                <tr key={pt.id}>
+                  <td className="px-5 py-3">
+                    <div className="font-medium text-fg">{pt.name}</div>
+                    <div className="text-xs text-muted">
+                      {pt.email}
+                      {pt.country ? ` · ${pt.country}` : ""}
+                    </div>
+                  </td>
+                  {programs.length > 1 ? <td className="px-5 py-3 text-muted">{pt.program.name}</td> : null}
+                  <td className="px-5 py-3">
+                    <Badge tone={PARTNER_TONE[pt.status as keyof typeof PARTNER_TONE] ?? "neutral"}>
+                      {pt.status[0]!.toUpperCase() + pt.status.slice(1)}
+                    </Badge>
+                  </td>
+                  <td className="px-5 py-3 text-muted">{date(pt.joined)}</td>
+                  <td className="num px-5 py-3 text-right">{formatMoney(pt.revenue, pt.program.currency)}</td>
+                  <td className="num px-5 py-3 text-right">{formatMoney(pt.earned, pt.program.currency)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {partners.length ? null : <p className="px-5 py-6 text-[13px] text-muted">No partners yet.</p>}
         </Card>
       </Section>
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">

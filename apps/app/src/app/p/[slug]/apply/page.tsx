@@ -9,6 +9,7 @@ import { durationLabel, rateLabel } from "@/lib/program-labels";
 import { captchaFor } from "@/server/captcha";
 import { currentUser } from "@/server/context";
 import { db } from "@/server/db";
+import { at, programBase } from "@/server/program-base";
 import { BrandMark } from "../brand";
 import { OfferStatement } from "../offer";
 import { ApplyForm } from "./form";
@@ -26,13 +27,14 @@ export default async function ApplyPage({
   const sp = await searchParams;
   const [p] = await db().select().from(program).where(eq(program.slug, slug));
   if (!p) notFound();
+  const base = await programBase(p);
   const u = await currentUser();
   if (u) {
     const [existing] = await db()
       .select()
       .from(partner)
       .where(and(eq(partner.programId, p.id), eq(partner.userId, u.id)));
-    if (existing) redirect(`/p/${slug}/portal`);
+    if (existing) redirect(`${base}/portal`);
   }
   const instant = p.autoApprove.enabled && p.visibility !== "invite_only";
   return (
@@ -40,12 +42,12 @@ export default async function ApplyPage({
       <div className="lg:py-2 lg:pl-2">
         <main className="flex min-h-dvh flex-col bg-surface lg:min-h-[calc(100dvh-16px)] lg:rounded-[14px] lg:border lg:border-border">
           <header className="flex h-16 items-center justify-between px-4 sm:px-10">
-            <Link href={`/p/${slug}`} className="flex min-w-0 items-center gap-2.5">
+            <Link href={at(base)} className="flex min-w-0 items-center gap-2.5">
               <BrandMark name={p.name} logoUrl={p.brand.logoUrl ?? null} size={26} />
               <span className="truncate text-[15px] font-medium tracking-[-0.01em] text-fg">{p.name}</span>
             </Link>
             <Link
-              href={`/p/${slug}`}
+              href={at(base)}
               className="inline-flex items-center gap-1.5 text-[13px] text-muted transition-colors hover:text-fg"
             >
               <ArrowLeft className="size-4" /> Program page
@@ -65,6 +67,7 @@ export default async function ApplyPage({
             <OfferStatement p={p} className="mt-8 lg:hidden" />
             <ApplyForm
               slug={slug}
+              base={base}
               signedIn={u ? { name: u.name, email: u.email } : null}
               invite={sp.invite ?? ""}
               recruit={sp.recruit?.slice(0, 64) ?? ""}

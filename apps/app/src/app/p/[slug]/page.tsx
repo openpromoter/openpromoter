@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import { formatMoney } from "@/lib/money";
 import { planStatus } from "@/server/billing-plans";
 import { db } from "@/server/db";
+import { programBase } from "@/server/program-base";
 import { BrandMark } from "./brand";
 import { OfferStatement, scheduleLabel } from "./offer";
 
@@ -21,6 +22,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const [p] = await db().select().from(program).where(eq(program.slug, slug));
   if (!p) notFound();
+  const base = await programBase(p);
   const { plan, hosted } = await planStatus(p.workspaceId);
   const host = p.websiteUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
   const steps = [
@@ -50,7 +52,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ slug: 
             <span className="hidden text-[13px] text-subtle sm:inline">Partner program</span>
           </Link>
           <Button asChild variant="secondary">
-            <Link href={`/p/${slug}/portal`}>Partner login</Link>
+            <Link href={`${base}/portal`}>Partner login</Link>
           </Button>
         </header>
 
@@ -71,7 +73,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ slug: 
                 </p>
               ) : (
                 <Button asChild variant="primary" size="lg" className="h-11 px-5 text-[14px]">
-                  <Link href={`/p/${slug}/apply`}>
+                  <Link href={`${base}/apply`}>
                     Become a partner <ArrowRight />
                   </Link>
                 </Button>

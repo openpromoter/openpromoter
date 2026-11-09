@@ -279,10 +279,35 @@ export async function adminWorkspace(id: string) {
         .where(inArray(partner.programId, ids))
         .groupBy(partner.programId)
     : [];
+  // the founder's partners, best first: who they are and what each one has brought in (live sales only)
+  const money = and(eq(commission.partnerId, partner.id), eq(commission.test, false));
+  const partners = await db()
+    .select({
+      id: partner.id,
+      programId: partner.programId,
+      name: partner.name,
+      email: partner.email,
+      status: partner.status,
+      source: partner.source,
+      country: partner.country,
+      joined: partner.createdAt,
+      revenue: sql<number>`coalesce((select sum(${commission.saleAmount}) from ${commission} where ${money} and ${commission.kind} = 'sale'),0)::bigint`,
+      earned: sql<number>`coalesce((select sum(${commission.amount}) from ${commission} where ${money}),0)::bigint`,
+    })
+    .from(partner)
+    .where(eq(partner.workspaceId, id))
+    .orderBy(desc(sql`9`), desc(partner.createdAt)) // 9 = revenue
+    .limit(200);
   return {
     w,
     members,
     programs: programs.map((p) => ({ ...p, partners: partnerCounts.find((c) => c.id === p.id)?.n ?? 0 })),
+    partners: partners.map((pt) => ({
+      ...pt,
+      revenue: Number(pt.revenue),
+      earned: Number(pt.earned),
+      program: programs.find((p) => p.id === pt.programId)!,
+    })),
     events,
   };
 }

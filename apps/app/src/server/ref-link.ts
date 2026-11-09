@@ -15,3 +15,9 @@ export const linkUrl = (p: LinkProgram, key: string) => {
 /** A partner's code link (/r/slug/code), served from the custom domain when there is one. */
 export const codeUrl = (p: LinkProgram, code: string) =>
   `${domainOrigin(p) ?? env.APP_URL}/r/${p.slug}/${code}`;
+
+/** A program page (program, /apply, /portal...): at the root of its verified domain, else /p/slug on the app host. */
+export const programUrl = (p: LinkProgram, path = "") => {
+  const d = domainOrigin(p);
+  return d ? `${d}${path || "/"}` : `${env.APP_URL}/p/${p.slug}${path}`;
+};

@@ -8,6 +8,7 @@ import { formatMoney } from "@/lib/money";
 import { partnerCtx } from "@/server/context";
 import { db } from "@/server/db";
 import { balances } from "@/server/ledger";
+import { programBase } from "@/server/program-base";
 import { refreshPartnerStripe } from "@/server/stripe-service";
 import { scheduleLabel } from "../../../offer";
 import { METHOD_SHORT, PayoutSlip } from "../../slip";
@@ -23,6 +24,7 @@ export default async function PortalPayouts({
   const { slug } = await params;
   const sp = await searchParams;
   const ctx = await partnerCtx(slug);
+  const home = await programBase(ctx.program);
   let pt = ctx.partner;
   if (sp.stripe === "return" && pt.stripeAccountId) {
     await refreshPartnerStripe(pt.id);
@@ -106,7 +108,7 @@ export default async function PortalPayouts({
                   {r.status === "paid" ? (
                     <a
                       className="inline-flex items-center gap-1 text-xs font-medium text-accent-text hover:underline"
-                      href={`/p/${slug}/portal/payouts/${r.id}`}
+                      href={`${home}/portal/payouts/${r.id}`}
                     >
                       <FileText className="size-3.5" /> Invoice
                     </a>

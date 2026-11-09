@@ -339,8 +339,9 @@ export type ProgramCategory = (typeof PROGRAM_CATEGORIES)[number];
 export interface ApplicationQuestion {
   id: string;
   label: string;
-  type: "text" | "textarea" | "url" | "select";
+  type: "text" | "textarea" | "url" | "select" | "multi" | "checkbox";
   required: boolean;
+  /** Choices for "select" (one) and "multi" (any number). */
   options?: string[];
 }
 
@@ -377,6 +378,8 @@ export const program = pgTable(
     commissionValue: integer("commission_value").notNull().default(3000),
     commissionDuration: text("commission_duration").$type<CommissionDuration>().notNull().default("months"),
     commissionMonths: integer("commission_months").notNull().default(12),
+    /** After the first commissionMonths, keep paying this rate for life (same unit as commissionValue). null = stop. */
+    commissionAfterValue: integer("commission_after_value"),
     cookieDays: integer("cookie_days").notNull().default(60),
     attributionModel: text("attribution_model")
       .$type<"first_click" | "last_click">()

@@ -2,6 +2,7 @@ import type { program } from "@openpromoter/db";
 import { ArrowLeft } from "@openpromoter/ui/icons";
 import Link from "next/link";
 import { planStatus } from "@/server/billing-plans";
+import { at, programBase } from "@/server/program-base";
 import { BrandMark, BrandScope } from "./brand";
 import { OfferStatement } from "./offer";
 
@@ -17,7 +18,7 @@ export async function PartnerAuthShell({
   children: React.ReactNode;
 }) {
   const { plan, hosted } = await planStatus(p.workspaceId);
-  const home = `/p/${p.slug}`;
+  const home = at(await programBase(p));
   return (
     <BrandScope color={p.brand.color} className="min-h-dvh bg-canvas">
       <div className="min-h-dvh lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(400px,0.8fr)]">
