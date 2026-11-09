@@ -182,7 +182,7 @@ export const auditLog = pgTable(
     data: jsonb("data").$type<Record<string, unknown>>(),
     createdAt: created(),
   },
-  (t) => [index("audit_ws_created").on(t.workspaceId, t.createdAt)],
+  (t) => [index("audit_ws_created").on(t.workspaceId, t.createdAt), index("audit_created").on(t.createdAt)],
 );
 
 /* ------------------------------------------------------------------ billing connection */
@@ -523,6 +523,7 @@ export const partner = pgTable(
     uniqueIndex("partner_program_email").on(t.programId, t.email),
     uniqueIndex("partner_program_code").on(t.programId, t.code),
     index("partner_ws").on(t.workspaceId),
+    index("partner_email").on(t.email),
     index("partner_user").on(t.userId),
     // click path and attribution look codes up case-insensitively
     index("partner_program_lower_code").on(t.programId, sql`lower(${t.code})`),
@@ -968,7 +969,10 @@ export const webhookDelivery = pgTable(
     lastError: text("last_error"),
     createdAt: created(),
   },
-  (t) => [index("delivery_endpoint").on(t.endpointId, t.createdAt)],
+  (t) => [
+    index("delivery_endpoint").on(t.endpointId, t.createdAt),
+    index("delivery_failed").on(t.createdAt).where(sql`status = 'failed'`),
+  ],
 );
 
 export const reportSubscription = pgTable("report_subscription", {
@@ -1017,6 +1021,7 @@ export const job = pgTable(
   (t) => [
     index("job_due").on(t.runAt).where(sql`done_at is null and failed_at is null`),
     index("job_done").on(t.doneAt).where(sql`done_at is not null`),
+    index("job_failed").on(t.failedAt).where(sql`failed_at is not null`),
   ],
 );
 

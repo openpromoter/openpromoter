@@ -3,6 +3,7 @@ import { and, eq, gte, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { PRODUCT } from "@/lib/config";
 import { lookupKey, PLANS, type PlanId, planById } from "@/lib/plans";
+import { audit, SYSTEM } from "./audit";
 import { stripeClient } from "./billing/stripe";
 import { db } from "./db";
 import { sendNotice } from "./email";
@@ -167,6 +168,15 @@ export async function applyPlanSubscription(sub: Stripe.Subscription) {
     })
     .where(eq(workspace.id, ws.id));
   const was = planById(ws.plan).name;
+  // the plan's history for the admin's revenue page: upgrades, downgrades, failed payments, endings
+  const now = active ? plan : "free";
+  if (now !== ws.plan || sub.status !== ws.billingStatus)
+    await audit(ws.id, SYSTEM, "plan.change", { type: "workspace", id: ws.id }, {
+      from: ws.plan,
+      to: now,
+      status: sub.status,
+      was: ws.billingStatus,
+    }).catch((e) => console.error(`[plan] audit ${ws.id}: ${(e as Error).message}`));
   if (sub.status === "past_due" && ws.billingStatus !== "past_due") await tellOwners(ws.id, "failed", was);
   else if (ws.plan !== "free" && !active)
     await tellOwners(ws.id, ws.billingStatus === "past_due" ? "unpaid" : "ended", was);

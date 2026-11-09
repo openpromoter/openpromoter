@@ -62,4 +62,28 @@ describe("admin", () => {
     expect((await adminWorkspacesCached()).at).toBe(first.at);
     expect((await adminWorkspacesCached(true)).at).not.toBe(first.at);
   });
+
+  it("a workspace's partners carry their own revenue and earnings", async () => {
+    const { adminWorkspace } = await admin();
+    const { addPartner } = await import("./helpers");
+    const { commission } = await import("@openpromoter/db");
+    const f = await fixture();
+    const p = await addPartner(f.program.id, f.ws.id);
+    await db()
+      .insert(commission)
+      .values({
+        id: `com_${Date.now()}`,
+        programId: f.program.id,
+        workspaceId: f.ws.id,
+        partnerId: p.id,
+        sourceKey: `sale:${Date.now()}`,
+        kind: "sale",
+        saleAmount: 10000,
+        amount: 3000,
+        currency: "usd",
+        status: "approved",
+      } as never);
+    const { partners } = await adminWorkspace(f.ws.id);
+    expect(partners.find((x) => x.id === p.id)).toMatchObject({ revenue: 10000, earned: 3000 });
+  });
 });

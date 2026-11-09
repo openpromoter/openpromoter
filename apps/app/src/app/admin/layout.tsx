@@ -1,40 +1,38 @@
-import { ArrowLeft } from "@openpromoter/ui/icons";
+import { job, webhookDelivery } from "@openpromoter/db";
+import { and, count, eq, gte, isNull, lt, or } from "drizzle-orm";
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Logo } from "@/components/logo";
 import { requireAdmin } from "@/server/admin";
+import { emailProblems } from "@/server/admin-data";
+import { db } from "@/server/db";
+import { AdminShell } from "./shell";
 
 export const metadata: Metadata = { title: "Admin", robots: { index: false, follow: false } };
 
-/** The owner's console: the app's canvas and white panel, without a program's sidebar. */
+const DAY = 86_400_000;
+
+/** The owner's console. The sidebar badges count what needs the owner (each read through an index). */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const u = await requireAdmin();
+  const now = Date.now();
+  const [emails, [jobs], [hooks]] = await Promise.all([
+    emailProblems(),
+    db()
+      .select({ n: count() })
+      .from(job)
+      .where(
+        or(
+          gte(job.failedAt, new Date(now - DAY)),
+          and(isNull(job.doneAt), isNull(job.failedAt), lt(job.runAt, new Date(now - 5 * 60_000))),
+        ),
+      ),
+    db()
+      .select({ n: count() })
+      .from(webhookDelivery)
+      .where(and(eq(webhookDelivery.status, "failed"), gte(webhookDelivery.createdAt, new Date(now - DAY)))),
+  ]);
   return (
-    <div className="min-h-dvh bg-canvas lg:p-2">
-      <div className="min-h-dvh bg-surface lg:min-h-[calc(100dvh-16px)] lg:rounded-[14px] lg:border lg:border-border">
-        <header className="flex h-14 items-center gap-3 border-b border-border px-4 lg:px-8">
-          <Link href="/admin" className="flex items-center gap-2.5">
-            <Logo />
-          </Link>
-          <span className="rounded-[4px] bg-neutral-soft px-1.5 py-0.5 text-[12px] text-neutral">Admin</span>
-          <nav className="ml-4 flex items-center gap-4 text-[13px]">
-            <Link href="/admin" className="text-muted hover:text-fg">
-              Workspaces
-            </Link>
-            <Link href="/admin/emails" className="text-muted hover:text-fg">
-              Emails
-            </Link>
-          </nav>
-          <span className="ml-auto hidden truncate text-[13px] text-subtle sm:block">{u.email}</span>
-          <Link
-            href="/app"
-            className="inline-flex items-center gap-1.5 text-[13px] text-muted hover:text-fg sm:ml-4"
-          >
-            <ArrowLeft className="size-4" /> Back to app
-          </Link>
-        </header>
-        <main className="mx-auto w-full max-w-[1600px] px-4 py-6 lg:px-8 lg:py-8">{children}</main>
-      </div>
-    </div>
+    <AdminShell email={u.email} alerts={{ emails, jobs: jobs?.n ?? 0, webhooks: hooks?.n ?? 0 }}>
+      {children}
+    </AdminShell>
   );
 }

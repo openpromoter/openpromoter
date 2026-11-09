@@ -6,6 +6,7 @@ import { listParams } from "@/lib/list";
 import { requireAdmin } from "@/server/admin";
 import { db } from "@/server/db";
 import { EmailsTable } from "./table";
+import { TestEmailForm } from "./test-form";
 
 export const metadata: Metadata = { title: "Emails · Admin" };
 export const dynamic = "force-dynamic";
@@ -61,6 +62,7 @@ export default async function AdminEmails({
       <PageHeader
         title="Emails"
         description="Every email OpenPromoter sent in the last 30 days and what the mail provider reported. Bodies are never stored."
+        actions={<TestEmailForm />}
       />
       <EmailsTable
         rows={rows.map((r) => ({ ...r, at: r.at.toISOString() }))}

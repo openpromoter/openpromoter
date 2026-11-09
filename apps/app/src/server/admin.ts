@@ -33,6 +33,8 @@ import { planById } from "@/lib/plans";
 import { currentUser } from "./context";
 import { db } from "./db";
 import { env } from "./env";
+import { DEMO } from "@/lib/demo-accounts";
+import { demoOn } from "./demo";
 
 /**
  * The owner's read-only view of OpenPromoter Cloud. Only signed-in, email-verified users listed in
@@ -147,7 +149,9 @@ export async function adminWorkspaces(only?: string) {
   const providers = new Map<string, string[]>();
   for (const c of conns) providers.set(c.ws, [...(providers.get(c.ws) ?? []), c.provider]);
   const month = new Date().toISOString().slice(0, 7);
-  return wss.map((w) => {
+  // the public demo's sample company is not a customer: kept out of every business figure
+  const demo = demoOn() ? new Set(wss.filter((w) => own.get(w.id)?.email === DEMO.email).map((w) => w.id)) : null;
+  return wss.filter((w) => !demo?.has(w.id)).map((w) => {
     const plan = planById(w.plan);
     const paying = w.plan !== "free" && PAYING.includes(w.billingStatus ?? "");
     const usage = Number(rev.get(w.id)?.n ?? 0);
@@ -291,7 +295,8 @@ export async function adminWorkspace(id: string) {
         .groupBy(partner.programId)
     : [];
   // the founder's partners, best first: who they are and what each one has brought in (live sales only)
-  const money = and(eq(commission.partnerId, partner.id), eq(commission.test, false));
+  // the outer partner row named in full: inside sql`` drizzle would write a bare id (the commission's own)
+  const money = sql`${commission.partnerId} = ${sql.raw('"partner"."id"')} and ${commission.test} = false`;
   const partners = await db()
     .select({
       id: partner.id,

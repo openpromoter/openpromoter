@@ -127,6 +127,13 @@
       "when": 1794216669455,
       "tag": "0017_email_log",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794220107325,
+      "tag": "0018_admin_indexes",
+      "breakpoints": true
     }
   ]
 }

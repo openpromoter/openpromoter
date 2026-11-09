@@ -4,10 +4,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BarChart, DotChart } from "@/components/charts";
 import { PageHeader, Section, Stat } from "@/components/page";
-import { listParams } from "@/lib/list";
 import { formatMoney } from "@/lib/money";
 import { adminPulse, adminWorkspacesCached, attention, requireAdmin } from "@/server/admin";
-import { WorkspacesTable } from "./table";
 
 export const metadata: Metadata = { title: "Admin" };
 export const dynamic = "force-dynamic";
@@ -17,29 +15,14 @@ const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : "0%
 export default async function AdminPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   await requireAdmin(); // the layout checks too, but a page renders alongside it
   const sp = await searchParams;
-  const lp = listParams(sp, 25);
   const { at, rows } = await adminWorkspacesCached(sp.fresh === "1");
   const pulse = await adminPulse(rows);
   const flagged = rows.map((w) => ({ w, why: attention(w) })).filter((x) => x.why.length);
-  const tab = lp.status ?? "all";
-  const q = lp.q.toLowerCase();
-  const shown = rows
-    .filter((w) =>
-      tab === "paying"
-        ? w.paying
-        : tab === "free"
-          ? !w.paying
-          : tab === "attention"
-            ? attention(w).length > 0
-            : true,
-    )
-    .filter((w) => !q || `${w.name} ${w.owner ?? ""} ${w.id}`.toLowerCase().includes(q));
-  const page = shown.slice((lp.page - 1) * lp.pageSize, lp.page * lp.pageSize);
   const h = pulse.health;
   return (
     <>
       <PageHeader
-        title="Cloud admin"
+        title="Overview"
         description="Every workspace on OpenPromoter Cloud. Read-only: nothing here changes a customer's data."
         actions={
           <>
@@ -137,6 +120,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <Section
           title="Needs you"
           description="Workspaces with a payment problem, a limit reached or a stalled setup."
+          action={
+            <Link href="/admin/workspaces?status=attention" className="text-[13px] text-muted hover:text-fg">
+              See all {flagged.length}
+            </Link>
+          }
         >
           <Card>
             {flagged.length ? (
@@ -167,7 +155,15 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             )}
           </Card>
         </Section>
-        <Section title="System" description="Background work in the last 24 hours.">
+        <Section
+          title="System"
+          description="Background work in the last 24 hours."
+          action={
+            <Link href="/admin/jobs?status=failed" className="text-[13px] text-muted hover:text-fg">
+              Open jobs
+            </Link>
+          }
+        >
           <Card className="p-5">
             <div className="flex flex-col gap-2.5 text-[13px]">
               <Row label="Jobs waiting over 5 minutes" value={h.waiting} bad={h.waiting > 0} />
@@ -191,37 +187,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           </Card>
         </Section>
       </div>
-      <Section
-        title="Workspaces"
-        description="Search by name, owner email or ID. Open one for its members, programs and history."
-      >
-        <WorkspacesTable
-          rows={page.map((w) => ({
-            id: w.id,
-            name: w.name,
-            owner: w.owner,
-            plan: w.plan.name,
-            status: w.status,
-            paying: w.paying,
-            done: w.done,
-            partners: w.partners,
-            usage: w.usage,
-            usageShare: w.usageShare,
-            lastActive: w.lastActive?.toISOString() ?? null,
-            createdAt: w.createdAt.toISOString(),
-            flags: attention(w).map((x) => x.text),
-          }))}
-          total={shown.length}
-          page={lp.page}
-          pageSize={lp.pageSize}
-          tabs={[
-            { label: "All", query: "", count: rows.length },
-            { label: "Paying", query: "status=paying", count: rows.filter((w) => w.paying).length },
-            { label: "Free", query: "status=free", count: rows.filter((w) => !w.paying).length },
-            { label: "Needs you", query: "status=attention", count: flagged.length },
-          ]}
-        />
-      </Section>
     </>
   );
 }
