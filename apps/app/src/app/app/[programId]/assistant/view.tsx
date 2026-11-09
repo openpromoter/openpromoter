@@ -102,7 +102,7 @@ export function AssistantView({
                   <button
                     type="button"
                     onClick={() => send(s.q)}
-                    className="flex w-full items-center gap-2.5 px-3.5 py-3 text-left text-[13px] text-fg hover:bg-surface-2"
+                    className="flex h-full w-full items-center gap-2.5 px-3.5 py-3 text-left text-[13px] text-fg hover:bg-surface-2"
                   >
                     <s.icon className="size-4 shrink-0 text-subtle" />
                     <span className="min-w-0 flex-1">{s.q}</span>
