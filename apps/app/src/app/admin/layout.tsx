@@ -17,6 +17,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Logo />
           </Link>
           <span className="rounded-[4px] bg-neutral-soft px-1.5 py-0.5 text-[12px] text-neutral">Admin</span>
+          <nav className="ml-4 flex items-center gap-4 text-[13px]">
+            <Link href="/admin" className="text-muted hover:text-fg">
+              Workspaces
+            </Link>
+            <Link href="/admin/emails" className="text-muted hover:text-fg">
+              Emails
+            </Link>
+          </nav>
           <span className="ml-auto hidden truncate text-[13px] text-subtle sm:block">{u.email}</span>
           <Link
             href="/app"

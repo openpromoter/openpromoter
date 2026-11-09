@@ -74,15 +74,21 @@ export function registerJobs() {
   });
   defineJob("email.notice", async (p) => {
     const prog = p.programId ? await brandOf(String(p.programId)) : null;
-    await sendNotice(String(p.to), String(p.subject), {
-      brandName: prog?.name ?? "OpenPromoter",
-      brandColor: prog?.brand.color,
-      logoUrl: prog?.brand.logoUrl,
-      preview: String(p.subject),
-      title: String(p.title ?? p.subject),
-      paragraphs: (p.paragraphs as string[]) ?? [],
-      cta: p.cta as { label: string; href: string } | undefined,
-    });
+    await sendNotice(
+      String(p.to),
+      String(p.subject),
+      {
+        brandName: prog?.name ?? "OpenPromoter",
+        brandColor: prog?.brand.color,
+        logoUrl: prog?.brand.logoUrl,
+        preview: String(p.subject),
+        title: String(p.title ?? p.subject),
+        paragraphs: (p.paragraphs as string[]) ?? [],
+        cta: p.cta as { label: string; href: string } | undefined,
+      },
+      undefined,
+      prog?.id,
+    );
   });
   defineJob("notify.commission", async (p) => {
     const [row] = await db()

@@ -1051,3 +1051,31 @@ export const eventLog = pgTable(
   },
   (t) => [index("event_log_ws").on(t.workspaceId, t.id)],
 );
+
+/**
+ * Every email the app sent, for support ("I never got the reset email"): who, what, when and what the
+ * mail provider reported back (Amazon SES delivery, bounce and complaint notices). Bodies are never stored,
+ * since sign-in and reset emails carry live links. Kept 30 days (pruneJobs).
+ */
+export const emailLog = pgTable(
+  "email_log",
+  {
+    id: text("id").primaryKey(),
+    to: text("to").notNull(),
+    subject: text("subject").notNull(),
+    programId: text("program_id").references(() => program.id, { onDelete: "set null" }),
+    /** The provider's message id (SES: the id in its SMTP "250 Ok" reply), to match its notices. */
+    messageId: text("message_id"),
+    status: text("status")
+      .$type<"sent" | "delivered" | "bounced" | "complained" | "failed" | "not_sent">()
+      .notNull(),
+    detail: text("detail"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("email_log_created").on(t.createdAt),
+    index("email_log_to_created").on(t.to, t.createdAt),
+    index("email_log_message").on(t.messageId).where(sql`message_id is not null`),
+  ],
+);

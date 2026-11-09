@@ -15,6 +15,7 @@ export function randomString(length: number, alphabet = ALPHABET): string {
 
 export type IdPrefix =
   | "ws"
+  | "eml"
   | "prg"
   | "grp"
   | "prt"

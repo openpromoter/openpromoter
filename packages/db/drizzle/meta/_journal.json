@@ -120,6 +120,13 @@
       "when": 1794216590214,
       "tag": "0016_commission_ws_created",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794216669455,
+      "tag": "0017_email_log",
+      "breakpoints": true
     }
   ]
 }

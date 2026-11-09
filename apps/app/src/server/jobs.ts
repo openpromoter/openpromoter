@@ -116,4 +116,6 @@ export async function pruneJobs() {
         LIMIT 5000)`)) as unknown as { count?: number; affectedRows?: number };
     if ((res.count ?? res.affectedRows ?? 0) < 5000) break;
   }
+  // the email log keeps 30 days (support questions are about this month, not last year)
+  await db().execute(sql`DELETE FROM email_log WHERE created_at < now() - interval '30 days'`);
 }
