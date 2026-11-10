@@ -87,11 +87,7 @@ export function parseSite(url: string, html: string): SiteFacts {
       ?.replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
       .trim() ?? null;
-  const icon =
-    html
-      .match(/<link[^>]+rel=["'](?:apple-touch-icon|icon|shortcut icon)["'][^>]*>/i)?.[0]
-      ?.match(/href=["']([^"']+)["']/i)?.[1] ?? null;
-  const logo = meta(html, "og:logo") ?? icon ?? meta(html, "og:image");
+  const logo = pickLogo(html, meta(html, "og:logo"));
   const abs = (p: string | null) => {
     if (!p) return null;
     try {
@@ -165,4 +161,31 @@ export function readableOnWhite(hex: string): string {
     n = (r << 16) | (g << 8) | b;
   }
   return "#15191A";
+}
+
+/** Email clients can't show SVG (Gmail, Outlook) or .ico, so only PNG, JPG, GIF and WebP qualify. */
+export const emailSafeImage = (href: string) => !/^data:/i.test(href) && !/\.(svg|ico)(\?|#|$)/i.test(href);
+
+/**
+ * The logo for the program's emails and portal: the site's large app icon first (apple-touch-icon, 180px), then
+ * og:logo, then the biggest other icon. Never the social banner (og:image), which is a wide picture, not a logo.
+ */
+export function pickLogo(html: string, ogLogo: string | null): string | null {
+  const attr = (tag: string, name: string) =>
+    new RegExp(`\\b${name}=["']([^"']+)["']`, "i").exec(tag)?.[1] ?? null;
+  const icons = [...html.matchAll(/<link\b[^>]*>/gi)]
+    .map(([t]) => ({
+      rel: (attr(t, "rel") ?? "").toLowerCase(),
+      href: attr(t, "href"),
+      sizes: attr(t, "sizes"),
+    }))
+    .filter(
+      (l): l is { rel: string; href: string; sizes: string | null } => !!l.href && l.rel.includes("icon"),
+    )
+    .filter((l) => emailSafeImage(l.href));
+  const size = (l: { sizes: string | null }) => Number(/(\d+)x\d+/i.exec(l.sizes ?? "")?.[1] ?? 0);
+  const apple = icons.filter((l) => l.rel.includes("apple-touch-icon")).sort((a, b) => size(b) - size(a))[0];
+  if (apple) return apple.href;
+  if (ogLogo && emailSafeImage(ogLogo)) return ogLogo;
+  return icons.sort((a, b) => size(b) - size(a))[0]?.href ?? null;
 }

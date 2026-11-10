@@ -22,8 +22,8 @@ import {
   findCreatorProspects,
   findCustomerProspects,
   inviteTemplate,
+  markInvited,
   personalise,
-  sendInvites,
 } from "@/server/ai/recruiter";
 import { audit } from "@/server/audit";
 import {
@@ -187,10 +187,11 @@ export async function personaliseAction(programId: string, ids: string[]) {
   }, "Invites personalised");
 }
 
-export async function sendInvitesAction(programId: string, ids: string[]) {
+/** The founder sent these invites from their own mailbox. */
+export async function markInvitedAction(programId: string, ids: string[]) {
   return safe(async () => {
     const ctx = await actionCtx(programId, "partners.write");
-    const n = await sendInvites(ctx.program, z.array(z.string()).min(1).max(200).parse(ids), ctx.actor);
+    const n = await markInvited(ctx.program, z.array(z.string()).min(1).max(200).parse(ids), ctx.actor);
     rv(programId, "/recruiter");
     return n;
   });

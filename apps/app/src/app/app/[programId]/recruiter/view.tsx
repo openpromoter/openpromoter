@@ -17,7 +17,18 @@ import {
   StatusBadge,
   Textarea,
 } from "@openpromoter/ui";
-import { Globe, Mail, Plus, Search, Send, Sparkles, UserPlus, Users } from "@openpromoter/ui/icons";
+import {
+  Check,
+  Copy,
+  ExternalLink,
+  Globe,
+  Mail,
+  Plus,
+  Search,
+  Sparkles,
+  UserPlus,
+  Users,
+} from "@openpromoter/ui/icons";
 import { useState } from "react";
 import { PageHeader } from "@/components/page";
 import { useAction } from "@/components/use-action";
@@ -25,15 +36,15 @@ import { formatNumber } from "@/lib/money";
 import {
   addProspectAction,
   findProspectsAction,
+  markInvitedAction,
   personaliseAction,
-  sendInvitesAction,
   updateProspectAction,
 } from "../growth-actions";
 
 const STEPS = [
   ["Find people", "Rank your Stripe customers, search for creators or add someone you know."],
   ["Review each draft", "Every invite is written for that person. Edit it before it goes out."],
-  ["Send and follow up", "One follow-up goes out after 5 days if they have not joined."],
+  ["Send from your email", "Each invite opens in Gmail or your mail app, so replies come straight to you."],
 ] as const;
 
 type P = {
@@ -48,7 +59,15 @@ type P = {
   body: string;
   status: string;
   sentAt: string | null;
+  /** apply link carrying this prospect's invite id */
+  inviteUrl: string;
 };
+
+/** The draft as the founder will send it, with the join link at the end. */
+const compose = (subject: string, body: string, url: string) => ({
+  subject,
+  body: `${body.trim()}\n\nJoin here: ${url}`,
+});
 
 export function RecruiterView({
   programId,
@@ -138,18 +157,16 @@ export function RecruiterView({
               <Sparkles /> Personalise
             </Button>
             <Button
-              variant="primary"
               loading={pending}
               onClick={() =>
-                window.confirm(`Send ${sel.size} invite${sel.size === 1 ? "" : "s"} by email?`) &&
                 run(
-                  () => sendInvitesAction(programId, [...sel]),
-                  (n) => `${n} invites sent`,
+                  () => markInvitedAction(programId, [...sel]),
+                  (n) => `${n} marked as invited`,
                   () => setSel(new Set()),
                 )
               }
             >
-              <Send /> Send {sel.size} invite{sel.size === 1 ? "" : "s"}
+              <Check /> Mark as invited
             </Button>
           </div>
         ) : canWrite && webSearch ? (
@@ -280,37 +297,26 @@ export function RecruiterView({
         {edit ? (
           <DialogContent
             title={`Invite ${edit.name}`}
-            description="Edit the draft and send it. One follow-up goes out after 5 days if they haven't joined."
+            description="Edit the draft, then send it from your own email so replies come to you. The join link is added at the end."
           >
-            <form
-              className="flex flex-col gap-4"
-              action={(f) =>
+            <InviteForm
+              p={edit}
+              pending={pending}
+              onSent={(subject, body) =>
                 run(
                   async () => {
                     const u = await updateProspectAction(programId, edit.id, {
-                      inviteSubject: String(f.get("subject")),
-                      inviteBody: String(f.get("body")),
+                      inviteSubject: subject,
+                      inviteBody: body,
                     });
                     if (!u.ok) return u;
-                    return sendInvitesAction(programId, [edit.id]);
+                    return markInvitedAction(programId, [edit.id]);
                   },
-                  "Invite sent",
+                  "Marked as invited",
                   () => setEdit(null),
                 )
               }
-            >
-              <Field label="Subject" htmlFor="pr-sub">
-                <Input id="pr-sub" name="subject" defaultValue={edit.subject} required />
-              </Field>
-              <Field label="Message" htmlFor="pr-body">
-                <Textarea id="pr-body" name="body" defaultValue={edit.body} className="h-56" required />
-              </Field>
-              <DialogFooter>
-                <Button type="submit" variant="primary" loading={pending} disabled={!edit.email}>
-                  <Send /> Send invite
-                </Button>
-              </DialogFooter>
-            </form>
+            />
           </DialogContent>
         ) : null}
       </Dialog>
@@ -365,5 +371,83 @@ function AddProspect({ programId }: { programId: string }) {
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * The invite goes out from the founder's own mailbox. Each button opens (or copies) the draft first, inside
+ * the click so the browser allows the new window, then records the invite.
+ */
+function InviteForm({
+  p,
+  pending,
+  onSent,
+}: {
+  p: P;
+  pending: boolean;
+  onSent: (subject: string, body: string) => void;
+}) {
+  const [subject, setSubject] = useState(p.subject);
+  const [body, setBody] = useState(p.body);
+  const [copied, setCopied] = useState(false);
+  const mail = compose(subject, body, p.inviteUrl);
+  const to = p.email ?? "";
+  const q = (v: string) => encodeURIComponent(v);
+  const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${q(to)}&su=${q(mail.subject)}&body=${q(mail.body)}`;
+  const mailto = `mailto:${to}?subject=${q(mail.subject)}&body=${q(mail.body)}`;
+  return (
+    <div className="flex flex-col gap-4">
+      <Field label="Subject" htmlFor="pr-sub">
+        <Input id="pr-sub" value={subject} onChange={(e) => setSubject(e.target.value)} required />
+      </Field>
+      <Field label="Message" htmlFor="pr-body">
+        <Textarea
+          id="pr-body"
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          className="h-56"
+          required
+        />
+      </Field>
+      <DialogFooter className="flex-wrap">
+        <Button
+          type="button"
+          disabled={!body.trim()}
+          onClick={async () => {
+            await navigator.clipboard.writeText(`${mail.subject}\n\n${mail.body}`).catch(() => {});
+            setCopied(true);
+          }}
+        >
+          {copied ? <Check /> : <Copy />} {copied ? "Copied" : "Copy"}
+        </Button>
+        {copied ? (
+          <Button type="button" loading={pending} onClick={() => onSent(subject, body)}>
+            <Check /> I sent it
+          </Button>
+        ) : null}
+        <Button
+          type="button"
+          disabled={!to || !body.trim()}
+          onClick={() => {
+            window.location.href = mailto;
+            onSent(subject, body);
+          }}
+        >
+          <Mail /> Open in mail app
+        </Button>
+        <Button
+          type="button"
+          variant="primary"
+          disabled={!to || !body.trim()}
+          loading={pending}
+          onClick={() => {
+            window.open(gmail, "_blank", "noopener");
+            onSent(subject, body);
+          }}
+        >
+          <ExternalLink /> Open in Gmail
+        </Button>
+      </DialogFooter>
+    </div>
   );
 }

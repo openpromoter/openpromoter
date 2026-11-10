@@ -2,6 +2,7 @@ import { prospect } from "@openpromoter/db";
 import { desc, eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import { aiProvider } from "@/server/ai/provider";
+import { inviteUrl } from "@/server/ai/recruiter";
 import { programCtx } from "@/server/context";
 import { db } from "@/server/db";
 import { RecruiterView } from "./view";
@@ -10,7 +11,7 @@ export const metadata: Metadata = { title: "Recruiter" };
 
 export default async function RecruiterPage({ params }: { params: Promise<{ programId: string }> }) {
   const { programId } = await params;
-  const { role } = await programCtx(programId);
+  const { role, program: prog } = await programCtx(programId);
   const rows = await db()
     .select()
     .from(prospect)
@@ -19,7 +20,7 @@ export default async function RecruiterPage({ params }: { params: Promise<{ prog
     .limit(300);
   return (
     <RecruiterView
-      description="Your best partners are usually your happiest customers. The recruiter ranks them from Stripe, finds creators in your niche, drafts personal invites, sends them when you approve and follows up once."
+      description="Your best partners are usually your happiest customers. The recruiter ranks them from Stripe, finds creators in your niche and drafts a personal invite you send from your own email."
       programId={programId}
       canWrite={role === "owner" || role === "admin"}
       webSearch={aiProvider() === "anthropic"}
@@ -35,6 +36,7 @@ export default async function RecruiterPage({ params }: { params: Promise<{ prog
         body: r.inviteBody ?? "",
         status: r.status,
         sentAt: r.sentAt?.toISOString() ?? null,
+        inviteUrl: inviteUrl(prog, r),
       }))}
     />
   );

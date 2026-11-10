@@ -78,6 +78,19 @@ export function ProgramForm({
                 <option value="invite_only">Invite only</option>
               </Select>
             </Field>
+            <Field
+              label="Reply-to email"
+              htmlFor="replyTo"
+              hint="Partners' replies to program emails go here. Leave it empty to use the owner's email."
+            >
+              <Input
+                id="replyTo"
+                name="replyTo"
+                type="email"
+                defaultValue={p.replyTo ?? ""}
+                placeholder="partners@yourcompany.com"
+              />
+            </Field>
           </div>
         </SettingsCard>
         <SettingsCard title="Commission" description="What partners earn. Tiers below can override the rate.">

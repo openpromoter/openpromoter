@@ -267,3 +267,17 @@ export async function submitBountyAction(slug: string, campaignId: string, url: 
     return true;
   }, "Submitted for review");
 }
+
+/** The partner's optional emails (commission notices, program messages). */
+export async function emailPrefsAction(slug: string, input: { commissions: boolean; messages: boolean }) {
+  return safe(async () => {
+    const ctx = await partnerCtx(slug);
+    const v = z.object({ commissions: z.boolean(), messages: z.boolean() }).parse(input);
+    await db()
+      .update(partner)
+      .set({ emailCommissions: v.commissions, emailMessages: v.messages })
+      .where(eq(partner.id, ctx.partner.id));
+    revalidatePath(`/p/${slug}/portal/settings`);
+    return true;
+  });
+}

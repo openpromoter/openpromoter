@@ -1,6 +1,6 @@
 import { createVerify } from "node:crypto";
-import { emailLog } from "@openpromoter/db";
-import { eq } from "drizzle-orm";
+import { emailLog, partner } from "@openpromoter/db";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "./db";
 
 /**
@@ -81,4 +81,11 @@ export async function applySesNotice(raw: string) {
     .update(emailLog)
     .set({ status, detail: detail?.slice(0, 500) ?? row.detail, updatedAt: new Date() })
     .where(eq(emailLog.id, row.id));
+  // marked as spam: stop that program's optional emails to this partner (SES already stops any further mail
+  // to the address; this keeps the partner's settings honest when they come back)
+  if (kind === "Complaint" && row.programId)
+    await db()
+      .update(partner)
+      .set({ emailCommissions: false, emailMessages: false })
+      .where(and(eq(partner.programId, row.programId), sql`lower(${partner.email}) = ${row.to}`));
 }

@@ -97,7 +97,11 @@ export function BrandingForm({
               />
             </div>
           </Field>
-          <Field label="Logo URL" htmlFor="br-logo">
+          <Field
+            label="Logo URL"
+            htmlFor="br-logo"
+            hint="A PNG or JPG link. Square logos look best in emails."
+          >
             <Input
               id="br-logo"
               value={b.logoUrl}

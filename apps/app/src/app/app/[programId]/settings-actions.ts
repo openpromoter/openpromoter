@@ -26,7 +26,7 @@ import { priceLabel } from "@/lib/program-labels";
 import { API_SCOPES } from "@/lib/scopes";
 import { subdomainRoot } from "@/lib/subdomain";
 import { HTTP_URL } from "@/lib/url";
-import { assertPublicUrl, fetchSite } from "@/server/ai/brand";
+import { assertPublicUrl, emailSafeImage, fetchSite } from "@/server/ai/brand";
 import { audit } from "@/server/audit";
 import { planStatus } from "@/server/billing-plans";
 import { actionCtx, currentUser, safe, userPrograms } from "@/server/context";
@@ -79,6 +79,7 @@ const programSchema = z.object({
   doubleSidedMonths: z.coerce.number().int().min(0).max(36),
   doubleSidedCoupon: z.string().max(80).optional(),
   terms: z.string().max(20000).optional(),
+  replyTo: z.email().max(200).or(z.literal("")).optional(),
 });
 
 export async function updateProgramAction(programId: string, input: Record<string, string>) {
@@ -125,6 +126,7 @@ export async function updateProgramAction(programId: string, input: Record<strin
           stripeCouponId: v.doubleSidedCoupon || null,
         },
         terms: v.terms ?? null,
+        ...(v.replyTo !== undefined ? { replyTo: v.replyTo.trim().toLowerCase() || null } : {}),
       })
       .where(eq(program.id, programId));
     await rebaseProgram(programId, ctx.program.currency, cur);
@@ -309,7 +311,18 @@ export async function updateBrandingAction(
     const v = z
       .object({
         color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-        logoUrl: z.url(HTTP_URL).or(z.literal("")),
+        logoUrl: z
+          .string()
+          .trim()
+          .max(2000)
+          .refine(
+            (u) => !u || (URL.canParse(u) && /^https?:\/\//i.test(u)),
+            "Enter the full logo link, starting with https://",
+          )
+          .refine(
+            (u) => !u || emailSafeImage(u),
+            "Use a PNG or JPG logo: Gmail and Outlook can't show SVG or .ico in emails",
+          ),
         headline: z.string().max(120),
         description: z.string().max(600),
       })

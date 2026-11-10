@@ -13,13 +13,12 @@ import { DEMO } from "@/lib/demo-accounts";
 import { formatMoney, formatNumber, formatPercent } from "@/lib/money";
 import { runAutopilot } from "./ai/autopilot";
 import { generateContentKit } from "./ai/content";
-import { sendFollowUps } from "./ai/recruiter";
 import { delta, overview, previous, topPartners } from "./analytics";
 import { SYSTEM } from "./audit";
 import { evaluateBounties, evaluateTiers, settleEndedCampaigns } from "./campaigns";
 import { db } from "./db";
 import { demoOn } from "./demo";
-import { sendNotice, sendReport } from "./email";
+import { programSender, sendNotice, sendReport } from "./email";
 import { env } from "./env";
 import { deliver, emitEvent } from "./events";
 import { enqueueProgramRescore, rescorePartner } from "./fraud-run";
@@ -31,6 +30,7 @@ import { createPayoutBatch, reconcilePayouts } from "./payouts";
 import { pruneRateLimits } from "./ratelimit";
 import { codeUrl, programUrl } from "./ref-link";
 import { importStripe } from "./stripe-service";
+import { unsubscribeUrl } from "./unsubscribe";
 
 const portal = (p: Parameters<typeof programUrl>[0], path = "") => programUrl(p, `/portal${path}`);
 
@@ -77,6 +77,16 @@ export function registerJobs() {
   });
   defineJob("email.notice", async (p) => {
     const prog = p.programId ? await brandOf(String(p.programId)) : null;
+    // a program message to one of its partners: their choice, the program as sender, a one-click unsubscribe
+    let unsubscribe: string | undefined;
+    if (p.partnerId) {
+      const [pt] = await db()
+        .select()
+        .from(partner)
+        .where(eq(partner.id, String(p.partnerId)));
+      if (!pt?.emailMessages) return;
+      unsubscribe = unsubscribeUrl("messages", pt.id);
+    }
     await sendNotice(
       String(p.to),
       String(p.subject),
@@ -89,8 +99,7 @@ export function registerJobs() {
         paragraphs: (p.paragraphs as string[]) ?? [],
         cta: p.cta as { label: string; href: string } | undefined,
       },
-      undefined,
-      prog?.id,
+      prog && p.partnerId ? { ...(await programSender(prog)), unsubscribe } : { programId: prog?.id },
     );
   });
   defineJob("notify.commission", async (p) => {
@@ -100,7 +109,7 @@ export function registerJobs() {
       .innerJoin(partner, eq(partner.id, commission.partnerId))
       .innerJoin(program, eq(program.id, commission.programId))
       .where(eq(commission.id, String(p.commissionId)));
-    if (!row || row.c.status === "held") return;
+    if (!row || row.c.status === "held" || !row.pt.emailCommissions) return;
     await sendNotice(
       row.pt.email,
       `You earned ${formatMoney(row.c.amount, row.c.currency)} from ${row.prog.name}`,
@@ -133,6 +142,7 @@ export function registerJobs() {
         },
         cta: { label: "View earnings", href: portal(row.prog, "/earnings") },
       },
+      { ...(await programSender(row.prog)), unsubscribe: unsubscribeUrl("commissions", row.pt.id) },
     );
   });
   defineJob("notify.payout", async (p) => {
@@ -175,6 +185,7 @@ export function registerJobs() {
         },
         cta: { label: "View payouts", href: portal(row.prog, "/payouts") },
       },
+      await programSender(row.prog),
     );
   });
   defineJob("notify.partner_approved", async (p) => {
@@ -184,18 +195,23 @@ export function registerJobs() {
       .innerJoin(program, eq(program.id, partner.programId))
       .where(eq(partner.id, String(p.partnerId)));
     if (!row) return;
-    await sendNotice(row.pt.email, `You're in: ${row.prog.name} partner program`, {
-      brandName: row.prog.name,
-      brandColor: row.prog.brand.color,
-      logoUrl: row.prog.brand.logoUrl,
-      preview: "Your application was approved",
-      title: "Your partner account is ready",
-      paragraphs: [
-        `Your partner account for ${row.prog.name} is ready. Your link is ${codeUrl(row.prog, row.pt.code)}.`,
-        "Add a payout method in the portal so we can pay you. Then grab ready-made posts from the content kit.",
-      ],
-      cta: { label: "Open your portal", href: portal(row.prog) },
-    });
+    await sendNotice(
+      row.pt.email,
+      `You're in: ${row.prog.name} partner program`,
+      {
+        brandName: row.prog.name,
+        brandColor: row.prog.brand.color,
+        logoUrl: row.prog.brand.logoUrl,
+        preview: "Your application was approved",
+        title: "Your partner account is ready",
+        paragraphs: [
+          `Your partner account for ${row.prog.name} is ready. Your link is ${codeUrl(row.prog, row.pt.code)}.`,
+          "Add a payout method in the portal so we can pay you. Then grab ready-made posts from the content kit.",
+        ],
+        cta: { label: "Open your portal", href: portal(row.prog) },
+      },
+      await programSender(row.prog),
+    );
   });
   defineJob("notify.partner_rejected", async (p) => {
     const [row] = await db()
@@ -219,8 +235,7 @@ export function registerJobs() {
         ],
       },
       // the reply reaches the program owner, who made the call
-      (await teamEmails(row.prog.workspaceId, ["owner"]))[0],
-      row.prog.id,
+      await programSender(row.prog),
     );
   });
   defineJob("notify.new_application", async (p) => {
@@ -265,6 +280,10 @@ export async function sendProgramReport(
   const d = (a: number, b: number) =>
     `${delta(a, b) >= 0 ? "+" : ""}${formatPercent(delta(a, b), 0)} vs the ${monthly ? "30 days" : "week"} before`;
   const ending = now.toLocaleDateString("en-US", { dateStyle: "medium", timeZone: "UTC" });
+  const [sub] = await db()
+    .select({ id: reportSubscription.id })
+    .from(reportSubscription)
+    .where(and(eq(reportSubscription.programId, programId), eq(reportSubscription.email, email)));
   await sendReport(
     email,
     `${prog.name} partners: ${m(cur.revenue)} ${monthly ? "in the last 30 days" : "this week"}`,
@@ -286,6 +305,7 @@ export async function sendProgramReport(
       ].filter(Boolean) as string[],
       dashboardUrl: `${env.APP_URL}/app/${programId}`,
     },
+    { programId, unsubscribe: sub ? unsubscribeUrl("report", sub.id) : undefined },
   );
 }
 
@@ -317,7 +337,6 @@ const SCHEDULE: { key: string; every: number; run: () => Promise<unknown> }[] = 
     run: () => Promise.all([pruneJobs(), pruneRateLimits(), pruneParked()]),
   },
   { key: "campaigns.settle", every: 15 * 60_000, run: () => settleEndedCampaigns() },
-  { key: "recruiter.followups", every: 6 * 3_600_000, run: () => sendFollowUps() },
   {
     key: "autopilot.weekly",
     every: 7 * 86_400_000,

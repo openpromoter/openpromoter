@@ -1,12 +1,11 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { billingCustomer, partner, program, prospect } from "@openpromoter/db";
-import { and, desc, eq, inArray, isNotNull, lte, sql } from "drizzle-orm";
+import { billingCustomer, partner, type program, prospect } from "@openpromoter/db";
+import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createId } from "@/lib/id";
 import { formatMoney } from "@/lib/money";
 import { type Actor, audit } from "../audit";
 import { db } from "../db";
-import { sendNotice } from "../email";
 import { env } from "../env";
 import { programUrl } from "../ref-link";
 import {
@@ -209,73 +208,28 @@ export async function personalise(prog: Program, p: Prospect) {
   return !!out;
 }
 
-/** Sends approved invites. Human approval is the only way a prospect reaches "approved". */
-export async function sendInvites(prog: Program, ids: string[], actor: Actor) {
+/** The join link for one prospect: their invite id lets an invite-only program accept them. */
+export function inviteUrl(prog: Program, p: { id: string; email: string | null }) {
+  return `${programUrl(prog, "/apply")}?invite=${p.id}${p.email ? `&email=${encodeURIComponent(p.email)}` : ""}`;
+}
+
+/**
+ * Invites go out from the founder's own mailbox (the dialog opens Gmail, the mail app or copies the draft),
+ * never from OpenPromoter: unsolicited mail from a shared sending domain would put every customer's
+ * password resets and payout emails at risk. This records that the founder sent it.
+ */
+export async function markInvited(prog: Program, ids: string[], actor: Actor) {
   const rows = await db()
-    .select()
-    .from(prospect)
+    .update(prospect)
+    .set({ status: "sent", sentAt: new Date(), followUpAt: null })
     .where(
       and(
         eq(prospect.programId, prog.id),
         inArray(prospect.id, ids),
         inArray(prospect.status, ["new", "approved"]),
       ),
-    );
-  let sent = 0;
-  for (const p of rows) {
-    if (!p.email) continue;
-    const href = `${programUrl(prog, "/apply")}?invite=${p.id}&email=${encodeURIComponent(p.email)}`;
-    await sendNotice(p.email, p.inviteSubject ?? `Join the ${prog.name} partner program`, {
-      brandName: prog.name,
-      brandColor: prog.brand.color,
-      logoUrl: prog.brand.logoUrl,
-      preview: p.inviteSubject ?? "",
-      title: p.inviteSubject ?? `Join the ${prog.name} partner program`,
-      paragraphs: (p.inviteBody ?? "").split(/\n{2,}/),
-      cta: { label: "Join the program", href },
-    });
-    await db()
-      .update(prospect)
-      .set({ status: "sent", sentAt: new Date(), followUpAt: new Date(Date.now() + 5 * DAY) })
-      .where(eq(prospect.id, p.id));
-    sent++;
-  }
-  await audit(prog.workspaceId, actor, "recruiter.send", undefined, { count: sent });
-  return sent;
-}
-
-/** One follow-up after 5 days for invites that did not convert. */
-export async function sendFollowUps(now = new Date()) {
-  const due = await db()
-    .select({ p: prospect, prog: program })
-    .from(prospect)
-    .innerJoin(program, eq(program.id, prospect.programId))
-    .where(and(eq(prospect.status, "sent"), lte(prospect.followUpAt, now)));
-  for (const { p, prog } of due) {
-    const [joined] = await db()
-      .select({ id: partner.id })
-      .from(partner)
-      .where(and(eq(partner.programId, prog.id), sql`lower(${partner.email}) = lower(${p.email ?? ""})`));
-    if (joined) {
-      await db().update(prospect).set({ status: "joined" }).where(eq(prospect.id, p.id));
-      continue;
-    }
-    if (p.email) {
-      await sendNotice(p.email, `Re: ${p.inviteSubject ?? prog.name}`, {
-        brandName: prog.name,
-        brandColor: prog.brand.color,
-        preview: "Quick follow-up",
-        title: "Quick follow-up",
-        paragraphs: [
-          `Hi ${p.name.split(/\s+/)[0]}, I'm following up in case you missed my last email. The ${prog.name} partner program is open and takes a minute to join.`,
-        ],
-        cta: {
-          label: "Join the program",
-          href: `${programUrl(prog, "/apply")}?invite=${p.id}&email=${encodeURIComponent(p.email)}`,
-        },
-      });
-    }
-    await db().update(prospect).set({ status: "followed_up", followUpAt: null }).where(eq(prospect.id, p.id));
-  }
-  return due.length;
+    )
+    .returning({ id: prospect.id });
+  await audit(prog.workspaceId, actor, "recruiter.invited", undefined, { count: rows.length });
+  return rows.length;
 }

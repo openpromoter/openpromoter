@@ -143,6 +143,7 @@ export async function applyToProgram(
         ),
       );
     if (!pr) invited = false;
+    else await db().update(prospect).set({ status: "joined" }).where(eq(prospect.id, pr.id));
   }
   // self-service applicants (signed in) only count as invited or on-domain once the email is confirmed
   let emailVerified: boolean | undefined;
@@ -384,19 +385,33 @@ export async function sendMessage(
     })
     .returning();
   if (!input.fromPartner) {
+    // partners who turned program messages off still see them in the portal, just not by email
     const targets = input.partnerId
       ? await db()
-          .select({ email: partner.email })
+          .select({ id: partner.id, email: partner.email })
           .from(partner)
-          .where(and(eq(partner.id, input.partnerId), eq(partner.programId, prog.id)))
+          .where(
+            and(
+              eq(partner.id, input.partnerId),
+              eq(partner.programId, prog.id),
+              eq(partner.emailMessages, true),
+            ),
+          )
       : await db()
-          .select({ email: partner.email })
+          .select({ id: partner.id, email: partner.email })
           .from(partner)
-          .where(and(eq(partner.programId, prog.id), eq(partner.status, "approved")))
+          .where(
+            and(
+              eq(partner.programId, prog.id),
+              eq(partner.status, "approved"),
+              eq(partner.emailMessages, true),
+            ),
+          )
           .limit(2000);
     for (const t of targets) {
       await enqueue("email.notice", {
         to: t.email,
+        partnerId: t.id,
         subject: input.subject ?? `A message from ${prog.name}`,
         title: input.subject ?? `A message from ${prog.name}`,
         paragraphs: [input.body],

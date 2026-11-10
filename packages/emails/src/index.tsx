@@ -131,15 +131,21 @@ function Shell({ title, preview, children }: { title: string; preview: string; c
   );
 }
 
+/** OpenPromoter's own mark: a PNG (Gmail and Outlook don't show SVG) on its own white tile, so it reads in dark mode. */
+export const OPENPROMOTER_LOGO = "https://openpromoter.com/email/openpromoter-logo.png";
+
 function Masthead({ name, logoUrl, color }: { name: string; logoUrl?: string | null; color: string }) {
+  const logo = logoUrl || (name === "OpenPromoter" ? OPENPROMOTER_LOGO : null);
   return (
     <Section className="op-head" style={{ padding: "0 8px 20px" }}>
-      {logoUrl ? (
-        <Img src={logoUrl} alt={name} height={24} style={{ height: 24, width: "auto", display: "block" }} />
-      ) : (
-        <table role="presentation" cellPadding={0} cellSpacing={0} border={0}>
-          <tbody>
-            <tr>
+      <table role="presentation" cellPadding={0} cellSpacing={0} border={0}>
+        <tbody>
+          <tr>
+            {logo ? (
+              <td style={{ height: 24, lineHeight: 0 }}>
+                <Img src={logo} alt="" height={24} style={{ height: 24, width: "auto", display: "block" }} />
+              </td>
+            ) : (
               <td
                 className={brandSurface(color).className}
                 width={22}
@@ -160,16 +166,17 @@ function Masthead({ name, logoUrl, color }: { name: string; logoUrl?: string | n
               >
                 {name.trim().charAt(0).toUpperCase()}
               </td>
-              <td
-                className="op-ink"
-                style={{ paddingLeft: 10, fontFamily: sans, fontSize: 14, fontWeight: 500, color: c.ink }}
-              >
-                {name}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      )}
+            )}
+            {/* the name always shows: a logo alone can be a favicon nobody recognises */}
+            <td
+              className="op-ink"
+              style={{ paddingLeft: 10, fontFamily: sans, fontSize: 14, fontWeight: 500, color: c.ink }}
+            >
+              {name}
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </Section>
   );
 }
@@ -403,6 +410,8 @@ export interface NoticeProps {
   footer?: string;
   /** Optional statement block for mail about money. `total` sits below a perforated tear line. */
   ledger?: { rows: LedgerRow[]; total?: LedgerRow };
+  /** Optional emails carry a one-click unsubscribe link in the footer. */
+  unsubscribeUrl?: string;
 }
 
 export function Notice({
@@ -415,6 +424,7 @@ export function Notice({
   cta,
   footer,
   ledger,
+  unsubscribeUrl,
 }: NoticeProps) {
   const color = hex(brandColor) ?? c.accent;
   const rows = ledger?.rows ?? [];
@@ -475,13 +485,23 @@ export function Notice({
       <Footer
         reason={footer ?? `Sent by ${brandName}. If this wasn't meant for you, you can ignore it.`}
         links={
-          brandName === "OpenPromoter" ? (
-            <Link href="https://openpromoter.com" className="op-faint" style={footLink}>
-              openpromoter.com
-            </Link>
-          ) : (
-            poweredBy
-          )
+          <>
+            {unsubscribeUrl ? (
+              <>
+                <Link href={unsubscribeUrl} className="op-faint" style={footLink}>
+                  Unsubscribe
+                </Link>
+                {"  ·  "}
+              </>
+            ) : null}
+            {brandName === "OpenPromoter" ? (
+              <Link href="https://openpromoter.com" className="op-faint" style={footLink}>
+                openpromoter.com
+              </Link>
+            ) : (
+              poweredBy
+            )}
+          </>
         }
       />
     </Shell>
@@ -495,11 +515,20 @@ export interface ReportProps {
   highlights: string[];
   nextSteps: string[];
   dashboardUrl: string;
+  unsubscribeUrl?: string;
 }
 
 const sentence = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export function Report({ brandName, periodLabel, stats, highlights, nextSteps, dashboardUrl }: ReportProps) {
+export function Report({
+  brandName,
+  periodLabel,
+  stats,
+  highlights,
+  nextSteps,
+  dashboardUrl,
+  unsubscribeUrl,
+}: ReportProps) {
   const [lead, ...rest] = stats;
   const settings = `${dashboardUrl.replace(/\/+$/, "")}/analytics`;
   const listText: CSSProperties = { fontFamily: sans, fontSize: 14, lineHeight: "20px", color: c.ink };
@@ -620,6 +649,14 @@ export function Report({ brandName, periodLabel, stats, highlights, nextSteps, d
               Report settings
             </Link>
             {"  ·  "}
+            {unsubscribeUrl ? (
+              <>
+                <Link href={unsubscribeUrl} className="op-faint" style={footLink}>
+                  Unsubscribe
+                </Link>
+                {"  ·  "}
+              </>
+            ) : null}
             {poweredBy}
           </>
         }
@@ -670,6 +707,7 @@ export function noticeText(p: NoticeProps) {
     ledger.join("\n"),
     p.cta && `${p.cta.label}: ${p.cta.href}`,
     p.footer ?? `Sent by ${p.brandName}. If this wasn't meant for you, you can ignore it.`,
+    p.unsubscribeUrl && `Unsubscribe: ${p.unsubscribeUrl}`,
   );
 }
 
@@ -680,5 +718,6 @@ export function reportText(p: ReportProps) {
     p.highlights.length && ["What earned money:", ...p.highlights.map((h) => `- ${h}`)].join("\n"),
     p.nextSteps.length && ["What to do next:", ...p.nextSteps.map((x, i) => `${i + 1}. ${x}`)].join("\n"),
     `Open dashboard: ${p.dashboardUrl}`,
+    p.unsubscribeUrl && `Unsubscribe: ${p.unsubscribeUrl}`,
   );
 }

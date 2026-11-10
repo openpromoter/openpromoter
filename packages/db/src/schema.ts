@@ -419,6 +419,8 @@ export const program = pgTable(
     doubleSided: jsonb("double_sided").$type<DoubleSided>().notNull(),
     fraudHoldScore: integer("fraud_hold_score").notNull().default(70),
     terms: text("terms"),
+    /** Where partners' replies to program emails go; empty = the workspace owner's email. */
+    replyTo: text("reply_to"),
     designRationale: jsonb("design_rationale").$type<Record<string, string>>(),
     installVerifiedAt: ts("install_verified_at"),
     autopilotEnabled: boolean("autopilot_enabled").notNull().default(true),
@@ -493,6 +495,9 @@ export const partner = pgTable(
       .default("application"),
     payoutMethod: text("payout_method").$type<"stripe" | "paypal" | "wise" | "manual">(),
     paypalEmail: text("paypal_email"),
+    /** The partner's email choices. Approvals and payouts always send. */
+    emailCommissions: boolean("email_commissions").notNull().default(true),
+    emailMessages: boolean("email_messages").notNull().default(true),
     wiseEmail: text("wise_email"),
     stripeAccountId: text("stripe_account_id"),
     stripePayoutsEnabled: boolean("stripe_payouts_enabled").notNull().default(false),
