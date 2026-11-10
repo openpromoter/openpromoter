@@ -9,7 +9,7 @@
 | DB | PostgreSQL 16 + Drizzle ORM 0.45 (`postgres` driver) | SQL-first, typed, plain migrations in `packages/db/drizzle` |
 | Tests DB | PGlite 0.4 (in-process Postgres) | Unit/integration tests run the real migrations with no Docker |
 | Auth | Better Auth 1.7 (email + password, 2FA/TOTP plugin) | Self-hostable, owns its tables in our DB |
-| UI | Tailwind CSS 4.3 + Radix (via `radix-ui`) + own shadcn-style kit in `packages/ui`, lucide icons, Recharts 3, cmdk, sonner | Matches DESIGN.md tokens |
+| UI | Tailwind CSS 4.3 + Radix (via `radix-ui`) + own shadcn-style kit in `packages/ui`, lucide icons, Recharts 3, cmdk, sonner | Colour and type tokens live in `packages/ui/src/styles.css` |
 | Jobs | Postgres queue (`job` table, `FOR UPDATE SKIP LOCKED`) + kv-locked scheduler, run in-process. At-least-once; retries with exponential backoff and jitter; after `max_attempts` a job moves to the dead letter state (`failed_at`), kept 30 days. Finished jobs are pruned after 7 days | No Redis to self-host |
 | Email | React Email 1.0 templates (`packages/emails`), Resend API or SMTP (nodemailer); Mailpit in docker compose | |
 | AI | `apps/app/src/server/ai/provider.ts`: Anthropic SDK (default `claude-opus-5-5`, structured outputs, server-side refusal fallback) or any OpenAI-compatible endpoint (OpenAI, Ollama, LM Studio) | Every AI feature has a non-AI fallback |
@@ -31,7 +31,7 @@ packages/ui         design-system components + tokens (styles.css)
 packages/emails     React Email templates
 packages/sdk        `openpromoter` npm package (REST client, webhook verification, browser helper)
 packages/mcp        `openpromoter-mcp` MCP server (stdio)
-packages/cli        `openpromoter` CLI
+packages/cli        `openpromoter-cli` npm package (installs the `openpromoter` command)
 skills/openpromoter agent skill for Claude Code / Cursor
 ```
 

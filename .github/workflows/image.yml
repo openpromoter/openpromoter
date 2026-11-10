@@ -1,5 +1,5 @@
-# Builds the app image on GitHub so the VPS never runs a Next.js build next to the live sites.
-# The image is kept as a private workflow artifact; scripts/deploy-vps.sh downloads it and loads it on the server.
+# Builds the hosted app image on every push to main and keeps it as a short-lived workflow artifact.
+# Self-hosters use the versioned image from release-image.yml instead.
 name: Image
 
 on:

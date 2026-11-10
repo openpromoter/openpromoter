@@ -14,7 +14,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { PageHeader } from "@/components/page";
-import { like, listParams } from "@/lib/list";
+import { like, listParams, statusIs } from "@/lib/list";
 import { formatMoney } from "@/lib/money";
 import { programCtx } from "@/server/context";
 import { db } from "@/server/db";
@@ -37,9 +37,9 @@ export default async function CommissionsPage({
     eq(commission.programId, programId),
     sql`not (${commission.kind} = 'adjustment' and ${commission.amount} = 0)`,
   ];
-  if (lp.status) where.push(eq(commission.status, lp.status as "pending"));
+  if (lp.status) where.push(statusIs(commission.status, lp.status)!);
   if (lp.partner) where.push(eq(commission.partnerId, lp.partner));
-  if (sp.kind) where.push(eq(commission.kind, sp.kind as "sale"));
+  if (sp.kind) where.push(statusIs(commission.kind, sp.kind)!);
   if (lp.q)
     where.push(
       or(

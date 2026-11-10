@@ -6,7 +6,6 @@ name: Release image
 on:
   push:
     tags: ["v*"]
-  workflow_dispatch:
 
 env:
   IMAGE: ghcr.io/openpromoter/openpromoter

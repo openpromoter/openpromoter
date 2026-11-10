@@ -1,6 +1,14 @@
 "use server";
 
-import { billingConnection, bountySubmission, campaign, message, partner, program } from "@openpromoter/db";
+import {
+  billingConnection,
+  bountySubmission,
+  campaign,
+  message,
+  partner,
+  program,
+  prospect,
+} from "@openpromoter/db";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -42,7 +50,14 @@ export async function applyAction(slug: string, input: Record<string, string>) {
         terms: z.literal("on"),
       })
       .parse(input);
-    if (p.visibility === "invite_only" && !base.invite) throw new Error("This program is invite-only.");
+    // an invite-only program opens only to a recruiter prospect id of this program
+    const [invite] = base.invite
+      ? await db()
+          .select({ id: prospect.id })
+          .from(prospect)
+          .where(and(eq(prospect.id, base.invite), eq(prospect.programId, p.id)))
+      : [];
+    if (p.visibility === "invite_only" && !invite) throw new Error("This program is invite-only.");
     const answers: Record<string, string> = {};
     for (const q of p.applicationQuestions) {
       const v = applicationAnswer(q, input[`q_${q.id}`] ?? "");
@@ -74,10 +89,10 @@ export async function applyAction(slug: string, input: Record<string, string>) {
         answers,
         userId: u!.id,
         ip,
-        source: base.invite ? "recruiter" : "application",
+        source: invite ? "recruiter" : "application",
         recruiterCode: base.recruit || null,
       },
-      !!base.invite,
+      !!invite,
     );
     return { autoApproved, partnerId: pt.id };
   });

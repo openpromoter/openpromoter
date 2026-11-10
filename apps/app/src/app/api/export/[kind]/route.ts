@@ -2,7 +2,7 @@ import { auditLog, commission, partner, payout, referral } from "@openpromoter/d
 import { and, desc, eq, gte, ilike, lt, or, type SQL, sql } from "drizzle-orm";
 import { decrypt } from "@/lib/crypto";
 import { csvResponse, toCsv } from "@/lib/csv";
-import { like, listParams } from "@/lib/list";
+import { like, listParams, statusIs } from "@/lib/list";
 import { toMajor } from "@/lib/money";
 import { nec1099Threshold } from "@/lib/tax";
 import { AccessError, requireProgram } from "@/server/access";
@@ -39,13 +39,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ kind: st
   const lp = listParams(Object.fromEntries(url.searchParams));
   const q = lp.q ? like(lp.q) : null;
   const partnerFilter: SQL[] = [
-    ...(lp.status ? [eq(partner.status, lp.status as "pending")] : []),
+    ...(lp.status ? [statusIs(partner.status, lp.status)!] : []),
     ...(url.searchParams.get("group") ? [eq(partner.groupId, url.searchParams.get("group")!)] : []),
     ...(url.searchParams.get("risk") === "high" ? [sql`${partner.riskScore} >= ${p.fraudHoldScore}`] : []),
     ...(q ? [or(ilike(partner.name, q), ilike(partner.email, q), ilike(partner.code, q))!] : []),
   ];
   const customerFilter: SQL[] = [
-    ...(lp.status ? [eq(referral.status, lp.status as "lead")] : []),
+    ...(lp.status ? [statusIs(referral.status, lp.status)!] : []),
     ...(lp.partner ? [eq(referral.partnerId, lp.partner)] : []),
     ...(q
       ? [
@@ -61,9 +61,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ kind: st
   const commissionFilter: SQL[] = [
     // refund-matching alias rows are bookkeeping, hidden in the list too
     sql`not (${commission.kind} = 'adjustment' and ${commission.amount} = 0)`,
-    ...(lp.status ? [eq(commission.status, lp.status as "pending")] : []),
+    ...(lp.status ? [statusIs(commission.status, lp.status)!] : []),
     ...(lp.partner ? [eq(commission.partnerId, lp.partner)] : []),
-    ...(url.searchParams.get("kind") ? [eq(commission.kind, url.searchParams.get("kind") as "sale")] : []),
+    ...(url.searchParams.get("kind") ? [statusIs(commission.kind, url.searchParams.get("kind"))!] : []),
     ...(q ? [or(ilike(partner.name, q), ilike(commission.description, q), ilike(commission.id, q))!] : []),
   ];
   const date = new Date().toISOString().slice(0, 10);

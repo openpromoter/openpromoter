@@ -16,7 +16,10 @@ export async function monthlyUsage(workspaceId: string) {
     .select({ revenue: sql<number>`coalesce(sum(${commission.saleAmount}),0)::bigint` })
     .from(commission)
     .innerJoin(program, eq(program.id, commission.programId))
-    .where(and(eq(program.workspaceId, workspaceId), gte(commission.createdAt, start)));
+    // ponytail: sums every currency's minor units as if USD cents; convert first if non-USD programs grow
+    .where(
+      and(eq(program.workspaceId, workspaceId), eq(commission.test, false), gte(commission.createdAt, start)),
+    );
   return Number(row?.revenue ?? 0);
 }
 

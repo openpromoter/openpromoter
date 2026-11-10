@@ -1,3 +1,5 @@
+import { type Column, eq, type SQL, sql } from "drizzle-orm";
+
 export interface ListParams {
   q: string;
   status: string | null;
@@ -23,3 +25,9 @@ export function listParams(sp: Record<string, string | string[] | undefined>, pa
 }
 
 export const like = (q: string) => `%${q.replace(/[%_\\]/g, "")}%`;
+
+/** The ?status= filter: an unknown value matches nothing instead of failing as a bad Postgres enum. */
+export function statusIs(col: Column, v: string | null): SQL | undefined {
+  if (!v) return undefined;
+  return (col.enumValues ?? []).includes(v) ? eq(col, v) : sql`false`;
+}

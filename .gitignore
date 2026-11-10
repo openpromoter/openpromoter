@@ -27,3 +27,7 @@ graphify-out/
 
 # Launch checklist with account names and IDs (private)
 STEPS_TO_DO_BEFORE_LIVE.md
+
+# local agent notes
+/CLAUDE.md
+apps/app/AGENTS.md

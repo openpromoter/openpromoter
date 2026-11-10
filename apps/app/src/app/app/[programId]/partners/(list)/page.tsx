@@ -2,7 +2,7 @@ import { commission, partner, partnerGroup, referral } from "@openpromoter/db";
 import { and, asc, desc, eq, ilike, or, type SQL, sql } from "drizzle-orm";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page";
-import { like, listParams } from "@/lib/list";
+import { like, listParams, statusIs } from "@/lib/list";
 import { programCtx } from "@/server/context";
 import { db } from "@/server/db";
 import { InviteButton, PartnersTable } from "../partners-table";
@@ -21,7 +21,7 @@ export default async function PartnersPage({
   const { program: prog } = await programCtx(programId);
   const lp = listParams(sp);
   const where: SQL[] = [eq(partner.programId, programId)];
-  if (lp.status) where.push(eq(partner.status, lp.status as "pending"));
+  if (lp.status) where.push(statusIs(partner.status, lp.status)!);
   if (sp.group) where.push(eq(partner.groupId, sp.group));
   if (sp.risk === "high") where.push(sql`${partner.riskScore} >= ${prog.fraudHoldScore}`);
   if (lp.q)

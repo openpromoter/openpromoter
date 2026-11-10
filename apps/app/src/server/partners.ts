@@ -9,7 +9,7 @@ import {
   prospect,
   user,
 } from "@openpromoter/db";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { hashIp } from "@/lib/crypto";
 import { createCode, createId, slugify } from "@/lib/id";
 import { type Actor, audit } from "./audit";
@@ -267,6 +267,8 @@ export async function setPartnerStatus(
           eq(commission.programId, programId),
           inArray(commission.partnerId, ids),
           inArray(commission.status, ["pending", "approved"]),
+          // a commission locked to a payout being sent can't change; refunds claw it back instead
+          isNull(commission.payoutId),
         ),
       )
       .returning({ id: commission.id });

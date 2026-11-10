@@ -86,7 +86,7 @@ export function normalizePaddle(body: Json, livemode = true): ParsedWebhook {
         });
       } else if (Object.hasOwn(PADDLE_DISPUTE, d.action ?? "")) {
         // ponytail: a chargeback_reverse after a plain chargeback (no warning) finds the commission already
-        // reversed and leaves it; restoring reversed commissions on a win is not built yet.
+        // reversed and leaves it reversed; a won dispute does not restore it.
         events.push({
           type: "dispute",
           chargeId: d.transaction_id,

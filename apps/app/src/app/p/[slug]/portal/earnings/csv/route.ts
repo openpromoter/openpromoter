@@ -1,5 +1,5 @@
 import { commission, partner, program } from "@openpromoter/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { toMajor } from "@/lib/money";
 import { currentUser } from "@/server/context";
 import { db } from "@/server/db";
@@ -25,7 +25,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       db()
         .select()
         .from(commission)
-        .where(and(eq(commission.partnerId, row.partnerId), after))
+        // zero-amount adjustments are internal charge aliases; the Earnings page hides them too
+        .where(and(eq(commission.partnerId, row.partnerId), sql`${commission.amount} <> 0`, after))
         .orderBy(...order)
         .limit(limit),
     (r) => r,

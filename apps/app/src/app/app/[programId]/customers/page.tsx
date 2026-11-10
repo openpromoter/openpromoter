@@ -2,7 +2,7 @@ import { partner, referral } from "@openpromoter/db";
 import { and, asc, desc, eq, ilike, or, type SQL, sql } from "drizzle-orm";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page";
-import { like, listParams } from "@/lib/list";
+import { like, listParams, statusIs } from "@/lib/list";
 import { programCtx } from "@/server/context";
 import { db } from "@/server/db";
 import { CustomersTable } from "./table";
@@ -21,7 +21,7 @@ export default async function CustomersPage({
   const { program: prog } = await programCtx(programId);
   const lp = listParams(sp);
   const where: SQL[] = [eq(referral.programId, programId)];
-  if (lp.status) where.push(eq(referral.status, lp.status as "lead"));
+  if (lp.status) where.push(statusIs(referral.status, lp.status)!);
   if (lp.partner) where.push(eq(referral.partnerId, lp.partner));
   if (lp.q)
     where.push(

@@ -3,7 +3,9 @@ import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import type { BillingEvent, ParsedWebhook } from "@/server/billing/types";
 import { db } from "@/server/db";
+import { SYSTEM } from "@/server/audit";
 import { ingest } from "@/server/ingest";
+import { approveCommissions, holdCommissions, releaseCommissions, reverseCommissions } from "@/server/ledger";
 import { createPromoCode } from "@/server/partners";
 import { recordClick } from "@/server/tracking";
 import { addPartner, fixture } from "./helpers";
@@ -297,6 +299,39 @@ describe("refunds, chargebacks, cancellations", () => {
     );
     const [after] = await db().select().from(referral).where(eq(referral.id, r!.id));
     expect(after).toMatchObject({ status: "canceled", mrr: 0 });
+  });
+
+  it("a manual reverse, hold, release or approve moves the refund adjustment with its commission", async () => {
+    const statuses = async (partnerId: string) =>
+      (await db().select().from(commission).where(eq(commission.partnerId, partnerId)))
+        .map((r) => `${r.kind}:${r.status}`)
+        .sort();
+    const refund = (s: Awaited<ReturnType<typeof paid>>["s"], id: string) =>
+      ingest(
+        s.ws.id,
+        "stripe",
+        evt([{ type: "refund", chargeId: `ch_${id}`, refundKey: "a", refunded: 5000, charged: 10000 }]),
+      );
+
+    const a = await paid("cus_L1");
+    await refund(a.s, "cus_L1");
+    await reverseCommissions(a.s.program.id, [a.c.id], "Fraud", SYSTEM);
+    expect(await statuses(a.s.partner.id)).toEqual(["adjustment:reversed", "sale:reversed"]);
+
+    const b = await paid("cus_L2");
+    await holdCommissions(b.s.program.id, [b.c.id], "Review", SYSTEM);
+    await refund(b.s, "cus_L2");
+    expect(await statuses(b.s.partner.id)).toEqual(["adjustment:held", "sale:held"]);
+    await approveCommissions(b.s.program.id, [b.c.id], SYSTEM);
+    expect(await statuses(b.s.partner.id)).toEqual(["adjustment:approved", "sale:approved"]);
+    expect(await sum(b.s.partner.id)).toBe(1500);
+
+    const c = await paid("cus_L3");
+    await refund(c.s, "cus_L3");
+    await holdCommissions(c.s.program.id, [c.c.id], "Review", SYSTEM);
+    expect(await statuses(c.s.partner.id)).toEqual(["adjustment:held", "sale:held"]);
+    await releaseCommissions(c.s.program.id, [c.c.id], SYSTEM);
+    expect(await statuses(c.s.partner.id)).toEqual(["adjustment:pending", "sale:pending"]);
   });
 });
 

@@ -1,5 +1,5 @@
 import { commission, partner, payout, program } from "@openpromoter/db";
-import { and, eq, inArray, isNull, lte, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, like, lte, or, type SQL, sql } from "drizzle-orm";
 import { createId } from "@/lib/id";
 import { type Actor, audit } from "./audit";
 import { type AppDb, db, type Tx } from "./db";
@@ -48,7 +48,31 @@ export async function followOverrides(
   return n;
 }
 
-/** pending → approved once the refund hold period has passed. */
+/**
+ * A refund before payout books a negative `refund:<id>:…` adjustment with the parent's status. A manual
+ * hold, release, approve or reverse of the parent moves those rows with it, so the payout nets correctly.
+ */
+async function followRefunds(
+  programId: string,
+  parentIds: string[],
+  from: ("pending" | "approved" | "held")[],
+  set: { status: "held" | "approved" | "reversed" | SQL; heldReason?: string | null },
+) {
+  if (parentIds.length === 0) return;
+  await db()
+    .update(commission)
+    .set({ ...set, updatedAt: new Date() } as Partial<typeof commission.$inferInsert>)
+    .where(
+      and(
+        eq(commission.programId, programId),
+        eq(commission.kind, "adjustment"),
+        inArray(commission.status, from),
+        isNull(commission.payoutId),
+        or(...parentIds.map((id) => like(commission.sourceKey, `refund:${id}:%`))),
+      ),
+    );
+}
+
 /** Pending → approved once the hold ends, 5,000 rows per statement (the literal status hits the partial index). */
 export async function matureCommissions(now = new Date()): Promise<number> {
   let total = 0;
@@ -82,6 +106,12 @@ export async function holdCommissions(programId: string, ids: string[], reason: 
       ),
     )
     .returning();
+  await followRefunds(
+    programId,
+    rows.map((r) => r.id),
+    ["pending", "approved"],
+    { status: "held", heldReason: reason },
+  );
   await followOverrides(
     rows.map((r) => r.id),
     "hold",
@@ -111,6 +141,15 @@ export async function releaseCommissions(programId: string, ids: string[], actor
       and(eq(commission.programId, programId), inArray(commission.id, ids), eq(commission.status, "held")),
     )
     .returning();
+  await followRefunds(
+    programId,
+    rows.map((r) => r.id),
+    ["held"],
+    {
+      status: sql`case when ${commission.holdUntil} is null or ${commission.holdUntil} <= ${now.toISOString()}::timestamptz then 'approved' else 'pending' end`,
+      heldReason: null,
+    },
+  );
   await followOverrides(
     rows.map((r) => r.id),
     "release",
@@ -139,6 +178,16 @@ export async function approveCommissions(programId: string, ids: string[], actor
       ),
     )
     .returning();
+  await followRefunds(
+    programId,
+    rows.map((r) => r.id),
+    ["pending", "held"],
+    { status: "approved", heldReason: null },
+  );
+  await followOverrides(
+    rows.map((r) => r.id),
+    "release",
+  );
   if (rows[0])
     await audit(
       rows[0].workspaceId,
@@ -163,6 +212,12 @@ export async function reverseCommissions(programId: string, ids: string[], reaso
       ),
     )
     .returning();
+  await followRefunds(
+    programId,
+    rows.map((r) => r.id),
+    ["pending", "approved", "held"],
+    { status: "reversed" },
+  );
   await followOverrides(
     rows.map((r) => r.id),
     "reverse",
