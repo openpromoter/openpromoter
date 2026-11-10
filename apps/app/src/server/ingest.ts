@@ -505,7 +505,10 @@ async function handlePayment(
       kind: "sale",
       sourceKey: `${provider}:${ev.paymentId}`,
       test,
-      saleAmount: fixedOther ? 0 : ev.amount,
+      // a fixed commission is booked in the program's currency, so the sale is too (converted); the
+      // customer's own charge is kept for the refund ratio
+      saleAmount: fixedOther ? inProgram : ev.amount,
+      chargedAmount: fixedOther ? ev.amount : null,
       amount: result.amount,
       currency: fixedOther ? prog.currency : ev.currency,
       fxRate: fixedOther ? 1 : rate,
@@ -908,7 +911,8 @@ async function handleRefund(
   const sales = await salesForCharge(tx, provider, programs, ev.chargeId);
   if (sales.length === 0) return parkChargeEvent(tx, provider, programs, ev);
   for (const c of sales) {
-    const charged = ev.charged > 0 ? ev.charged : c.saleAmount;
+    // in the customer's currency, like `refunded`
+    const charged = ev.charged > 0 ? ev.charged : (c.chargedAmount ?? c.saleAmount);
     let refunded = ev.refunded;
     if (ev.incremental) {
       // add the refunds already booked on this commission, scaled from sale units to the charge's units

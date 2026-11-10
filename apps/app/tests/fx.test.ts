@@ -292,6 +292,68 @@ describe("exchange rates", () => {
     expect(await tierAfter(120_000)).not.toBe("Pro");
   });
 
+  it("a fixed commission on a euro sale books the sale's value, and refunds of both kinds net correctly", async () => {
+    const fixed = { currency: "usd", commissionType: "fixed" as const, commissionValue: 5000 };
+    const net = async (partnerId: string) =>
+      (await db().select().from(commission).where(eq(commission.partnerId, partnerId))).reduce(
+        (t, x) => ({
+          amount: t.amount + (x.status === "reversed" ? 0 : x.amount),
+          sale: t.sale + (x.status === "reversed" ? 0 : x.saleAmount),
+        }),
+        { amount: 0, sale: 0 },
+      );
+
+    // Stripe-style: the refund carries the running total and what was charged
+    const s = await referred(fixed);
+    const ch = `ch_fix_${s.customerId}`;
+    await ingest(
+      s.ws.id,
+      "stripe",
+      evt([pay(s.customerId, { amount: 10000, currency: "eur", chargeIds: [ch] })]),
+    );
+    const [c] = await sales(s.partner.id);
+    // $50 in the program's currency; the €100 sale counts as $125 and keeps €100 for refunds
+    expect(c).toMatchObject({
+      currency: "usd",
+      amount: 5000,
+      saleAmount: 12500,
+      chargedAmount: 10000,
+      fxRate: 1,
+    });
+    expect((await overview(s.program.id, allTime)).revenue).toBe(12500);
+    await ingest(
+      s.ws.id,
+      "stripe",
+      evt([{ type: "refund", chargeId: ch, refundKey: "a", refunded: 5000, charged: 10000 }]),
+    );
+    expect(await net(s.partner.id)).toEqual({ amount: 2500, sale: 6250 });
+    expect((await overview(s.program.id, allTime)).revenue).toBe(6250);
+
+    // Paddle-style: each refund is only its own amount and nothing says what was charged
+    const t = await referred(fixed);
+    const tch = `ch_fix_${t.customerId}`;
+    await ingest(
+      t.ws.id,
+      "paddle",
+      evt([pay(t.customerId, { amount: 10000, currency: "eur", chargeIds: [tch] })]),
+    );
+    for (const [key, amt] of [
+      ["r1", 3000],
+      ["r2", 2000],
+    ] as const)
+      await ingest(
+        t.ws.id,
+        "paddle",
+        evt([
+          { type: "refund", chargeId: tch, refundKey: key, refunded: amt, charged: 0, incremental: true },
+        ]),
+      );
+    // €30 + €20 of €100 back: half the commission and half the sale
+    expect(await net(t.partner.id)).toEqual({ amount: 2500, sale: 6250 });
+    const [r] = await db().select().from(referral).where(eq(referral.externalCustomerId, t.customerId));
+    expect(r?.revenue).toBe(6250);
+  });
+
   it("plan usage turns each program's sales into USD", async () => {
     const s = await referred({ currency: "eur" });
     await ingest(s.ws.id, "stripe", evt([pay(s.customerId, { amount: 10000, currency: "eur" })]));

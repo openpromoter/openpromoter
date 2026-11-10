@@ -702,6 +702,11 @@ export const commission = pgTable(
      * reports. 1 when they match; from the provider's own figures or the ECB rate otherwise; null until known.
      */
     fxRate: doublePrecision("fx_rate"),
+    /**
+     * A fixed commission on a sale paid in another currency: what the customer was charged, in their own
+     * currency. The row itself is in the program's currency, so refunds take their ratio from this.
+     */
+    chargedAmount: integer("charged_amount"),
     status: text("status").$type<CommissionStatus>().notNull().default("pending"),
     holdUntil: ts("hold_until"),
     heldReason: text("held_reason"),

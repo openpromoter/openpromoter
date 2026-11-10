@@ -1,0 +1,1 @@
+ALTER TABLE "commission" ADD COLUMN "charged_amount" integer;
