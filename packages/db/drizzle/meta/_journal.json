@@ -134,6 +134,13 @@
       "when": 1794220107325,
       "tag": "0018_admin_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794305296555,
+      "tag": "0019_commission_fx_rate",
+      "breakpoints": true
     }
   ]
 }

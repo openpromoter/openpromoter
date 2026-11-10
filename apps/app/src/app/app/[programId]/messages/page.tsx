@@ -1,10 +1,11 @@
 import { commission, message, partner } from "@openpromoter/db";
 import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import type { Metadata } from "next";
-import { formatNumber } from "@/lib/money";
+import { formatMoney, formatNumber } from "@/lib/money";
 import { programCtx } from "@/server/context";
 import { db } from "@/server/db";
-import { balanceAcross, balances, moneyAcross } from "@/server/ledger";
+import { baseSale } from "@/server/fx";
+import { balanceAcross, balances } from "@/server/ledger";
 import { codeUrl } from "@/server/ref-link";
 import { MessagesView } from "./view";
 
@@ -85,22 +86,15 @@ export default async function MessagesPage({
 
   let context = null;
   if (sel) {
-    const [bal, [rev], revenue] = await Promise.all([
+    const [bal, [rev]] = await Promise.all([
       balances(programId, [sel.id]),
       db()
         .select({
+          revenue: sql<number>`coalesce(sum(${baseSale}),0)::bigint`,
           customers: sql<number>`(count(distinct ${commission.referralId}) filter (where ${commission.kind} <> 'override'))::int`,
         })
         .from(commission)
         .where(eq(commission.partnerId, sel.id)),
-      db()
-        .select({
-          currency: commission.currency,
-          n: sql<number>`coalesce(sum(${commission.saleAmount}),0)::float8`,
-        })
-        .from(commission)
-        .where(eq(commission.partnerId, sel.id))
-        .groupBy(commission.currency),
     ]);
     const m = (pick: (b: (typeof bal)[number]) => number) => balanceAcross(bal, prog.currency, pick);
     context = {
@@ -118,7 +112,7 @@ export default async function MessagesPage({
         ...(bal.some((b) => b.held !== 0) ? [{ label: "Held", value: m((b) => b.held) }] : []),
         { label: "Paid", value: m((b) => b.paid) },
       ],
-      revenue: moneyAcross(revenue, prog.currency, { whole: true }),
+      revenue: formatMoney(Number(rev?.revenue ?? 0), prog.currency, { whole: true }),
       customers: formatNumber(rev?.customers ?? 0),
     };
   }

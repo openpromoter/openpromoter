@@ -4,6 +4,7 @@ import {
   type BillingEvent,
   type Json,
   type ParsedWebhook,
+  scaled,
   strRecord,
   toDate,
   WebhookSignatureError,
@@ -59,6 +60,13 @@ export function normalizePaddle(body: Json, livemode = true): ParsedWebhook {
           subscriptionId: d.subscription_id ?? null,
           amount,
           currency: String(d.currency_code ?? "usd").toLowerCase(),
+          // payout_totals is the sale in the seller's payout currency (set once the transaction is completed)
+          base: scaled(
+            amount,
+            totals.subtotal,
+            d.details?.payout_totals?.subtotal,
+            d.details?.payout_totals?.currency_code,
+          ),
           interval: price.billing_cycle?.interval ?? null,
           intervalCount: price.billing_cycle?.frequency ?? 1,
           paidAt: toDate(d.billed_at ?? d.updated_at),

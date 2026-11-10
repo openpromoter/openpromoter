@@ -41,6 +41,7 @@ import { db } from "@/server/db";
 import { sendNotice } from "@/server/email";
 import { env, isHosted } from "@/server/env";
 import { EVENT_TYPES } from "@/server/events";
+import { rebaseProgram } from "@/server/fx";
 import { enqueue } from "@/server/jobs";
 import { createProgramFromUrl } from "@/server/setup";
 import { connectStripeKey, importStripe, setWebhookSecret } from "@/server/stripe-service";
@@ -126,6 +127,7 @@ export async function updateProgramAction(programId: string, input: Record<strin
         terms: v.terms ?? null,
       })
       .where(eq(program.id, programId));
+    await rebaseProgram(programId, ctx.program.currency, cur);
     await audit(ctx.program.workspaceId, ctx.actor, "program.update", { type: "program", id: programId });
     rv(programId);
     return true;

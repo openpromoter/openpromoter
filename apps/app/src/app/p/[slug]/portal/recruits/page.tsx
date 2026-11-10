@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/page";
 import { formatMoney } from "@/lib/money";
 import { partnerCtx } from "@/server/context";
 import { db } from "@/server/db";
+import { baseAmount } from "@/server/fx";
 import { programUrl } from "@/server/ref-link";
 
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
@@ -30,7 +31,7 @@ export default async function PortalRecruits({ params }: { params: Promise<{ slu
       .select({
         subId: parent.partnerId,
         // net of refund adjustments booked against each override (refund:<override id>:<key>)
-        amount: sql<number>`coalesce(sum(${commission.amount} + (select coalesce(sum(a.amount), 0) from ${commission} a where a.program_id = ${commission.programId} and a.source_key like 'refund:' || ${commission.id} || ':%')), 0)::int`,
+        amount: sql<number>`coalesce(sum(${baseAmount} + (select coalesce(sum(round(a.amount * coalesce(a.fx_rate, 1))), 0) from ${commission} a where a.program_id = ${commission.programId} and a.source_key like 'refund:' || ${commission.id} || ':%')), 0)::int`,
       })
       .from(commission)
       .innerJoin(parent, eq(parent.id, commission.parentId))

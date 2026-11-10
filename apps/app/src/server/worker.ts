@@ -23,6 +23,7 @@ import { sendNotice, sendReport } from "./email";
 import { env } from "./env";
 import { deliver, emitEvent } from "./events";
 import { enqueueProgramRescore, rescorePartner } from "./fraud-run";
+import { refreshRates } from "./fx";
 import { pruneParked } from "./ingest";
 import { defineJob, enqueue, pruneJobs, runDueJobs } from "./jobs";
 import { matureCommissions } from "./ledger";
@@ -307,6 +308,8 @@ const SCHEDULE: { key: string; every: number; run: () => Promise<unknown> }[] = 
     },
   },
   { key: "mature", every: 15 * 60_000, run: () => matureCommissions() },
+  // ECB reference rates for the founder's reports (sales paid in another currency); weekdays ~16:00 CET
+  { key: "fx.refresh", every: 6 * 3_600_000, run: () => refreshRates() },
   { key: "payouts.reconcile", every: 10 * 60_000, run: () => reconcilePayouts() },
   {
     key: "housekeeping",

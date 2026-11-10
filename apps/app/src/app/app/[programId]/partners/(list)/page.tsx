@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/page";
 import { like, listParams, statusIs } from "@/lib/list";
 import { programCtx } from "@/server/context";
 import { db } from "@/server/db";
+import { baseAmount, baseSale } from "@/server/fx";
 import { InviteButton, PartnersTable } from "../partners-table";
 
 export const metadata: Metadata = { title: "Partners" };
@@ -29,8 +30,8 @@ export default async function PartnersPage({
       or(ilike(partner.name, like(lp.q)), ilike(partner.email, like(lp.q)), ilike(partner.code, like(lp.q)))!,
     );
 
-  const revenue = sql<number>`coalesce((select sum(${commission.saleAmount}) from ${commission} where ${commission.partnerId} = ${sql.raw('"partner"."id"')}),0)::bigint`;
-  const earned = sql<number>`coalesce((select sum(${commission.amount}) from ${commission} where ${commission.partnerId} = ${sql.raw('"partner"."id"')} and ${commission.status} <> 'reversed'),0)::bigint`;
+  const revenue = sql<number>`coalesce((select sum(${baseSale}) from ${commission} where ${commission.partnerId} = ${sql.raw('"partner"."id"')}),0)::bigint`;
+  const earned = sql<number>`coalesce((select sum(${baseAmount}) from ${commission} where ${commission.partnerId} = ${sql.raw('"partner"."id"')} and ${commission.status} <> 'reversed'),0)::bigint`;
   const customers = sql<number>`(select count(*) from ${referral} where ${referral.partnerId} = ${sql.raw('"partner"."id"')} and ${referral.convertedAt} is not null)::int`;
   const sortCol =
     { revenue, earned, customers, name: partner.name, createdAt: partner.createdAt, risk: partner.riskScore }[

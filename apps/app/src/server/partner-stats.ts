@@ -1,13 +1,14 @@
 import { commission } from "@openpromoter/db";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "./db";
+import { baseAmount } from "./fx";
 
 export async function timeseriesForPartner(partnerId: string, days: number) {
   const from = new Date(Date.now() - days * 86_400_000);
   const rows = await db()
     .select({
       d: sql<string>`to_char(date_trunc('day', ${commission.createdAt}), 'YYYY-MM-DD')`,
-      n: sql<number>`coalesce(sum(${commission.amount}),0)::int`,
+      n: sql<number>`coalesce(sum(${baseAmount}),0)::int`,
     })
     .from(commission)
     .where(

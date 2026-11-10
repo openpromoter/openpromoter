@@ -35,6 +35,8 @@ export type BillingEvent =
       /** paid amount excluding tax, minor units */
       amount: number;
       currency: string;
+      /** The same sale in the merchant's own currency, when the provider reports it (Paddle, Lemon Squeezy). */
+      base?: { currency: string; amount: number } | null;
       interval: string | null;
       intervalCount: number;
       paidAt: Date;
@@ -64,6 +66,8 @@ export type BillingEvent =
       customerId: string;
       status: "trialing" | "active" | "canceled" | "past_due" | "other";
       mrr: number;
+      /** The subscription's currency, when it carries an MRR. */
+      currency?: string | null;
       canceledAt: Date | null;
     };
 
@@ -90,6 +94,15 @@ export const toDate = (v: unknown): Date => {
   if (typeof v === "string") return new Date(v);
   return new Date();
 };
+
+/** amount × (merchant-currency figure / same figure in the sale currency), or null when it is missing. */
+export function scaled(amount: number, sale: unknown, merchant: unknown, currency: unknown) {
+  const s = Number(sale);
+  const m = Number(merchant);
+  return s > 0 && m > 0 && typeof currency === "string" && currency
+    ? { currency: currency.toLowerCase(), amount: Math.round((amount * m) / s) }
+    : null;
+}
 
 export const strRecord = (v: unknown): Record<string, string> => {
   const out: Record<string, string> = {};

@@ -264,6 +264,7 @@ export async function createManualCommission(
       sourceKey: input.sourceKey ?? `manual:${createId("com")}`,
       amount: input.amount,
       currency: prog.currency,
+      fxRate: 1,
       status: "approved",
       description: input.description,
     })

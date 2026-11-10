@@ -8,19 +8,21 @@ import { stripeClient } from "./billing/stripe";
 import { db } from "./db";
 import { sendNotice } from "./email";
 import { env, isHosted } from "./env";
+import { baseSale, ecbRates, sumIn } from "./fx";
 import { type BillingRegion, gstOn, gstRates, regionOf, sameRates } from "./gst";
 
 export async function monthlyUsage(workspaceId: string) {
   const start = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
-  const [row] = await db()
-    .select({ revenue: sql<number>`coalesce(sum(${commission.saleAmount}),0)::bigint` })
+  // plan limits are in USD: each program's sales in its own currency, then into USD
+  const rows = await db()
+    .select({ currency: program.currency, n: sql<number>`coalesce(sum(${baseSale}),0)::float8` })
     .from(commission)
     .innerJoin(program, eq(program.id, commission.programId))
-    // ponytail: sums every currency's minor units as if USD cents; convert first if non-USD programs grow
     .where(
       and(eq(program.workspaceId, workspaceId), eq(commission.test, false), gte(commission.createdAt, start)),
-    );
-  return Number(row?.revenue ?? 0);
+    )
+    .groupBy(program.currency);
+  return sumIn(rows, "usd", await ecbRates());
 }
 
 /** Self-host has no limits. Cloud warns over the limit but never stops tracking or payouts. */

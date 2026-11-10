@@ -28,6 +28,7 @@ import { programCtx } from "@/server/context";
 import { db } from "@/server/db";
 import { env } from "@/server/env";
 import { SIGNAL_LABELS } from "@/server/fraud";
+import { baseSale } from "@/server/fx";
 import { balanceAcross, balances, splitAcross } from "@/server/ledger";
 import { domainOrigin } from "@/server/ref-link";
 import { trafficReport } from "@/server/traffic";
@@ -109,22 +110,14 @@ export default async function PartnerPage({
     prog.currency,
     { whole: true },
   );
-  const [[rev], revenue] = await Promise.all([
-    db()
-      .select({
-        customers: sql<number>`(count(distinct ${commission.referralId}) filter (where ${commission.kind} <> 'override'))::int`,
-      })
-      .from(commission)
-      .where(eq(commission.partnerId, partnerId)),
-    db()
-      .select({
-        currency: commission.currency,
-        n: sql<number>`coalesce(sum(${commission.saleAmount}),0)::float8`,
-      })
-      .from(commission)
-      .where(eq(commission.partnerId, partnerId))
-      .groupBy(commission.currency),
-  ]);
+  // revenue in the program's currency (sales paid in other currencies converted)
+  const [rev] = await db()
+    .select({
+      revenue: sql<number>`coalesce(sum(${baseSale}),0)::bigint`,
+      customers: sql<number>`(count(distinct ${commission.referralId}) filter (where ${commission.kind} <> 'override'))::int`,
+    })
+    .from(commission)
+    .where(eq(commission.partnerId, partnerId));
 
   return (
     <>
@@ -171,8 +164,7 @@ export default async function PartnerPage({
         <Stat
           icon={ChartLine}
           label="Revenue"
-          value={splitAcross(revenue, prog.currency, { whole: true }).main}
-          sub={splitAcross(revenue, prog.currency, { whole: true }).rest || undefined}
+          value={formatMoney(Number(rev?.revenue ?? 0), prog.currency, { whole: true })}
         />
         <Stat
           icon={Wallet}

@@ -26,6 +26,7 @@ import {
 } from "./commission";
 import { type AppDb, db, type Tx } from "./db";
 import { scoreReferral, selfRecruited } from "./fraud";
+import { ecbRates, minorRate, saleRate } from "./fx";
 import { enqueue } from "./jobs";
 
 type Program = typeof program.$inferSelect;
@@ -113,11 +114,14 @@ async function handle(
             : ev.status === "active"
               ? "active"
               : r.status;
+      // MRR is kept in the program's currency, like the revenue it sits next to
+      const prog = programs.find((p) => p.id === r.programId);
+      const rate = ev.currency && prog ? minorRate(ev.currency, prog.currency, await ecbRates(tx)) : 1;
       await tx
         .update(referral)
         .set({
           status,
-          mrr: ev.status === "canceled" ? 0 : ev.mrr || r.mrr,
+          mrr: ev.status === "canceled" ? 0 : ev.mrr ? Math.round(ev.mrr * (rate ?? 1)) : r.mrr,
           canceledAt: ev.canceledAt,
           externalSubscriptionId: ev.subscriptionId,
         })
@@ -340,6 +344,7 @@ export async function afterNewReferral(
         sourceKey: `lead:${r.id}`,
         amount: prog.leadCommission,
         currency: prog.currency,
+        fxRate: 1,
         test: r.test,
         status: risky || opts.browser ? "held" : "pending",
         heldReason: risky
@@ -447,6 +452,10 @@ async function handlePayment(
     .from(campaign)
     .where(and(eq(campaign.programId, prog.id), eq(campaign.status, "active")));
 
+  // the sale in the program's currency, for revenue, MRR and the founder's reports
+  // ponytail: with no rate known (offline self-host, rare currency) the amount counts 1:1, as before
+  const rate = saleRate(ev, prog.currency, await ecbRates(tx));
+  const inProgram = Math.round(ev.amount * (rate ?? 1));
   const plan = resolvePlan(prog, group, p.commissionOverride, productRateFor(prog.productRates, ev));
   // a fixed commission is an amount in the program's currency, whatever the customer paid in
   const fixedOther = plan.type !== "percent" && ev.currency.toLowerCase() !== prog.currency.toLowerCase();
@@ -467,11 +476,11 @@ async function handlePayment(
   await tx
     .update(referral)
     .set({
-      revenue: sql`${referral.revenue} + ${ev.amount}`,
+      revenue: sql`${referral.revenue} + ${inProgram}`,
       paidInvoices: sql`${referral.paidInvoices} + 1`,
       status: "active",
       convertedAt: r.convertedAt ?? ev.paidAt,
-      mrr: ev.interval ? toMrr(ev.amount, ev.interval, ev.intervalCount) : r.mrr,
+      mrr: ev.interval ? toMrr(inProgram, ev.interval, ev.intervalCount) : r.mrr,
       externalSubscriptionId: r.externalSubscriptionId ?? ev.subscriptionId,
     })
     .where(eq(referral.id, r.id));
@@ -499,6 +508,7 @@ async function handlePayment(
       saleAmount: fixedOther ? 0 : ev.amount,
       amount: result.amount,
       currency: fixedOther ? prog.currency : ev.currency,
+      fxRate: fixedOther ? 1 : rate,
       status: hold ? "held" : "pending",
       heldReason: hold,
       holdUntil: new Date(ev.paidAt.getTime() + prog.holdDays * DAY),
@@ -657,6 +667,7 @@ export async function bookOverride(
       saleAmount: 0,
       amount,
       currency: sale.currency,
+      fxRate: sale.fxRate,
       status: hold ? "held" : "pending",
       heldReason: hold,
       holdUntil: sale.holdUntil,
@@ -844,7 +855,7 @@ export async function reverseFor(
     await tx
       .update(referral)
       .set({
-        revenue: sql`greatest(0, ${referral.revenue} - ${Math.max(0, saleDelta)})`,
+        revenue: sql`greatest(0, ${referral.revenue} - ${Math.round(Math.max(0, saleDelta) * (c.fxRate ?? 1))})`,
         ...(refunded >= charged ? { status: "refunded" as const } : {}),
       })
       .where(eq(referral.id, c.referralId ?? ""));
@@ -876,6 +887,7 @@ export async function reverseFor(
       saleAmount: -Math.max(0, saleDelta),
       amount: -delta,
       currency: c.currency,
+      fxRate: c.fxRate,
       test: c.test,
       // unpaid: nets out inside the same payout; paid: claws back from the next payout
       status: unpaid ? c.status : "approved",

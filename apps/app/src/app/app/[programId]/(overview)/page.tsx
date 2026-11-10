@@ -32,6 +32,7 @@ import { formatMoney, formatNumber, formatPercent } from "@/lib/money";
 import { delta, overview, parseRange, previous, timeseries, topPartners } from "@/server/analytics";
 import { programCtx } from "@/server/context";
 import { db } from "@/server/db";
+import { baseAmount } from "@/server/fx";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -126,7 +127,7 @@ export default async function Dashboard({
       .select({
         status: commission.status,
         n: sql<number>`count(*)::int`,
-        total: sql<number>`coalesce(sum(${commission.amount}),0)::bigint`,
+        total: sql<number>`coalesce(sum(${baseAmount}),0)::bigint`,
       })
       .from(commission)
       .where(and(eq(commission.programId, programId), sql`${commission.amount} <> 0`))

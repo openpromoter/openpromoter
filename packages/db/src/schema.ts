@@ -3,6 +3,7 @@ import {
   boolean,
   customType,
   date,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -696,6 +697,11 @@ export const commission = pgTable(
     saleAmount: integer("sale_amount").notNull().default(0),
     amount: integer("amount").notNull(),
     currency: text("currency").notNull(),
+    /**
+     * Minor units of this row's currency × fxRate = minor units of the program's currency, for the founder's
+     * reports. 1 when they match; from the provider's own figures or the ECB rate otherwise; null until known.
+     */
+    fxRate: doublePrecision("fx_rate"),
     status: text("status").$type<CommissionStatus>().notNull().default("pending"),
     holdUntil: ts("hold_until"),
     heldReason: text("held_reason"),
@@ -719,6 +725,8 @@ export const commission = pgTable(
     index("commission_pending_hold").on(t.holdUntil).where(sql`status = 'pending'`),
     index("commission_payout").on(t.payoutId).where(sql`payout_id is not null`),
     index("commission_parent").on(t.parentId).where(sql`parent_id is not null`),
+    // rows still waiting for an exchange rate (the worker fills them)
+    index("commission_fx_unknown").on(t.createdAt).where(sql`fx_rate is null`),
   ],
 );
 

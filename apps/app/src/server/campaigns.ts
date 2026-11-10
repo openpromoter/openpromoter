@@ -17,6 +17,7 @@ import { aiJson } from "./ai/provider";
 import { type Actor, audit } from "./audit";
 import { isCampaignLive } from "./commission";
 import { db } from "./db";
+import { baseSale } from "./fx";
 
 export interface CampaignDraft {
   name: string;
@@ -279,6 +280,7 @@ async function grant(
       sourceKey: key,
       amount,
       currency: prog.currency,
+      fxRate: 1,
       status: held ? "held" : "pending",
       heldReason: held
         ? "Signup reported by the browser script. Approve it once you know the signup is real."
@@ -343,7 +345,7 @@ export async function evaluateBounties(programId: string, partnerId: string, tri
     }
     if (r.trigger === "revenue_milestone" && r.milestone) {
       const [row] = await db()
-        .select({ rev: sql<number>`coalesce(sum(${commission.saleAmount}),0)::int` })
+        .select({ rev: sql<number>`coalesce(sum(${baseSale}),0)::int` })
         .from(commission)
         .where(and(eq(commission.partnerId, partnerId), gte(commission.createdAt, c.startsAt)));
       if ((row?.rev ?? 0) >= r.milestone) {
@@ -437,7 +439,7 @@ export async function contestStandings(c: typeof campaign.$inferSelect, limit = 
     .select({
       partnerId: commission.partnerId,
       name: partner.name,
-      value: sql<number>`coalesce(sum(${commission.saleAmount}),0)::int`,
+      value: sql<number>`coalesce(sum(${baseSale}),0)::int`,
     })
     .from(commission)
     .innerJoin(partner, eq(partner.id, commission.partnerId))
@@ -450,7 +452,7 @@ export async function contestStandings(c: typeof campaign.$inferSelect, limit = 
       ),
     )
     .groupBy(commission.partnerId, partner.name)
-    .orderBy(desc(sql`sum(${commission.saleAmount})`))
+    .orderBy(desc(sql`sum(${baseSale})`))
     .limit(limit);
 }
 
@@ -484,7 +486,7 @@ export async function evaluateTiers(programId: string, partnerId: string) {
   if (!p) return null;
   const groups = await db().select().from(partnerGroup).where(eq(partnerGroup.programId, programId));
   const [row] = await db()
-    .select({ rev: sql<number>`coalesce(sum(${commission.saleAmount}),0)::int` })
+    .select({ rev: sql<number>`coalesce(sum(${baseSale}),0)::int` })
     .from(commission)
     .where(eq(commission.partnerId, partnerId));
   const rev = row?.rev ?? 0;

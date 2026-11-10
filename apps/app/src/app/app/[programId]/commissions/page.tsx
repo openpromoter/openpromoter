@@ -18,6 +18,7 @@ import { like, listParams, statusIs } from "@/lib/list";
 import { formatMoney } from "@/lib/money";
 import { programCtx } from "@/server/context";
 import { db } from "@/server/db";
+import { baseAmount } from "@/server/fx";
 import { CommissionsTable, ManualCommission } from "./table";
 
 export const metadata: Metadata = { title: "Commissions" };
@@ -88,7 +89,7 @@ export default async function CommissionsPage({
       .select({
         s: commission.status,
         n: sql<number>`count(*)::int`,
-        sum: sql<number>`coalesce(sum(${commission.amount}),0)::bigint`,
+        sum: sql<number>`coalesce(sum(${baseAmount}),0)::bigint`,
       })
       .from(commission)
       .where(

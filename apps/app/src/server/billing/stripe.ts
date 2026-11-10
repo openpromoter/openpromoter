@@ -248,6 +248,7 @@ export async function normalizeStripe(evt: Stripe.Event, lookup: StripeLookup = 
                 price.recurring?.interval ?? price.interval ?? null,
                 price.recurring?.interval_count ?? price.interval_count ?? 1,
               ),
+        currency: String(o.currency ?? price.currency ?? "").toLowerCase() || null,
         canceledAt: o.canceled_at ? toDate(o.canceled_at) : st === "canceled" ? new Date() : null,
       });
       break;

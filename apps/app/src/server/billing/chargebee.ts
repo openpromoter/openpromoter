@@ -121,6 +121,7 @@ export function normalizeChargebee(body: Json, livemode = true): ParsedWebhook {
                 ? "active"
                 : "other",
         mrr: Number(c.subscription.mrr ?? 0),
+        currency: c.subscription.currency_code ? String(c.subscription.currency_code).toLowerCase() : null,
         canceledAt: c.subscription.cancelled_at ? toDate(c.subscription.cancelled_at) : null,
       });
       break;

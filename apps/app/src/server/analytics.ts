@@ -2,6 +2,7 @@ import { click, clickDaily, commission, link, partner, payout, referral } from "
 import { and, desc, eq, gte, inArray, isNull, lt, type SQL, sql } from "drizzle-orm";
 import { cache } from "react";
 import { db, query } from "./db";
+import { baseAmount, baseSale } from "./fx";
 
 export interface Range {
   from: Date;
@@ -96,9 +97,9 @@ const programBalances = cache(async (programId: string) => {
       .where(and(eq(referral.programId, programId), inArray(referral.status, ["active", "trialing"]))),
     db()
       .select({
-        approved: sql<number>`coalesce(sum(${commission.amount}) filter (where ${commission.status}='approved' and ${commission.payoutId} is null),0)::bigint`,
-        pending: sql<number>`coalesce(sum(${commission.amount}) filter (where ${commission.status}='pending'),0)::bigint`,
-        held: sql<number>`coalesce(sum(${commission.amount}) filter (where ${commission.status}='held'),0)::bigint`,
+        approved: sql<number>`coalesce(sum(${baseAmount}) filter (where ${commission.status}='approved' and ${commission.payoutId} is null),0)::bigint`,
+        pending: sql<number>`coalesce(sum(${baseAmount}) filter (where ${commission.status}='pending'),0)::bigint`,
+        held: sql<number>`coalesce(sum(${baseAmount}) filter (where ${commission.status}='held'),0)::bigint`,
       })
       .from(commission)
       // the WHERE only narrows to the statuses the sums read; lets Postgres skip paid/reversed history
@@ -135,8 +136,8 @@ const overviewCached = cache(async (programId: string, fromMs: number, toMs: num
       ),
     db()
       .select({
-        revenue: sql<number>`coalesce(sum(${commission.saleAmount}),0)::bigint`,
-        commissions: sql<number>`coalesce(sum(${commission.amount}) filter (where ${commission.status} <> 'reversed'),0)::bigint`,
+        revenue: sql<number>`coalesce(sum(${baseSale}),0)::bigint`,
+        commissions: sql<number>`coalesce(sum(${baseAmount}) filter (where ${commission.status} <> 'reversed'),0)::bigint`,
       })
       .from(commission)
       .where(
@@ -224,8 +225,8 @@ export async function timeseries(programId: string, r: Range) {
     db()
       .select({
         d: utcDay(commission.createdAt),
-        revenue: sql<number>`coalesce(sum(${commission.saleAmount}),0)::bigint`,
-        commissions: sql<number>`coalesce(sum(${commission.amount}),0)::bigint`,
+        revenue: sql<number>`coalesce(sum(${baseSale}),0)::bigint`,
+        commissions: sql<number>`coalesce(sum(${baseAmount}),0)::bigint`,
       })
       .from(commission)
       .where(
@@ -272,11 +273,10 @@ export async function topPartners(programId: string, r: Range, limit = 10) {
   const c = db()
     .select({
       partnerId: commission.partnerId,
-      revenue: sql<number>`sum(${commission.saleAmount})`.as("revenue"),
-      commissions:
-        sql<number>`sum(${commission.amount}) filter (where ${commission.status} <> 'reversed')`.as(
-          "commissions",
-        ),
+      revenue: sql<number>`sum(${baseSale})`.as("revenue"),
+      commissions: sql<number>`sum(${baseAmount}) filter (where ${commission.status} <> 'reversed')`.as(
+        "commissions",
+      ),
     })
     .from(commission)
     .where(

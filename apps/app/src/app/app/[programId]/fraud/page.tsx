@@ -8,6 +8,7 @@ import { formatMoney } from "@/lib/money";
 import { programCtx } from "@/server/context";
 import { db } from "@/server/db";
 import { SIGNAL_LABELS } from "@/server/fraud";
+import { baseAmount } from "@/server/fx";
 import { FraudView } from "./view";
 
 export const metadata: Metadata = { title: "Fraud" };
@@ -32,7 +33,7 @@ export default async function FraudPage({ params }: { params: Promise<{ programI
     db()
       .select({
         n: sql<number>`count(*)::int`,
-        sum: sql<number>`coalesce(sum(${commission.amount}),0)::bigint`,
+        sum: sql<number>`coalesce(sum(${baseAmount}),0)::bigint`,
       })
       .from(commission)
       .where(and(eq(commission.programId, programId), eq(commission.status, "held"))),

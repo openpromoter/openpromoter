@@ -35,6 +35,7 @@ import { currentUser } from "./context";
 import { db } from "./db";
 import { demoOn } from "./demo";
 import { env } from "./env";
+import { baseAmount, baseSale, ecbRates, sumIn } from "./fx";
 
 /**
  * The owner's read-only view of OpenPromoter Cloud. Only signed-in, email-verified users listed in
@@ -118,14 +119,19 @@ export async function adminWorkspaces(only?: string) {
       .from(partner)
       .where(one(partner.workspaceId))
       .groupBy(partner.workspaceId),
+    // plan usage: live sales in each program's currency, turned into USD below
     db()
       .select({
         ws: commission.workspaceId,
-        n: sql<number>`coalesce(sum(${commission.saleAmount}),0)::bigint`,
+        currency: program.currency,
+        n: sql<number>`coalesce(sum(${baseSale}),0)::float8`,
       })
       .from(commission)
-      .where(and(gte(commission.createdAt, monthStart()), one(commission.workspaceId)))
-      .groupBy(commission.workspaceId),
+      .innerJoin(program, eq(program.id, commission.programId))
+      .where(
+        and(gte(commission.createdAt, monthStart()), eq(commission.test, false), one(commission.workspaceId)),
+      )
+      .groupBy(commission.workspaceId, program.currency),
     db()
       .select({ ws: commission.workspaceId, n: count(), first: min(commission.createdAt) })
       .from(commission)
@@ -143,7 +149,16 @@ export async function adminWorkspaces(only?: string) {
   const act = by(active);
   const prg = by(progs);
   const prt = by(partners);
-  const rev = by(revenue);
+  const rates = await ecbRates();
+  const rev = new Map<string, { n: number }>();
+  for (const ws of new Set(revenue.map((r) => r.ws)))
+    rev.set(ws, {
+      n: sumIn(
+        revenue.filter((r) => r.ws === ws),
+        "usd",
+        rates,
+      ),
+    });
   const sal = by(sales);
   const clk = by(clicks);
   const providers = new Map<string, string[]>();
@@ -311,8 +326,8 @@ export async function adminWorkspace(id: string) {
       source: partner.source,
       country: partner.country,
       joined: partner.createdAt,
-      revenue: sql<number>`coalesce((select sum(${commission.saleAmount}) from ${commission} where ${money} and ${commission.kind} = 'sale'),0)::bigint`,
-      earned: sql<number>`coalesce((select sum(${commission.amount}) from ${commission} where ${money}),0)::bigint`,
+      revenue: sql<number>`coalesce((select sum(${baseSale}) from ${commission} where ${money} and ${commission.kind} = 'sale'),0)::bigint`,
+      earned: sql<number>`coalesce((select sum(${baseAmount}) from ${commission} where ${money}),0)::bigint`,
     })
     .from(partner)
     .where(eq(partner.workspaceId, id))
