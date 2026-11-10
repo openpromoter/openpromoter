@@ -13,21 +13,25 @@ playwright-report
 .pglite
 .astro
 
-# Owner's private notes. They stay on disk so CLAUDE.md, scripts and design checks keep working,
-# but they never go to the public repo.
+# local working files
 research/
 launch/
 OWNER-STEPS.md
 BUILD-LOG.md
+STEPS_TO_DO_BEFORE_LIVE.md
 .claude/
+/CLAUDE.md
+apps/app/AGENTS.md
 /*.png
 
 # graphify code graph (rebuild with: graphify update .)
 graphify-out/
 
-# Launch checklist with account names and IDs (private)
-STEPS_TO_DO_BEFORE_LIVE.md
-
-# local agent notes
-/CLAUDE.md
-apps/app/AGENTS.md
+# e2e/screens.spec.ts writes every screen here; only the README's screenshots are kept in git
+docs/screenshots/*
+!docs/screenshots/app-dashboard-desktop-light.png
+!docs/screenshots/app-dashboard-desktop-dark.png
+!docs/screenshots/app-payouts-desktop-light.png
+!docs/screenshots/app-fraud-desktop-light.png
+!docs/screenshots/app-autopilot-desktop-light.png
+!docs/screenshots/app-partners-desktop-light.png

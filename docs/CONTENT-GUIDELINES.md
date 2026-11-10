@@ -1,8 +1,8 @@
 # Content and design guidelines
 
-Copied from the owner's DevDiggers theme (`CONTENT-SEO.md` and the rules learned there) and adapted
-for OpenPromoter. They apply to every string a person reads: the website, the app, the partner
-portal, emails, docs, the README and alt text. A single violation fails the change.
+The house rules for OpenPromoter copy and design. They apply to every string a person reads: the
+website, the app, the partner portal, emails, docs, the README and alt text. A single violation
+fails the change.
 
 ## 1. Hard rules
 
@@ -18,7 +18,7 @@ portal, emails, docs, the README and alt text. A single violation fails the chan
 
 ## 2. Commas only where the grammar needs one
 
-Four shapes read as AI writing to the owner and are banned:
+Four shapes read as AI writing and are banned:
 
 1. **Stock tails:** ", answered straight.", ", in plain terms.", ", with no extra setup.",
    ", every day of the week.", ", no questions asked." Drop the tail or fold the fact in.
@@ -80,8 +80,7 @@ Competitor facts carry a dated source link. Trademarks are named only in text, n
 
 ## 7. Design rules
 
-These started as the DevDiggers theme rules. The owner relaxed some of them for OpenPromoter
-(November 2026): this is not the DevDiggers site.
+These rules were set for OpenPromoter in November 2026.
 
 - **Flat surfaces, one border level.** No decorative gradients or glows on surfaces. Cards on the page
   get a 1px hairline and no shadow. A tinted tile has no border; the UI inside it keeps its hairline.
@@ -102,12 +101,12 @@ These started as the DevDiggers theme rules. The owner relaxed some of them for 
   and board column headers). Trends use TrendUp and TrendDown.
 - **No serif accent words** in headings. Plain sans headings.
 - **No motion.** No animations or transitions anywhere; nothing waits on an animation.
-  One exception, the owner's call: the Beacon playground on the home page moves. It stays still with
+  One exception: the Beacon playground on the home page moves. It stays still with
   reduced motion and still works.
 - **No focus or active rings on mouse or touch.** Inputs, selects and composers show focus with a
   neutral border change only, never the brand colour. Keyboard users get a ring through
   `:focus-visible` on buttons and links.
-- **Imagery:** real photography (Unsplash License, no credit needed) or AI images the owner has
+- **Imagery:** real photography (Unsplash License, no credit needed) or AI images the maintainers have
   approved. Product illustrations are built in HTML/SVG from the product's own UI.
 - **One accent:** ledger blue #2442F5. Dark mode lightens it to #548DFF at the same hue (OKLCH 263),
   never toward violet, so it stays our blue. The website's primary button stays #2442F5 in both themes.
