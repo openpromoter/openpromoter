@@ -11,7 +11,7 @@ import { formatMoney, formatNumber } from "@/lib/money";
 import { durationLabel, rateLabel } from "@/lib/program-labels";
 import { partnerCtx } from "@/server/context";
 import { db } from "@/server/db";
-import { balances } from "@/server/ledger";
+import { balanceAcross, balances, mainBalance, moneyAcross, otherOwed } from "@/server/ledger";
 import { timeseriesForPartner } from "@/server/partner-stats";
 import { programBase } from "@/server/program-base";
 import { codeUrl, linkUrl } from "@/server/ref-link";
@@ -24,7 +24,6 @@ export default async function PortalHome({ params }: { params: Promise<{ slug: s
   const { program: p, partner: pt } = await partnerCtx(slug);
   const home = await programBase(p);
   const m = (n: number) => formatMoney(n, p.currency);
-  const mw = (n: number) => formatMoney(n, p.currency, { whole: true });
   const [[clicks], [refs], bal, series, live, [firstLink]] = await Promise.all([
     db()
       .select({ n: sql<number>`count(*)::int` })
@@ -51,7 +50,6 @@ export default async function PortalHome({ params }: { params: Promise<{ slug: s
       .orderBy(asc(link.createdAt), asc(link.id))
       .limit(1),
   ]);
-  const b = bal.find((x) => x.currency === p.currency) ?? { approved: 0, pending: 0, held: 0, paid: 0 };
   const host = p.websiteUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
   const short = firstLink ? linkUrl(p, firstLink.key) : codeUrl(p, pt.code);
   const steps = [
@@ -64,8 +62,9 @@ export default async function PortalHome({ params }: { params: Promise<{ slug: s
     { done: (refs?.leads ?? 0) > 0, label: "Get your first referral", href: "/content" },
   ];
   const doneCount = steps.filter((s) => s.done).length;
-  const [month] = await db()
-    .select({ n: sql<number>`coalesce(sum(${commission.amount}),0)::int` })
+  const b = mainBalance(bal, p.currency);
+  const month = await db()
+    .select({ currency: commission.currency, n: sql<number>`coalesce(sum(${commission.amount}),0)::int` })
     .from(commission)
     .where(
       and(
@@ -73,7 +72,8 @@ export default async function PortalHome({ params }: { params: Promise<{ slug: s
         gte(commission.createdAt, new Date(Date.now() - 30 * 86_400_000)),
         sql`${commission.status} <> 'reversed'`,
       ),
-    );
+    )
+    .groupBy(commission.currency);
   const nClicks = clicks?.n ?? 0;
   const conv = nClicks ? (refs?.customers ?? 0) / nClicks : 0;
   return (
@@ -160,9 +160,16 @@ export default async function PortalHome({ params }: { params: Promise<{ slug: s
               className="col-span-2 sm:col-span-1"
               label="Earned"
               icon={Coins}
-              value={mw(month?.n ?? 0)}
+              value={moneyAcross(
+                month.filter((x) => x.currency === p.currency),
+                p.currency,
+                { whole: true },
+              )}
               sub={
                 <>
+                  {month
+                    .filter((x) => x.currency !== p.currency && x.n !== 0)
+                    .map((x) => `+ ${formatMoney(x.n, x.currency, { whole: true })} `)}
                   in the <b>last 30 days</b>
                 </>
               }
@@ -191,7 +198,7 @@ export default async function PortalHome({ params }: { params: Promise<{ slug: s
           <Card>
             <CardHeader
               title="Earnings"
-              description={`Last 30 days · ${m(b.pending)} still inside the refund window`}
+              description={`Last 30 days · ${balanceAcross(bal, p.currency, (b) => b.pending)} still inside the refund window`}
             />
             <CardBody>
               <DotChart
@@ -210,6 +217,7 @@ export default async function PortalHome({ params }: { params: Promise<{ slug: s
           <PayoutSlip
             m={m}
             b={b}
+            also={otherOwed(bal, p.currency)}
             min={p.minPayout}
             schedule={scheduleLabel(p)}
             method={pt.payoutMethod}

@@ -1,11 +1,11 @@
 import { click, link, partner, program, referral } from "@openpromoter/db";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { CopyButton } from "@/components/copy";
-import { formatMoney, formatNumber } from "@/lib/money";
+import { formatNumber } from "@/lib/money";
 import { durationLabel, rateLabel } from "@/lib/program-labels";
 import { db } from "@/server/db";
 import { verifyEmbedToken } from "@/server/embed";
-import { balances } from "@/server/ledger";
+import { balanceAcross, balances } from "@/server/ledger";
 import { codeUrl, linkUrl, programUrl } from "@/server/ref-link";
 import { BrandScope } from "../../p/[slug]/brand";
 
@@ -52,9 +52,7 @@ export default async function EmbedPage({
       .where(eq(referral.partnerId, p.id)),
     balances(prog.id, [p.id]),
   ]);
-  const b = bal.find((x) => x.currency === prog.currency) ?? { approved: 0, pending: 0, paid: 0, held: 0 };
   const url = l ? linkUrl(prog, l.key) : codeUrl(prog, p.code);
-  const m = (n: number) => formatMoney(n, prog.currency);
   return (
     <BrandScope color={prog.brand.color} className="bg-surface p-4 text-[13px]">
       <p className="text-[14px] leading-5 text-fg">
@@ -68,7 +66,7 @@ export default async function EmbedPage({
         {[
           ["Clicks", formatNumber(clicks?.n ?? 0)],
           ["Customers", formatNumber(refs?.n ?? 0)],
-          ["Earned", m(b.approved + b.pending + b.paid)],
+          ["Earned", balanceAcross(bal, prog.currency, (b) => b.approved + b.pending + b.paid)],
         ].map(([k, v]) => (
           <div key={k} className="flex items-baseline">
             <dt className="text-muted">{k}</dt>

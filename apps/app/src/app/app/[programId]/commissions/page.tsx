@@ -106,7 +106,7 @@ export default async function CommissionsPage({
       .limit(500),
   ]);
   const t = (s: string) => totals.find((x) => x.s === s);
-  const m = (n: number) => formatMoney(Number(n), prog.currency);
+  const m = (n: number, c = prog.currency) => formatMoney(Number(n), c);
   const board = sp.view === "board";
   const base = `/app/${programId}/commissions`;
   const COLS = [
@@ -126,6 +126,7 @@ export default async function CommissionsPage({
               kind: commission.kind,
               description: commission.description,
               amount: commission.amount,
+              currency: commission.currency,
               saleAmount: commission.saleAmount,
               heldReason: commission.heldReason,
               holdUntil: commission.holdUntil,
@@ -226,7 +227,7 @@ export default async function CommissionsPage({
                           x.amount < 0 ? "text-danger" : "text-fg",
                         )}
                       >
-                        {x.amount < 0 ? `−${m(-x.amount)}` : m(x.amount)}
+                        {x.amount < 0 ? `−${m(-x.amount, x.currency)}` : m(x.amount, x.currency)}
                       </div>
                       <div className="mt-3 flex items-center gap-1.5 border-t border-border pt-2.5 text-xs text-subtle">
                         <Calendar className="size-3.5" />

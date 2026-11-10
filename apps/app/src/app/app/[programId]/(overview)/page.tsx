@@ -68,7 +68,7 @@ export default async function Dashboard({
   const days = Number(sp.days ?? 30) || 30;
   const range = parseRange({ days: String(days) });
   const base = `/app/${programId}`;
-  const m = (n: number) => formatMoney(n, prog.currency);
+  const m = (n: number, c = prog.currency) => formatMoney(n, c);
   const mw = (n: number) => formatMoney(n, prog.currency, { whole: true });
 
   const cardsFor = (status: (typeof COLUMNS)[number]["status"]) =>
@@ -503,7 +503,7 @@ export default async function Dashboard({
                             c.amount < 0 ? "text-danger" : "text-fg",
                           )}
                         >
-                          {c.amount < 0 ? `−${m(-c.amount)}` : m(c.amount)}
+                          {c.amount < 0 ? `−${m(-c.amount, c.currency)}` : m(c.amount, c.currency)}
                         </span>
                       </Link>
                     </li>

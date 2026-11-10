@@ -7,7 +7,7 @@ import { LedgerLine, PageHeader } from "@/components/page";
 import { formatMoney } from "@/lib/money";
 import { partnerCtx } from "@/server/context";
 import { db } from "@/server/db";
-import { balances } from "@/server/ledger";
+import { balanceAcross, balances, mainBalance, moneyAcross } from "@/server/ledger";
 import { timeseriesForPartner } from "@/server/partner-stats";
 import { programBase } from "@/server/program-base";
 
@@ -38,9 +38,12 @@ export default async function PortalEarnings({
     timeseriesForPartner(pt.id, 60),
     balances(p.id, [pt.id]),
   ]);
-  const b = bal.find((x) => x.currency === p.currency) ?? { approved: 0, pending: 0, held: 0, paid: 0 };
+  // one balance per currency: the program's own first, then any currency a customer paid in
+  const cards = [
+    mainBalance(bal, p.currency),
+    ...bal.filter((x) => x.currency !== p.currency && x.pending + x.approved + x.held + x.paid !== 0),
+  ];
   const m = (n: number, c = p.currency) => (n < 0 ? `−${formatMoney(-n, c)}` : formatMoney(n, c));
-  const total = b.pending + b.approved + b.held + b.paid;
   const hasOlder = rows.length > PER_PAGE;
   const lines = rows.slice(0, PER_PAGE).filter((r) => r.amount !== 0);
   const pageHref = (n: number) => (n > 1 ? `?page=${n}` : "?");
@@ -55,8 +58,13 @@ export default async function PortalEarnings({
         title="Earnings"
         description={
           <>
-            You've earned <b className="font-medium text-fg">{m(total)}</b> with {p.name}, and{" "}
-            <b className="font-medium text-fg">{m(b.paid)}</b> of it is already paid.
+            You've earned{" "}
+            <b className="font-medium text-fg">
+              {balanceAcross(bal, p.currency, (x) => x.pending + x.approved + x.held + x.paid)}
+            </b>{" "}
+            with {p.name}, and{" "}
+            <b className="font-medium text-fg">{balanceAcross(bal, p.currency, (x) => x.paid)}</b> of it is
+            already paid.
           </>
         }
       />
@@ -75,27 +83,35 @@ export default async function PortalEarnings({
             />
           </CardBody>
         </Card>
-        <Card className="flex flex-col">
-          <div className="flex items-center justify-between border-b border-border px-5 py-3">
-            <span className="eyebrow">Balance</span>
-            <span className="eyebrow">{p.currency.toUpperCase()}</span>
-          </div>
-          <div className="flex flex-1 flex-col gap-3 px-5 py-4">
-            <LedgerLine label="Pending" value={m(b.pending)} />
-            <LedgerLine label="Approved" value={m(b.approved)} />
-            <LedgerLine label="On hold" value={m(b.held)} />
-            <LedgerLine label="Paid out" value={m(b.paid)} />
-            <p className="text-xs leading-4 text-subtle">
-              Pending clears after the {p.holdDays}-day refund window and joins the next payout.
-            </p>
-            <div className="mt-auto border-t border-border-strong pt-3">
-              <div className="flex items-baseline justify-between">
-                <span className="text-[13px] font-medium text-fg">Total earned</span>
-                <span className="figure text-[24px] leading-8 text-fg">{m(total)}</span>
+        <div className="flex flex-col gap-4">
+          {cards.map((b, i) => (
+            <Card key={b.currency} className="flex flex-1 flex-col">
+              <div className="flex items-center justify-between border-b border-border px-5 py-3">
+                <span className="eyebrow">Balance</span>
+                <span className="eyebrow">{b.currency.toUpperCase()}</span>
               </div>
-            </div>
-          </div>
-        </Card>
+              <div className="flex flex-1 flex-col gap-3 px-5 py-4">
+                <LedgerLine label="Pending" value={m(b.pending, b.currency)} />
+                <LedgerLine label="Approved" value={m(b.approved, b.currency)} />
+                <LedgerLine label="On hold" value={m(b.held, b.currency)} />
+                <LedgerLine label="Paid out" value={m(b.paid, b.currency)} />
+                {i === 0 ? (
+                  <p className="text-xs leading-4 text-subtle">
+                    Pending clears after the {p.holdDays}-day refund window and joins the next payout.
+                  </p>
+                ) : null}
+                <div className="mt-auto border-t border-border-strong pt-3">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-[13px] font-medium text-fg">Total earned</span>
+                    <span className="figure text-[24px] leading-8 text-fg">
+                      {m(b.pending + b.approved + b.held + b.paid, b.currency)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       </div>
 
       <Card className="mt-4">
@@ -117,7 +133,16 @@ export default async function PortalEarnings({
                 <div className="flex h-9 items-center justify-between border-b border-border bg-surface-2 px-5">
                   <span className="eyebrow">{month}</span>
                   <span className="num font-mono text-[12px] text-muted">
-                    {m(items.reduce((s, r) => s + (r.status === "reversed" ? 0 : r.amount), 0))}
+                    {moneyAcross(
+                      [...new Set(items.map((r) => r.currency))].map((c) => ({
+                        currency: c,
+                        n: items.reduce(
+                          (s, r) => s + (r.status === "reversed" || r.currency !== c ? 0 : r.amount),
+                          0,
+                        ),
+                      })),
+                      p.currency,
+                    )}
                   </span>
                 </div>
                 <ul className="divide-y divide-border">

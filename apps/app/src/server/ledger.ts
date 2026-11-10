@@ -1,6 +1,7 @@
 import { commission, partner, payout, program } from "@openpromoter/db";
 import { and, eq, inArray, isNull, like, lte, or, type SQL, sql } from "drizzle-orm";
 import { createId } from "@/lib/id";
+import { formatMoney } from "@/lib/money";
 import { type Actor, audit } from "./audit";
 import { type AppDb, db, type Tx } from "./db";
 import { reverseFor } from "./ingest";
@@ -300,6 +301,65 @@ export interface Balance {
   held: number;
   paid: number;
 }
+
+const NO_BALANCE = { approved: 0, pending: 0, held: 0, paid: 0 };
+
+/** The balance in the program's currency (zero when there is none). */
+export const mainBalance = (bal: Pick<Balance, "currency" | keyof typeof NO_BALANCE>[], currency: string) =>
+  bal.find((x) => x.currency === currency) ?? { ...NO_BALANCE, currency };
+
+/**
+ * A sale paid in another currency books its commission in that currency, so a partner can hold several.
+ * "$120.00 + €45.00": the program's currency first (even at zero), then each other one that is not zero.
+ */
+export function moneyAcross(
+  rows: { currency: string; n: number }[],
+  main: string,
+  opts: { whole?: boolean } = {},
+): string {
+  const fmt = (n: number, c: string) => (n < 0 ? `−${formatMoney(-n, c, opts)}` : formatMoney(n, c, opts));
+  const other = rows.filter((r) => r.currency !== main && r.n !== 0);
+  const own = rows.find((r) => r.currency === main)?.n ?? 0;
+  return [fmt(own, main), ...other.map((r) => fmt(r.n, r.currency))].join(" + ");
+}
+
+/** For a narrow tile: the program's currency as the figure, the others as "+ €45.00" for the line below. */
+export function splitAcross(
+  rows: { currency: string; n: number }[],
+  main: string,
+  opts: { whole?: boolean } = {},
+) {
+  return {
+    main: moneyAcross(
+      rows.filter((r) => r.currency === main),
+      main,
+      opts,
+    ),
+    rest: rows
+      .filter((r) => r.currency !== main && r.n !== 0)
+      .map((r) => `+ ${formatMoney(r.n, r.currency, opts)}`)
+      .join(" "),
+  };
+}
+
+/** Approved balances in currencies other than the program's, e.g. "€45.00 + £12.00", or undefined. */
+export function otherOwed(bal: Balance[], main: string): string | undefined {
+  const rows = bal.filter((b) => b.currency !== main && b.approved !== 0);
+  return rows.length ? rows.map((b) => formatMoney(b.approved, b.currency)).join(" + ") : undefined;
+}
+
+/** moneyAcross over one figure of each balance row, e.g. (b) => b.approved. */
+export const balanceAcross = (
+  bal: Balance[],
+  main: string,
+  pick: (b: Balance) => number,
+  opts: { whole?: boolean } = {},
+) =>
+  moneyAcross(
+    bal.map((b) => ({ currency: b.currency, n: pick(b) })),
+    main,
+    opts,
+  );
 
 /** Per-partner, per-currency balances. Approved unpaid includes clawbacks (negative rows). */
 export async function balances(programId: string, partnerIds?: string[]): Promise<Balance[]> {

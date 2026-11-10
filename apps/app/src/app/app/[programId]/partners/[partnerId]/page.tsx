@@ -28,7 +28,7 @@ import { programCtx } from "@/server/context";
 import { db } from "@/server/db";
 import { env } from "@/server/env";
 import { SIGNAL_LABELS } from "@/server/fraud";
-import { balances } from "@/server/ledger";
+import { balanceAcross, balances, splitAcross } from "@/server/ledger";
 import { domainOrigin } from "@/server/ref-link";
 import { trafficReport } from "@/server/traffic";
 import { LinksCard, PartnerActions, PartnerSettings, PromoCard } from "./partner-client";
@@ -52,8 +52,7 @@ export default async function PartnerPage({
     from: new Date(now.getTime() - 30 * 86_400_000),
     to: now,
   });
-  const m = (n: number) => formatMoney(n, prog.currency);
-  const mw = (n: number) => formatMoney(n, prog.currency, { whole: true });
+  const m = (n: number, c = prog.currency) => formatMoney(n, c);
   // two-tier: who recruited this partner and how many they recruited
   const [[recruiter], [team]] = await Promise.all([
     p.recruitedBy
@@ -97,14 +96,35 @@ export default async function PartnerPage({
       .where(and(eq(click.partnerId, partnerId), eq(click.isBot, false))),
     balances(programId, [partnerId]),
   ]);
-  const b = bal.find((x) => x.currency === prog.currency) ?? { approved: 0, pending: 0, held: 0, paid: 0 };
-  const [rev] = await db()
-    .select({
-      revenue: sql<number>`coalesce(sum(${commission.saleAmount}),0)::bigint`,
-      customers: sql<number>`(count(distinct ${commission.referralId}) filter (where ${commission.kind} <> 'override'))::int`,
-    })
-    .from(commission)
-    .where(eq(commission.partnerId, partnerId));
+  const across = (pick: (b: (typeof bal)[number]) => number, whole = false) =>
+    balanceAcross(bal, prog.currency, pick, { whole });
+  const held = bal.some((x) => x.held !== 0);
+  const owed = splitAcross(
+    bal.map((x) => ({ currency: x.currency, n: x.approved })),
+    prog.currency,
+    { whole: true },
+  );
+  const paid = splitAcross(
+    bal.map((x) => ({ currency: x.currency, n: x.paid })),
+    prog.currency,
+    { whole: true },
+  );
+  const [[rev], revenue] = await Promise.all([
+    db()
+      .select({
+        customers: sql<number>`(count(distinct ${commission.referralId}) filter (where ${commission.kind} <> 'override'))::int`,
+      })
+      .from(commission)
+      .where(eq(commission.partnerId, partnerId)),
+    db()
+      .select({
+        currency: commission.currency,
+        n: sql<number>`coalesce(sum(${commission.saleAmount}),0)::float8`,
+      })
+      .from(commission)
+      .where(eq(commission.partnerId, partnerId))
+      .groupBy(commission.currency),
+  ]);
 
   return (
     <>
@@ -148,14 +168,27 @@ export default async function PartnerPage({
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         <Stat icon={MousePointerClick} label="Clicks" value={formatNumber(clicks?.n ?? 0)} />
         <Stat icon={UsersRound} label="Customers" value={formatNumber(rev?.customers ?? 0)} />
-        <Stat icon={ChartLine} label="Revenue" value={mw(Number(rev?.revenue ?? 0))} />
+        <Stat
+          icon={ChartLine}
+          label="Revenue"
+          value={splitAcross(revenue, prog.currency, { whole: true }).main}
+          sub={splitAcross(revenue, prog.currency, { whole: true }).rest || undefined}
+        />
         <Stat
           icon={Wallet}
           label="Owed"
-          value={mw(b.approved)}
-          sub={b.held ? `${m(b.pending)} pending · ${m(b.held)} held` : `${m(b.pending)} pending`}
+          value={owed.main}
+          sub={[owed.rest, `${across((x) => x.pending)} pending`, held ? `${across((x) => x.held)} held` : ""]
+            .filter(Boolean)
+            .join(" · ")}
         />
-        <Stat icon={Banknote} label="Paid" value={mw(b.paid)} className="col-span-2 lg:col-span-1" />
+        <Stat
+          icon={Banknote}
+          label="Paid"
+          value={paid.main}
+          sub={paid.rest || undefined}
+          className="col-span-2 lg:col-span-1"
+        />
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
@@ -190,7 +223,7 @@ export default async function PartnerPage({
                       {c.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                     </time>
                     <span className={`num w-24 text-right ${c.amount < 0 ? "text-danger" : "text-fg"}`}>
-                      {c.amount < 0 ? `−${m(-c.amount)}` : m(c.amount)}
+                      {c.amount < 0 ? `−${m(-c.amount, c.currency)}` : m(c.amount, c.currency)}
                     </span>
                   </li>
                 ))}

@@ -17,6 +17,7 @@ export function PayoutSlip({
   min,
   schedule,
   method,
+  also,
   href,
   className,
 }: {
@@ -25,6 +26,8 @@ export function PayoutSlip({
   min: number;
   schedule: string;
   method: string | null;
+  /** owed in other currencies, e.g. "€45.00 + £12.00"; each is paid on its own */
+  also?: string;
   href?: string;
   className?: string;
 }) {
@@ -56,6 +59,11 @@ export function PayoutSlip({
             </>
           )}
         </p>
+        {also ? (
+          <p className="mt-1 text-[13px] leading-5 text-subtle">
+            Also owed in other currencies: <b className="font-medium text-fg">{also}</b>
+          </p>
+        ) : null}
       </div>
       <div className="perforated" aria-hidden />
       <div className="flex flex-col gap-2.5 px-5 pt-3 pb-4">

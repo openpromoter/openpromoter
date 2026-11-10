@@ -1,4 +1,4 @@
-import { type Column, eq, type SQL, sql } from "drizzle-orm";
+import { type Column, eq, type SQL } from "drizzle-orm";
 
 export interface ListParams {
   q: string;
@@ -26,8 +26,7 @@ export function listParams(sp: Record<string, string | string[] | undefined>, pa
 
 export const like = (q: string) => `%${q.replace(/[%_\\]/g, "")}%`;
 
-/** The ?status= filter: an unknown value matches nothing instead of failing as a bad Postgres enum. */
+/** A ?status= or ?kind= filter. The columns are plain text, so an unknown value simply matches nothing. */
 export function statusIs(col: Column, v: string | null): SQL | undefined {
-  if (!v) return undefined;
-  return (col.enumValues ?? []).includes(v) ? eq(col, v) : sql`false`;
+  return v ? eq(col, v) : undefined;
 }

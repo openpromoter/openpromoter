@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/page";
 import { formatMoney } from "@/lib/money";
 import { partnerCtx } from "@/server/context";
 import { db } from "@/server/db";
-import { balances } from "@/server/ledger";
+import { balances, mainBalance, otherOwed } from "@/server/ledger";
 import { programBase } from "@/server/program-base";
 import { refreshPartnerStripe } from "@/server/stripe-service";
 import { scheduleLabel } from "../../../offer";
@@ -48,12 +48,8 @@ export default async function PortalPayouts({
     .orderBy(desc(payout.createdAt));
   const p = ctx.program;
   const m = (n: number) => formatMoney(n, p.currency);
-  const b = (await balances(p.id, [pt.id])).find((x) => x.currency === p.currency) ?? {
-    approved: 0,
-    pending: 0,
-    held: 0,
-    paid: 0,
-  };
+  const bal = await balances(p.id, [pt.id]);
+  const b = mainBalance(bal, p.currency);
   return (
     <>
       <PageHeader
@@ -77,7 +73,14 @@ export default async function PortalPayouts({
           stripeStarted={!!pt.stripeAccountId}
           min={m(p.minPayout)}
         />
-        <PayoutSlip m={m} b={b} min={p.minPayout} schedule={scheduleLabel(p)} method={pt.payoutMethod} />
+        <PayoutSlip
+          m={m}
+          b={b}
+          also={otherOwed(bal, p.currency)}
+          min={p.minPayout}
+          schedule={scheduleLabel(p)}
+          method={pt.payoutMethod}
+        />
       </div>
       <Card className="mt-4">
         <CardHeader title="History" description="Paid payouts come with a self-billed invoice." />

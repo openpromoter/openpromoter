@@ -233,7 +233,10 @@ export async function recordLead(input: LeadInput) {
     const chosen = pickClick(clicks, prog.attributionModel, new Date(), prog.cookieDays);
     if (chosen) ({ partnerId, id: clickId } = chosen);
   }
-  if (!partnerId && input.partnerCode) {
+  // op.js keeps a code only next to its click, so a browser call with a bare code is not a visit:
+  // anyone could post customer emails under their own code and claim those customers' later sales.
+  // A code alone still credits a partner from the server-side API (POST /api/v1/leads, API key).
+  if (!partnerId && input.partnerCode && !input.browser) {
     const [p] = await db()
       .select()
       .from(partner)
