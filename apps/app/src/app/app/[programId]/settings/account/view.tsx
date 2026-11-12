@@ -58,7 +58,12 @@ export function AccountView({
           <Field label="Email" htmlFor="ac-email">
             <Input id="ac-email" defaultValue={email} readOnly />
           </Field>
-          <Button type="submit" loading={loading} className="self-start sm:col-span-2">
+          <Button
+            type="submit"
+            variant="primary"
+            loading={loading}
+            className="justify-self-end sm:col-span-2"
+          >
             Save name
           </Button>
         </form>
@@ -94,7 +99,12 @@ export function AccountView({
                 required
               />
             </Field>
-            <Button type="submit" loading={loading} className="self-start sm:col-span-2">
+            <Button
+              type="submit"
+              variant="primary"
+              loading={loading}
+              className="justify-self-end sm:col-span-2"
+            >
               Set password
             </Button>
           </form>
@@ -140,7 +150,12 @@ export function AccountView({
                 required
               />
             </Field>
-            <Button type="submit" loading={loading} className="self-start sm:col-span-2">
+            <Button
+              type="submit"
+              variant="primary"
+              loading={loading}
+              className="justify-self-end sm:col-span-2"
+            >
               Change password
             </Button>
           </form>
@@ -196,7 +211,8 @@ export function AccountView({
               className="rounded-md border border-border bg-white p-2"
             />
             <p className="text-xs text-muted">
-              Backup codes (store them somewhere safe): <span className="font-mono">{codes.join(" ")}</span>
+              Backup codes (store them somewhere safe):{" "}
+              <span className="font-mono placeholder:font-sans">{codes.join(" ")}</span>
             </p>
             <form
               className="flex gap-2"
@@ -216,7 +232,7 @@ export function AccountView({
                 inputMode="numeric"
                 placeholder="6-digit code"
                 aria-label="Code"
-                className="font-mono"
+                className="font-mono placeholder:font-sans"
                 required
               />
               <Button type="submit" variant="primary">

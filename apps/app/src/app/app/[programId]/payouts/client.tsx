@@ -17,6 +17,13 @@ import {
   retryPayoutAction,
 } from "../actions";
 
+const METHOD_NAME: Record<string, string> = {
+  stripe: "Stripe",
+  paypal: "PayPal",
+  wise: "Wise",
+  manual: "Bank transfer",
+};
+
 export function PrepareButton({ programId, disabled }: { programId: string; disabled: boolean }) {
   const [pending, start] = useTransition();
   const router = useRouter();
@@ -219,7 +226,6 @@ export function ApprovalQueue({
             ) : null}
             <Button
               variant="primary"
-              size="lg"
               disabled={sel.size === 0}
               loading={pending}
               onClick={() => {
@@ -279,8 +285,8 @@ export function PayoutHistory({ programId, rows }: { programId: string; rows: H[
           <StatusBadge status={r.status} />
           <span className="min-w-0 flex-1 truncate text-fg">{r.name}</span>
           <span className="hidden text-xs text-subtle sm:inline">
-            {r.method}
-            {r.externalId ? ` · ${r.externalId}` : ""}
+            {METHOD_NAME[r.method] ?? r.method}
+            {r.externalId ? <span className="font-mono"> · {r.externalId}</span> : null}
           </span>
           <span className="text-xs text-subtle">
             {r.paidAt ? new Date(r.paidAt).toLocaleDateString("en-US", { dateStyle: "medium" }) : "–"}

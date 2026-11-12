@@ -248,12 +248,11 @@ body {
   font-weight: 500;
   color: var(--text-subtle);
 }
-/* Mono stamp for codes, IDs and statement numbers */
+/* Small quiet label: dates, counts, notes. Sans with even digits; a code or ID adds font-mono itself. */
 .stamp {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 16px;
-  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
   color: var(--text-subtle);
 }
 /* Ledger line: label ···· amount */
@@ -264,7 +263,12 @@ body {
   margin: 0 8px;
   align-self: center;
   translate: 0 3px;
-  background-image: radial-gradient(circle, var(--border-strong) 0.8px, transparent 1px);
+  /* from the text colour, so the dots show on dark cards too */
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--text-subtle) 60%, transparent) 0.8px,
+    transparent 1px
+  );
   background-size: 5px 2px;
   background-repeat: repeat-x;
 }

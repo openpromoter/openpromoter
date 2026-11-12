@@ -99,7 +99,7 @@ export function Wizard({
                   ) : null}
                   <span
                     className={cn(
-                      "relative flex size-7 shrink-0 items-center justify-center rounded-full font-mono text-[11px]",
+                      "relative flex size-7 shrink-0 items-center justify-center rounded-full num text-[11px]",
                       state === "done" && "bg-primary text-primary-fg",
                       state === "current" && "bg-surface text-fg ring-1 ring-accent",
                       state === "next" && "border border-border-strong text-subtle",
@@ -143,7 +143,7 @@ export function Wizard({
               <span aria-hidden className="size-1 rounded-full bg-border-strong" />
               <span className="font-medium text-fg">{STEPS[step - 1]![0]}</span>
             </nav>
-            <span className="font-mono text-[12px] text-subtle">Step {nn(step)} of 05</span>
+            <span className="num text-[12px] text-subtle">Step {nn(step)} of 05</span>
           </header>
           <div className="flex gap-1 px-4 pt-4 md:hidden" aria-hidden>
             {STEPS.map(([l], i) => (
@@ -284,7 +284,7 @@ function StepStripe({
           <>Paste the key below. Use a test-mode key first if you want to try things out.</>,
         ].map((t, i) => (
           <li key={i} className="flex gap-4 border-b border-border px-4 py-3 last:border-b-0">
-            <span className="font-mono text-[12px] text-subtle">{nn(i + 1)}</span>
+            <span className="num text-[12px] text-subtle">{nn(i + 1)}</span>
             <span>{t}</span>
           </li>
         ))}
@@ -317,7 +317,7 @@ function StepStripe({
             placeholder="rk_live_... or rk_test_..."
             required={!initial.stripeConnected}
             autoComplete="off"
-            className="h-10 font-mono"
+            className="h-10 font-mono placeholder:font-sans"
           />
         </Field>
         {local ? (
@@ -339,14 +339,14 @@ function StepStripe({
                 name="whsec"
                 placeholder="whsec_..."
                 autoComplete="off"
-                className="h-10 font-mono"
+                className="h-10 font-mono placeholder:font-sans"
               />
             </Field>
           </div>
         ) : (
           <p className="text-xs leading-4 text-subtle">
             We register the webhook endpoint for you at{" "}
-            <span className="font-mono">{initial.webhookUrl}</span>.
+            <span className="font-mono placeholder:font-sans">{initial.webhookUrl}</span>.
           </p>
         )}
         {result ? (
@@ -437,7 +437,7 @@ function StepDesign({ programId, onDone }: { programId: string; onDone: () => vo
               {(Object.keys(LABELS) as (keyof typeof LABELS)[]).map((k, i) => (
                 <li key={k} className="border-b border-border px-5 py-4 last:border-b-0">
                   <div className="flex items-baseline text-[13px]">
-                    <span className="mr-3 w-4 shrink-0 font-mono text-[11px] text-subtle">{nn(i + 1)}</span>
+                    <span className="mr-3 w-4 shrink-0 num text-[11px] text-subtle">{nn(i + 1)}</span>
                     <span className="shrink-0 text-muted">{LABELS[k]}</span>
                     <span className="leader" aria-hidden />
                     <span className="num text-right text-[14px] font-medium text-fg">

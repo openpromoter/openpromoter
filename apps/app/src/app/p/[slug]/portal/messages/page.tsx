@@ -49,7 +49,7 @@ export default async function PortalMessages({
             <span className="flex items-center gap-2 text-[13px] font-medium text-fg">
               <Inbox className="size-4 text-subtle" /> Inbox
             </span>
-            <span className="font-mono text-[12px] text-subtle">{1 + news.length}</span>
+            <span className="num text-[12px] text-subtle">{1 + news.length}</span>
           </div>
           <ul className="flex flex-col">
             <li>
@@ -66,7 +66,9 @@ export default async function PortalMessages({
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="truncate text-[13px] font-medium text-fg">{p.name} team</span>
                     {last ? (
-                      <span className="font-mono text-[11px] text-subtle">{when(last.createdAt)}</span>
+                      <span className="num shrink-0 text-[11px] whitespace-nowrap text-subtle">
+                        {when(last.createdAt)}
+                      </span>
                     ) : null}
                   </span>
                   <span className="mt-0.5 block truncate text-[13px] text-muted">
@@ -113,7 +115,9 @@ export default async function PortalMessages({
                       <span className="truncate text-[13px] font-medium text-fg">
                         {m.subject ?? "Announcement"}
                       </span>
-                      <span className="font-mono text-[11px] text-subtle">{when(m.createdAt)}</span>
+                      <span className="num shrink-0 text-[11px] whitespace-nowrap text-subtle">
+                        {when(m.createdAt)}
+                      </span>
                     </span>
                     <span className="mt-0.5 line-clamp-1 text-[13px] text-muted">{m.body}</span>
                   </span>

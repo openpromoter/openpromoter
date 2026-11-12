@@ -616,7 +616,7 @@ function PartnerPanel({ programId, p }: { programId: string; p: Context }) {
       <section className="rounded-lg bg-surface p-4">
         <h3 className="mb-2 text-xs font-medium text-subtle">Referral link</h3>
         <div className="flex items-center gap-1 rounded-sm bg-surface-2 py-1 pr-1 pl-2.5 dark:bg-surface-3">
-          <span className="stamp min-w-0 flex-1 truncate text-fg" title={p.link}>
+          <span className="stamp min-w-0 flex-1 truncate font-mono text-fg" title={p.link}>
             {p.link.replace(/^https?:\/\//, "")}
           </span>
           <Button variant="ghost" size="icon-sm" onClick={copy} aria-label="Copy referral link">

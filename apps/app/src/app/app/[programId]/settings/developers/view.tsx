@@ -166,7 +166,9 @@ export function DevelopersView({
                   ))}
                 </span>
                 <span className="ml-auto text-xs text-subtle">
-                  {k.lastUsedAt ? `used ${new Date(k.lastUsedAt).toLocaleDateString()}` : "never used"}
+                  {k.lastUsedAt
+                    ? `used ${new Date(k.lastUsedAt).toLocaleDateString("en-US", { dateStyle: "medium" })}`
+                    : "never used"}
                 </span>
                 {canWrite ? (
                   <Button
@@ -313,7 +315,12 @@ export function DevelopersView({
                     {d.responseStatus ? `HTTP ${d.responseStatus}` : (d.lastError ?? "")} · {d.attempts}{" "}
                     attempt{d.attempts === 1 ? "" : "s"}
                   </span>
-                  <time className="text-xs text-subtle">{new Date(d.createdAt).toLocaleString()}</time>
+                  <time className="text-xs text-subtle">
+                    {new Date(d.createdAt).toLocaleString("en-US", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </time>
                   {canWrite && d.status !== "pending" ? (
                     <Button
                       size="icon-sm"
@@ -342,7 +349,7 @@ export function DevelopersView({
             <a className="text-accent-text hover:underline" href="/api/openapi.json">
               {appUrl}/api/openapi.json
             </a>{" "}
-            · Program id: <span className="font-mono">{programId}</span>
+            · Program id: <span className="font-mono placeholder:font-sans">{programId}</span>
           </p>
           <CodeBlock
             label="MCP server (any MCP client: Claude, Cursor, VS Code, Windsurf and more)"

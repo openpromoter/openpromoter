@@ -312,7 +312,7 @@ export function PromoCard({
               placeholder="PARTNER20"
               aria-label="Code"
               required
-              className="font-mono uppercase"
+              className="font-mono uppercase placeholder:font-sans placeholder:normal-case"
             />
             <Button type="submit" loading={pending}>
               Add
@@ -320,9 +320,9 @@ export function PromoCard({
           </div>
           <Input
             name="coupon"
-            placeholder="Stripe coupon id (optional, creates the code in Stripe)"
+            placeholder="Stripe coupon id (optional)"
             aria-label="Stripe coupon id"
-            className="font-mono"
+            className="font-mono placeholder:font-sans"
           />
         </form>
       </CardBody>

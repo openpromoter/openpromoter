@@ -77,7 +77,7 @@ function Setup() {
         {STEPS.map(([t, d, done], i) => (
           <li key={t} className="flex gap-3 py-2.5">
             <span
-              className={`num mt-px flex size-6 shrink-0 items-center justify-center rounded-[6px] text-[12px] font-medium ${done ? "bg-[#2442f5] text-white" : "text-white/70 ring-1 ring-white/20"}`}
+              className={`num flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] ${done ? "bg-[#2442f5] text-white" : "text-white/70 ring-1 ring-white/20"}`}
             >
               {done ? (
                 <svg
@@ -90,7 +90,7 @@ function Setup() {
                   <path d="m3.5 8.5 3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               ) : (
-                i + 1
+                String(i + 1).padStart(2, "0")
               )}
             </span>
             <span className="min-w-0">

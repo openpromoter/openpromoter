@@ -77,18 +77,18 @@ export const ChargebeeMark: Mark = ({ size = 16, mono, ...rest }) => (
   </svg>
 );
 
-/** Provider or payout method id to its mark and brand colour (black-and-white brands use the text colour). */
+/** Provider or payout method id to its mark and colour: the text colour, except Chargebee in its own orange. */
 export const BRANDS: Record<string, { mark: Mark; color: string }> = {
-  stripe: { mark: StripeMark, color: "text-[#635bff]" },
-  paypal: { mark: PayPalMark, color: "text-[#003087] dark:text-[#5b8def]" },
+  stripe: { mark: StripeMark, color: "text-fg" },
+  paypal: { mark: PayPalMark, color: "text-fg" },
   wise: { mark: WiseMark, color: "text-fg" },
   paddle: { mark: PaddleMark, color: "text-fg" },
-  lemonsqueezy: { mark: LemonSqueezyMark, color: "text-[#ffc233]" },
+  lemonsqueezy: { mark: LemonSqueezyMark, color: "text-fg" },
   polar: { mark: PolarMark, color: "text-fg" },
   chargebee: { mark: ChargebeeMark, color: "" },
 };
 
-/** A brand's mark in its colour, or nothing for an unknown id. */
+/** A brand's mark, or nothing for an unknown id. */
 export function BrandIcon({
   brand,
   size = 16,

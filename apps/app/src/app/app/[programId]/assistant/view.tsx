@@ -135,7 +135,7 @@ export function AssistantView({
                               </Link>
                             </Button>
                           ))}
-                          <Badge tone="neutral" className="ml-auto font-mono text-[11px] font-normal">
+                          <Badge tone="neutral" className="ml-auto num text-[11px] font-normal">
                             {x.a.source === "ai" ? "ai" : "report"} · {x.a.tool.replace(/_/g, " ")}
                           </Badge>
                         </div>

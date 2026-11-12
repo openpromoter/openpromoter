@@ -45,6 +45,8 @@ export default async function AdminEmails({
         subject: emailLog.subject,
         status: emailLog.status,
         detail: emailLog.detail,
+        messageId: emailLog.messageId,
+        updatedAt: emailLog.updatedAt,
         at: emailLog.createdAt,
         program: program.name,
         workspaceId: program.workspaceId,
@@ -61,11 +63,11 @@ export default async function AdminEmails({
     <>
       <PageHeader
         title="Emails"
-        description="Every email OpenPromoter sent in the last 30 days and what the mail provider reported. Bodies are never stored."
+        description="Every email OpenPromoter sent in the last 30 days and what the mail provider reported. A copy of each email is kept with its links removed."
         actions={<TestEmailForm />}
       />
       <EmailsTable
-        rows={rows.map((r) => ({ ...r, at: r.at.toISOString() }))}
+        rows={rows.map((r) => ({ ...r, at: r.at.toISOString(), updatedAt: r.updatedAt.toISOString() }))}
         total={total?.n ?? 0}
         page={lp.page}
         pageSize={lp.pageSize}

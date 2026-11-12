@@ -98,11 +98,16 @@ export function TaxForm({
               name="tin"
               autoComplete="off"
               required={f === "w9" && !hasTin}
-              className="font-mono"
+              className="font-mono placeholder:font-sans"
             />
           </Field>
           <Field label="EU VAT ID (optional)" htmlFor="tx-vat">
-            <Input id="tx-vat" name="vatId" defaultValue={vatId} className="font-mono uppercase" />
+            <Input
+              id="tx-vat"
+              name="vatId"
+              defaultValue={vatId}
+              className="font-mono uppercase placeholder:font-sans placeholder:normal-case"
+            />
           </Field>
         </div>
         <label className="flex items-start gap-3 border-t border-border pt-4 text-[13px] leading-5 text-muted">

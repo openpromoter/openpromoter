@@ -235,10 +235,10 @@ export default async function PartnerPage({
               <ul className="divide-y divide-border border-t border-border">
                 {refs.map((r) => (
                   <li key={r.id} className="flex items-center gap-3 px-5 py-2.5 text-[13px]">
-                    <StatusBadge status={r.status} />
                     <span className="min-w-0 flex-1 truncate text-fg">
                       {r.email ?? r.name ?? r.externalCustomerId ?? r.id}
                     </span>
+                    <StatusBadge status={r.status} />
                     <span className="text-xs text-subtle">via {r.via}</span>
                     <span className="num w-24 text-right text-fg">{m(r.revenue)}</span>
                   </li>

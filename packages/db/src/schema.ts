@@ -1093,6 +1093,11 @@ export const emailLog = pgTable(
       .$type<"sent" | "delivered" | "bounced" | "complained" | "failed" | "not_sent">()
       .notNull(),
     detail: text("detail"),
+    /**
+     * A copy of the email for the admin's preview, with every link and token removed (see safePreview
+     * in the app's email.ts). Never the email as sent: nobody can sign in or reset a password from it.
+     */
+    preview: text("preview"),
     createdAt: ts("created_at").notNull().defaultNow(),
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },

@@ -202,7 +202,7 @@ export function AutopilotView({
             ))}
           </fieldset>
           <div className="rounded-sm bg-surface-2 p-3 text-xs text-muted">
-            <Badge tone={ai ? "primary" : "neutral"} icon={Sparkles} className="mb-1.5">
+            <Badge tone={ai ? "primary" : "neutral"} className="mb-1.5">
               {ai ? "AI on" : "Rules only"}
             </Badge>
             <p>

@@ -142,7 +142,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ slug: 
                     key={x.title}
                     className="grid grid-cols-[1fr_auto] gap-x-4 border-t border-border py-4 sm:grid-cols-[132px_1fr_auto]"
                   >
-                    <span className="col-span-2 font-mono text-[12px] leading-6 text-subtle sm:col-span-1">
+                    <span className="col-span-2 num text-[12px] leading-6 text-subtle sm:col-span-1">
                       {x.when}
                     </span>
                     <span>

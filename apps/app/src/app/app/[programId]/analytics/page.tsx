@@ -23,6 +23,16 @@ import { ReportSubscribe } from "./subscribe";
 
 export const metadata: Metadata = { title: "Analytics" };
 
+/** "2026-05" reads as "May 2026", like every other date in the app. */
+const cohortMonth = (c: string) =>
+  /^\d{4}-\d{2}$/.test(c)
+    ? new Date(`${c}-01T00:00:00Z`).toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
+        timeZone: "UTC",
+      })
+    : c;
+
 export default async function AnalyticsPage({
   params,
   searchParams,
@@ -254,13 +264,14 @@ export default async function AnalyticsPage({
               <tbody>
                 {coh.map((c) => (
                   <tr key={c.cohort} className="border-t border-border">
-                    <td className="px-5 py-2 text-fg">{c.cohort}</td>
-                    <td className="num px-3 py-2 text-right">{c.customers}</td>
+                    <td className="px-5 py-2 text-fg">{cohortMonth(c.cohort)}</td>
+                    <td className="num px-3 py-2 text-right">{formatNumber(c.customers)}</td>
                     <td className="num px-3 py-2 text-right">
                       <span
                         className="rounded-xs px-1.5 py-0.5"
                         style={{
-                          background: `color-mix(in srgb, var(--primary) ${Math.round(c.retention * 40)}%, transparent)`,
+                          // the data blue, kept light so the figure stays readable
+                          background: `color-mix(in srgb, var(--accent) ${Math.round(c.retention * 22)}%, transparent)`,
                         }}
                       >
                         {formatPercent(c.retention, 0)}

@@ -83,7 +83,7 @@ export function Invoice({
             <td className="py-3">
               Affiliate marketing services for {prog.name}
               {po.periodStart
-                ? ` (${po.periodStart.toLocaleDateString()} – ${po.periodEnd?.toLocaleDateString()})`
+                ? ` (${po.periodStart.toLocaleDateString("en-US", { dateStyle: "medium" })} – ${po.periodEnd?.toLocaleDateString("en-US", { dateStyle: "medium" })})`
                 : ""}
             </td>
             <td className="num py-3 text-right">{formatMoney(po.amount, po.currency)}</td>

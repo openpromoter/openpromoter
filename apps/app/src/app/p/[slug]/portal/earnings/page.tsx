@@ -13,7 +13,7 @@ import { programBase } from "@/server/program-base";
 
 const PER_PAGE = 50;
 
-const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
+const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
 export default async function PortalEarnings({
   params,
@@ -132,7 +132,7 @@ export default async function PortalEarnings({
               <section key={month}>
                 <div className="flex h-9 items-center justify-between border-b border-border bg-surface-2 px-5">
                   <span className="eyebrow">{month}</span>
-                  <span className="num font-mono text-[12px] text-muted">
+                  <span className="num text-[12px] text-muted">
                     {moneyAcross(
                       [...new Set(items.map((r) => r.currency))].map((c) => ({
                         currency: c,
@@ -148,9 +148,7 @@ export default async function PortalEarnings({
                 <ul className="divide-y divide-border">
                   {items.map((r) => (
                     <li key={r.id} className="flex items-center gap-3 px-5 py-3 text-[13px]">
-                      <time className="w-12 shrink-0 font-mono text-[12px] text-subtle">
-                        {day(r.createdAt)}
-                      </time>
+                      <time className="w-12 shrink-0 num text-[12px] text-subtle">{day(r.createdAt)}</time>
                       <span className="flex min-w-0 flex-1 items-baseline">
                         <span className="min-w-0 truncate text-fg">
                           {r.description ?? r.kind}

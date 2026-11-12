@@ -51,7 +51,27 @@ export function envelope(mail: Mail) {
 
 let transport: ReturnType<typeof nodemailer.createTransport> | null = null;
 
-/** One line in the email log (never the body). A failed write never stops the email itself. */
+/**
+ * The email with everything secret taken out, kept so an admin can see what was sent. Every link target
+ * becomes "#" and any address printed in the text loses its query string and long token-like parts, so
+ * a sign-in, reset or unsubscribe link can never be recovered from the copy.
+ */
+export function safePreview(html: string): string {
+  const redactUrl = (u: string) =>
+    u.replace(/[?#].*$/, "").replace(/\/[A-Za-z0-9_\-.~%]{16,}(?=\/|$)/g, "/…");
+  return (
+    html
+      .replace(/\s(href|action)\s*=\s*("[^"]*"|'[^']*')/gi, ' $1="#"')
+      // every run of text between tags, including text before the first tag and after the last one
+      .replace(
+        /(<[^>]*>)|([^<]+)/g,
+        (_m, tag?: string, text?: string) => tag ?? (text ?? "").replace(/https?:\/\/[^\s<>"']+/g, redactUrl),
+      )
+      .slice(0, 200_000)
+  );
+}
+
+/** One line in the email log with a link-free copy for the preview. A failed write never stops the email itself. */
 async function logEmail(
   mail: Mail,
   status: "sent" | "failed" | "not_sent",
@@ -68,6 +88,7 @@ async function logEmail(
       messageId: messageId ?? null,
       status,
       detail: detail?.slice(0, 500) ?? null,
+      preview: safePreview(mail.html),
     })
     .catch((e) => console.error(`[email] log failed: ${(e as Error).message}`));
 }

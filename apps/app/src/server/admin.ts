@@ -226,7 +226,7 @@ export function attention(w: AdminWorkspace): { tone: "danger" | "warning" | "in
   else if (w.usageShare >= 0.8) out.push({ tone: "info", text: "Near the plan's revenue limit" });
   if (w.aiShare >= 1) out.push({ tone: "info", text: "AI allowance used up" });
   const age = Date.now() - w.createdAt.getTime();
-  if (age > 3 * DAY && !w.steps.tracking) out.push({ tone: "info", text: "Stuck before tracking" });
+  if (age > 3 * DAY && !w.steps.tracking) out.push({ tone: "warning", text: "Stuck before tracking" });
   return out;
 }
 

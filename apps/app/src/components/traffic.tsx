@@ -47,15 +47,18 @@ function Breakdown({
             <span className="w-20 text-right">Customers</span>
           </li>
           {rows.map((r) => (
-            <li key={r.key} className="relative flex items-center py-1.5 text-[13px]">
-              <span
-                aria-hidden
-                className="absolute inset-y-0.5 left-0 rounded-[3px] bg-accent-soft"
-                style={{ width: `${Math.max(2, (r.clicks / max) * 70)}%` }}
-              />
-              <span className="relative min-w-0 flex-1 truncate pl-2 text-fg">{label(r.key)}</span>
-              <span className="num relative w-16 text-right">{formatNumber(r.clicks)}</span>
-              <span className="num relative w-20 text-right text-muted">{formatNumber(r.customers)}</span>
+            <li key={r.key} className="flex items-center text-[13px]">
+              {/* the bar lives in the label column only, so it can never run under the numbers */}
+              <span className="relative min-w-0 flex-1 py-0.5">
+                <span
+                  aria-hidden
+                  className="absolute inset-y-0.5 left-0 rounded-[3px] bg-accent-soft"
+                  style={{ width: `${Math.max(2, (r.clicks / max) * 100)}%` }}
+                />
+                <span className="relative block truncate py-1.5 pl-2 text-fg">{label(r.key)}</span>
+              </span>
+              <span className="num w-16 text-right">{formatNumber(r.clicks)}</span>
+              <span className="num w-20 text-right text-muted">{formatNumber(r.customers)}</span>
             </li>
           ))}
         </ul>

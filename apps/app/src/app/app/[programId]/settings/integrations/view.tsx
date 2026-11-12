@@ -100,7 +100,7 @@ export function IntegrationsView({
                   name="key"
                   placeholder="rk_live_... or rk_test_..."
                   autoComplete="off"
-                  className="font-mono"
+                  className="font-mono placeholder:font-sans"
                   disabled={!canWrite}
                 />
               </Field>
@@ -118,13 +118,13 @@ export function IntegrationsView({
                   name="whsec"
                   placeholder="whsec_..."
                   autoComplete="off"
-                  className="font-mono"
+                  className="font-mono placeholder:font-sans"
                   disabled={!canWrite}
                 />
               </Field>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" loading={pending} disabled={!canWrite}>
+              <Button type="submit" variant="primary" loading={pending} disabled={!canWrite}>
                 {status.stripe ? "Update" : "Connect"}
               </Button>
               {status.stripe ? (
@@ -164,9 +164,17 @@ export function IntegrationsView({
           ) : null}
           {status.stripe?.importedAt ? (
             <p className="text-xs text-muted">
-              Last import {new Date(status.stripe.importedAt).toLocaleString()}. Last event{" "}
+              Last import{" "}
+              {new Date(status.stripe.importedAt).toLocaleString("en-US", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+              . Last event{" "}
               {status.stripe.lastEventAt
-                ? new Date(status.stripe.lastEventAt).toLocaleString()
+                ? new Date(status.stripe.lastEventAt).toLocaleString("en-US", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })
                 : "not received yet"}
               .
             </p>
@@ -216,7 +224,7 @@ export function IntegrationsView({
                 placeholder="Webhook secret"
                 aria-label={`${p} webhook secret`}
                 autoComplete="off"
-                className="font-mono"
+                className="font-mono placeholder:font-sans"
                 disabled={!canWrite}
                 required
               />
@@ -232,7 +240,7 @@ export function IntegrationsView({
                   Sandbox
                 </label>
               )}
-              <Button type="submit" loading={pending} disabled={!canWrite}>
+              <Button type="submit" variant="primary" loading={pending} disabled={!canWrite}>
                 Save
               </Button>
               {disconnect(p)}
@@ -285,7 +293,7 @@ export function IntegrationsView({
               />{" "}
               Sandbox
             </label>
-            <Button type="submit" loading={pending} disabled={!canBilling}>
+            <Button type="submit" variant="primary" loading={pending} disabled={!canBilling}>
               Save
             </Button>
           </form>
@@ -300,7 +308,7 @@ export function IntegrationsView({
         <CardBody>
           <form
             key={`wise:${status.wise?.livemode ?? "none"}`}
-            className="grid gap-3 sm:grid-cols-[1fr_140px_120px_auto_auto]"
+            className="grid gap-3 sm:grid-cols-[1fr_140px_160px_auto_auto]"
             action={(f) =>
               run(() =>
                 connectPayoutProviderAction(programId, "wise", {
@@ -343,7 +351,7 @@ export function IntegrationsView({
               />{" "}
               Sandbox
             </label>
-            <Button type="submit" loading={pending} disabled={!canBilling}>
+            <Button type="submit" variant="primary" loading={pending} disabled={!canBilling}>
               Save
             </Button>
           </form>

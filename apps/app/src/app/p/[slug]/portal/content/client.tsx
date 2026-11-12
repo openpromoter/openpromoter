@@ -7,6 +7,14 @@ import { useAction } from "@/components/use-action";
 import { formatMoney } from "@/lib/money";
 import { submitBountyAction } from "../../portal-actions";
 
+// the same names the founder sees in the Content kit
+const KIND: Record<string, string> = {
+  swipe: "Swipe copy",
+  social: "Social post",
+  email: "Email",
+  comparison: "Comparison",
+};
+
 export function PartnerContent({
   slug,
   assets,
@@ -49,12 +57,7 @@ export function PartnerContent({
               }
             >
               <Field label="Bounty" htmlFor="bn-campaign">
-                <Select
-                  id="bn-campaign"
-                  name="campaign"
-                  defaultValue={focusBounty ?? bounties[0]!.id}
-                  className="h-10"
-                >
+                <Select id="bn-campaign" name="campaign" defaultValue={focusBounty ?? bounties[0]!.id}>
                   {bounties.map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.name} ({formatMoney(b.reward, currency)})
@@ -63,9 +66,9 @@ export function PartnerContent({
                 </Select>
               </Field>
               <Field label="Post URL" htmlFor="bn-url">
-                <Input id="bn-url" name="url" type="url" placeholder="https://" required className="h-10" />
+                <Input id="bn-url" name="url" type="url" placeholder="https://" required />
               </Field>
-              <Button type="submit" variant="primary" size="lg" loading={pending}>
+              <Button type="submit" variant="primary" loading={pending}>
                 Submit post
               </Button>
             </form>
@@ -78,7 +81,7 @@ export function PartnerContent({
           .map((a) => (
             <Card key={a.id} className="flex flex-col">
               <div className="flex items-center justify-between gap-3 px-5 pt-4">
-                <span className="eyebrow">{a.kind.replace(/_/g, " ")}</span>
+                <span className="eyebrow">{KIND[a.kind] ?? a.kind.replace(/_/g, " ")}</span>
                 <CopyButton value={a.body} label="Copy text" />
               </div>
               <h3 className="px-5 pt-1 text-[15px] font-medium tracking-[-0.01em] text-fg">{a.title}</h3>
@@ -97,8 +100,8 @@ export function PartnerContent({
                 <div className="flex h-36 items-center justify-center border-b border-border bg-canvas bg-[radial-gradient(var(--dot)_1px,transparent_1.2px)] bg-[length:8px_8px] p-3 dark:bg-surface-2">
                   <img src={`/api/banner/${a.id}`} alt={a.title} className="max-h-full max-w-full" />
                 </div>
-                <div className="flex items-center justify-between gap-2 px-4 py-2.5 text-[13px]">
-                  <span className="truncate text-fg">{a.title}</span>
+                <div className="flex items-start justify-between gap-2 px-4 py-2.5 text-[13px]">
+                  <span className="min-w-0 text-fg">{a.title}</span>
                   <a
                     href={`/api/banner/${a.id}?download=1`}
                     className="-my-2 inline-flex shrink-0 items-center gap-1 py-2 text-xs font-medium text-accent-text hover:underline"

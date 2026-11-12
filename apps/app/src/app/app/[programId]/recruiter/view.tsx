@@ -273,8 +273,8 @@ export function RecruiterView({
                     key={title}
                     className="flex gap-3 border-border px-5 py-4 not-last:border-b sm:not-last:border-r sm:not-last:border-b-0"
                   >
-                    <span className="num flex size-5 shrink-0 items-center justify-center rounded-[4px] bg-surface-2 text-[11px] font-medium text-muted">
-                      {i + 1}
+                    <span className="num flex size-7 shrink-0 items-center justify-center rounded-full border border-border-strong text-[11px] text-subtle">
+                      {String(i + 1).padStart(2, "0")}
                     </span>
                     <span>
                       <span className="block text-[13px] font-medium text-fg">{title}</span>

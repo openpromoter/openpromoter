@@ -52,7 +52,7 @@ export function ForgotForm({
       footer={
         <Link
           href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}
-          className="font-medium text-fg hover:underline"
+          className="font-medium text-accent-text hover:underline"
         >
           Back to sign in
         </Link>

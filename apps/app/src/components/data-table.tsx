@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Card, Checkbox, cn, EmptyState, Input, Kbd } from "@openpromoter/ui";
+import { Button, Card, Checkbox, cn, EmptyState, Input, Kbd, Skeleton } from "@openpromoter/ui";
 import {
   ArrowDown,
   ArrowUp,
@@ -53,6 +53,7 @@ export function DataTable<T extends { id: string }>({
   tabs,
   bulk,
   rowHref,
+  onRowOpen,
   searchPlaceholder = "Search",
   empty,
   exportHref,
@@ -66,6 +67,8 @@ export function DataTable<T extends { id: string }>({
   tabs?: Tab[];
   bulk?: BulkAction[];
   rowHref?: (row: T) => string;
+  /** Opens the row in place (a sheet over the list) with no page load. The href stays for new tabs. */
+  onRowOpen?: (row: T) => void;
   searchPlaceholder?: string;
   empty: { icon: LucideIcon; title: string; description?: string; action?: React.ReactNode };
   exportHref?: string;
@@ -77,6 +80,12 @@ export function DataTable<T extends { id: string }>({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [q, setQ] = useState(sp.get("q") ?? "");
   const [pending, start] = useTransition();
+  // a plain click opens in place; a modified click keeps the link's own behaviour (new tab)
+  const openInPlace = (r: T) => (e: React.MouseEvent) => {
+    if (!onRowOpen || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    e.preventDefault();
+    onRowOpen(r);
+  };
   const searchRef = useRef<HTMLInputElement>(null);
   const filtered = !!(sp.get("q") || sp.get("status") || sp.get("view"));
 
@@ -302,7 +311,8 @@ export function DataTable<T extends { id: string }>({
                       onClick={(e) => {
                         if (!rowHref || (e.target as HTMLElement).closest("button,a,input,[role=checkbox]"))
                           return;
-                        router.push(rowHref(r));
+                        if (onRowOpen) onRowOpen(r);
+                        else router.push(rowHref(r));
                       }}
                     >
                       {bulk?.length ? (
@@ -324,8 +334,20 @@ export function DataTable<T extends { id: string }>({
                             c.className,
                           )}
                         >
-                          {i === 0 && rowHref ? (
-                            <Link href={rowHref(r)} className="outline-none focus-visible:underline">
+                          {pending ? (
+                            // a tab, search, sort or page change is loading: hold the rows' shape
+                            <Skeleton
+                              className={cn(
+                                "h-3.5",
+                                c.align === "right" ? "ml-auto w-14" : i === 0 ? "w-40" : "w-24",
+                              )}
+                            />
+                          ) : i === 0 && rowHref ? (
+                            <Link
+                              href={rowHref(r)}
+                              onClick={openInPlace(r)}
+                              className="outline-none focus-visible:underline"
+                            >
                               {c.render(r)}
                             </Link>
                           ) : (
@@ -372,7 +394,18 @@ export function DataTable<T extends { id: string }>({
                       </div>
                     ) : null}
                     <div className="min-w-0 flex-1">
-                      {rowHref ? <Link href={rowHref(r)}>{inner}</Link> : inner}
+                      {pending ? (
+                        <div className="flex min-h-16 flex-1 flex-col justify-center gap-2 px-4 py-3">
+                          <Skeleton className="h-3.5 w-40" />
+                          <Skeleton className="h-3 w-56" />
+                        </div>
+                      ) : rowHref ? (
+                        <Link href={rowHref(r)} onClick={openInPlace(r)}>
+                          {inner}
+                        </Link>
+                      ) : (
+                        inner
+                      )}
                     </div>
                   </li>
                 );

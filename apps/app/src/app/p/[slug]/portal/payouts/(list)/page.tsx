@@ -88,7 +88,7 @@ export default async function PortalPayouts({
           <ul className="divide-y divide-border border-t border-border">
             {rows.map((r) => (
               <li key={r.id} className="flex items-center gap-3 px-5 py-3 text-[13px]">
-                <time className="w-24 shrink-0 font-mono text-[12px] text-subtle">
+                <time className="w-24 shrink-0 num text-[12px] text-subtle">
                   {(r.paidAt ?? r.createdAt).toLocaleDateString("en-US", { dateStyle: "medium" })}
                 </time>
                 <span className="flex min-w-0 flex-1 items-baseline">

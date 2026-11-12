@@ -84,7 +84,13 @@ export function PartnersTable({
       mobile: "meta",
       render: (r) => <span className="text-muted">{r.group ?? "–"}</span>,
     },
-    { key: "customers", header: "Customers", align: "right", sortable: true, render: (r) => r.customers },
+    {
+      key: "customers",
+      header: "Customers",
+      align: "right",
+      sortable: true,
+      render: (r) => r.customers.toLocaleString("en-US"),
+    },
     {
       key: "revenue",
       header: "Revenue",

@@ -16,7 +16,7 @@ function Group({ n, title, children }: { n: string; title: string; children: Rea
     <fieldset className="border-t border-border pt-6">
       <legend className="sr-only">{title}</legend>
       <div className="mb-5 flex items-baseline gap-3" aria-hidden>
-        <span className="font-mono text-[12px] text-subtle">{n}</span>
+        <span className="num text-[12px] text-subtle">{n}</span>
         <span className="text-[14px] font-medium text-fg">{title}</span>
       </div>
       <div className="flex flex-col gap-5">{children}</div>

@@ -12,7 +12,7 @@ import { db } from "@/server/db";
 import { baseAmount } from "@/server/fx";
 import { programUrl } from "@/server/ref-link";
 
-const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
 /** Two-tier: the partner's recruit link and the partners who joined through it. */
 export default async function PortalRecruits({ params }: { params: Promise<{ slug: string }> }) {
@@ -82,9 +82,7 @@ export default async function PortalRecruits({ params }: { params: Promise<{ slu
             {subs.map((s) => (
               <li key={s.id} className="flex items-center gap-3 px-5 py-3 text-[13px]">
                 <span className="min-w-0 flex-1 truncate text-fg">{s.name}</span>
-                <time className="hidden font-mono text-[12px] text-subtle sm:block">
-                  Joined {day(s.createdAt)}
-                </time>
+                <time className="hidden num text-[12px] text-subtle sm:block">Joined {day(s.createdAt)}</time>
                 <StatusBadge status={s.status === "approved" ? "active" : s.status} />
                 <span className="num w-24 shrink-0 text-right font-medium text-fg">
                   {formatMoney(bySub.get(s.id) ?? 0, p.currency)}

@@ -1,10 +1,13 @@
 "use server";
 
+import { emailLog } from "@openpromoter/db";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { PRODUCT } from "@/lib/config";
 import { requireAdmin } from "@/server/admin";
 import { safe } from "@/server/context";
+import { db } from "@/server/db";
 import { sendNotice } from "@/server/email";
 
 /**
@@ -26,4 +29,11 @@ export async function sendTestEmailAction(to: string) {
       throw new Error("Not sent: this address can't receive email, or no mail service is set up");
     return true;
   }, "Sent. Its status updates when the mail service reports back.");
+}
+
+/** The link-free copy of one email for the admin's preview. Null for emails sent before copies were kept. */
+export async function emailPreviewAction(id: string): Promise<string | null> {
+  await requireAdmin();
+  const [row] = await db().select({ preview: emailLog.preview }).from(emailLog).where(eq(emailLog.id, id));
+  return row?.preview ?? null;
 }

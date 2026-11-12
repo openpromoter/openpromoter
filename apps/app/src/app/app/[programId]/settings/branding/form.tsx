@@ -92,7 +92,7 @@ export function BrandingForm({
                 id="br-color"
                 value={b.color}
                 onChange={(e) => setB({ ...b, color: e.target.value })}
-                className="font-mono"
+                className="font-mono placeholder:font-sans"
                 disabled={!canWrite}
               />
             </div>
@@ -171,7 +171,7 @@ export function BrandingForm({
             aria-label="Domain"
             disabled={!canWrite}
           />
-          <Button type="submit" loading={pending} disabled={!canWrite}>
+          <Button type="submit" variant="primary" loading={pending} disabled={!canWrite}>
             Save
           </Button>
         </form>
@@ -179,7 +179,7 @@ export function BrandingForm({
           <div className="flex flex-col gap-3 rounded-md border border-border p-4 text-[13px]">
             <div className="grid grid-cols-[80px_1fr] items-center gap-2">
               <span className="text-muted">Type</span>
-              <span className="font-mono">CNAME</span>
+              <span className="font-mono placeholder:font-sans">CNAME</span>
               <span className="text-muted">Name</span>
               <CopyField value={domain} />
               <span className="text-muted">Value</span>

@@ -86,13 +86,8 @@ export function PayoutMethod({
                   onChange={() => setM(x)}
                   className="sr-only"
                 />
-                {/* brand marks keep their own colour, so the tile stays neutral; the card shows the selection */}
-                <span
-                  className={cn(
-                    "flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-surface",
-                    m === x ? "text-fg" : "text-muted",
-                  )}
-                >
+                {/* a plain glyph with no tile; the card shows the selection */}
+                <span className="flex h-5 shrink-0 items-center text-fg">
                   {BRANDS[x] ? <BrandIcon brand={x} size={16} /> : <Bank className="size-4" />}
                 </span>
                 <span className="min-w-0">
@@ -153,9 +148,8 @@ export function PayoutMethod({
               placeholder={`${LABEL[m]} email`}
               aria-label={`${LABEL[m]} email`}
               required
-              className="h-10"
             />
-            <Button type="submit" variant="primary" size="lg" loading={pending}>
+            <Button type="submit" variant="primary" loading={pending}>
               Save {SHORT[m]}
             </Button>
           </form>

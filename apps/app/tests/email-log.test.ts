@@ -26,16 +26,18 @@ const note = (over: Partial<SnsMessage> = {}) =>
   });
 
 describe("email log", () => {
-  it("records every email without its body, even when no transport is set", async () => {
+  it("records every email with a copy that holds no link or token, even when no transport is set", async () => {
     await sendMail({
       to: "Log.Test@Example.test",
       subject: "Reset your password",
-      html: "<b>secret link</b>",
+      html: '<b>Reset it</b> <a href="https://app.x/reset?token=SECRETTOKEN">here</a> or open https://app.x/reset?token=SECRETTOKEN',
     });
     const [row] = await db().select().from(emailLog).where(eq(emailLog.to, "log.test@example.test"));
     expect(row!.subject).toBe("Reset your password");
     expect(row!.status).toBe("not_sent");
-    expect(JSON.stringify(row)).not.toContain("secret link");
+    // the admin preview keeps the words and drops everything a person could sign in with
+    expect(row!.preview).toContain("Reset it");
+    expect(JSON.stringify(row)).not.toContain("SECRETTOKEN");
   });
 
   it("accepts only SNS messages Amazon signed, from an Amazon host", async () => {

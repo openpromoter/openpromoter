@@ -62,7 +62,7 @@ export async function PartnerAuthShell({
                   "Payouts and tax forms in one place",
                 ].map((t, i) => (
                   <li key={t} className="flex gap-3 text-[13px] leading-5 text-muted">
-                    <span className="font-mono text-[12px] text-subtle">0{i + 1}</span>
+                    <span className="num text-[12px] text-subtle">0{i + 1}</span>
                     {t}
                   </li>
                 ))}

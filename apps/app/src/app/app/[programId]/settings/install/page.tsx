@@ -36,13 +36,11 @@ export default async function InstallSettings({ params }: { params: Promise<{ pr
             <div className="flex items-center gap-2">
               <Recheck />
               {p.installVerifiedAt ? (
-                <Badge tone="success" icon={CheckCircle2}>
-                  Script seen {p.installVerifiedAt.toLocaleDateString()}
+                <Badge tone="success">
+                  Script seen {p.installVerifiedAt.toLocaleDateString("en-US", { dateStyle: "medium" })}
                 </Badge>
               ) : (
-                <Badge tone="warning" icon={Circle}>
-                  Not seen yet
-                </Badge>
+                <Badge tone="warning">Not seen yet</Badge>
               )}
             </div>
           }
@@ -69,8 +67,10 @@ export default async function InstallSettings({ params }: { params: Promise<{ pr
             adds the click id to Stripe Payment Links, Pricing Tables and Checkout.
           </p>
           <p>
-            Add data-consent="required" to wait for cookie consent (call openpromoter("consent", true) once
-            the visitor agrees). Add data-storage="none" to never set cookies. Add data-api="/op" with a
+            Add <code className="font-mono text-[12px]">data-consent="required"</code> to wait for cookie
+            consent (call <code className="font-mono text-[12px]">openpromoter("consent", true)</code> once
+            the visitor agrees). Add <code className="font-mono text-[12px]">data-storage="none"</code> to
+            never set cookies. Add <code className="font-mono text-[12px]">data-api="/op"</code> with a
             rewrite on your own domain so ad blockers don't drop clicks.
           </p>
         </CardBody>

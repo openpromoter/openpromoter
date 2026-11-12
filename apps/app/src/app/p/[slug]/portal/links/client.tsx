@@ -71,19 +71,12 @@ export function PartnerLinks({
           }
         >
           <Field label="Destination page" htmlFor="ln-dest">
-            <Input
-              id="ln-dest"
-              name="destination"
-              type="url"
-              defaultValue={website}
-              required
-              className="h-10"
-            />
+            <Input id="ln-dest" name="destination" type="url" defaultValue={website} required />
           </Field>
           <Field label="Sub-ID" htmlFor="ln-sub">
-            <Input id="ln-sub" name="subId" placeholder="youtube" className="h-10 font-mono text-[12.5px]" />
+            <Input id="ln-sub" name="subId" placeholder="youtube" className="font-mono text-[12.5px]" />
           </Field>
-          <Button type="submit" variant="primary" size="lg" loading={pending}>
+          <Button type="submit" variant="primary" loading={pending}>
             <Plus /> Create link
           </Button>
         </form>

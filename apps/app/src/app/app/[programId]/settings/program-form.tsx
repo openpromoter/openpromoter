@@ -232,7 +232,7 @@ export function ProgramForm({
                 id="doubleSidedCoupon"
                 name="doubleSidedCoupon"
                 defaultValue={p.doubleSidedCoupon}
-                className="font-mono"
+                className="font-mono placeholder:font-sans"
               />
             </Field>
           </div>
@@ -263,7 +263,7 @@ export function ProgramForm({
                 id="referralParam"
                 name="referralParam"
                 defaultValue={p.referralParam}
-                className="font-mono"
+                className="font-mono placeholder:font-sans"
               />
             </Field>
           </div>
@@ -330,7 +330,7 @@ export function ProgramForm({
           <Textarea
             name="terms"
             defaultValue={p.terms}
-            className="h-48 font-mono text-[12px]"
+            className="h-48 text-[13px] leading-5"
             aria-label="Program terms"
           />
         </SettingsCard>
@@ -410,7 +410,7 @@ export function TiersCard({
       </Field>
       {canWrite ? (
         <div className="flex gap-1">
-          <Button type="submit" size="md" loading={pending}>
+          <Button type="submit" variant="primary" loading={pending}>
             {isNew ? "Add" : "Save"}
           </Button>
           {!g.isDefault && g.id ? (
@@ -523,7 +523,7 @@ function ProductRateRow({
       </Field>
       {canWrite ? (
         <div className="flex gap-1">
-          <Button type="submit" size="md" loading={pending}>
+          <Button type="submit" variant="primary" loading={pending}>
             {isNew ? "Add" : "Save"}
           </Button>
           <Button
