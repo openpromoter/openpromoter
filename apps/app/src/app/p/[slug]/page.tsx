@@ -25,131 +25,205 @@ export default async function ProgramPage({ params }: { params: Promise<{ slug: 
   const base = await programBase(p);
   const { plan, hosted } = await planStatus(p.workspaceId);
   const host = p.websiteUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
-  const steps = [
+  const money = (cents: number) => formatMoney(cents, p.currency);
+  const percent = p.commissionType === "percent";
+  const sale = 10_000; // the same $100 example the statement uses
+  const earns = percent ? Math.round((sale * p.commissionValue) / 10_000) : p.commissionValue;
+  const instant = p.autoApprove.enabled && p.visibility !== "invite_only";
+  const schedule = scheduleLabel(p).toLowerCase();
+
+  // One sale, start to finish, in this program's own numbers.
+  const sale_steps: { when: string; title: string; text: string; amount?: string; yours?: boolean }[] = [
+    { when: "Day 0", title: "You share", text: "Post your link, add it to a video or print the QR code." },
     {
-      title: "Apply in a minute",
-      text:
-        p.autoApprove.enabled && p.visibility !== "invite_only"
-          ? "Most applications are approved on the spot, and your portal opens straight away."
-          : "The team reviews every application and usually replies within a couple of days.",
+      when: `Within ${p.cookieDays} days`,
+      title: "They buy",
+      text: "The sale is tracked from billing and counts as yours.",
+      amount: percent ? `${money(sale)} sale` : undefined,
     },
     {
-      title: "Share your link",
-      text: `Post it, add it to a video or print the QR code. Anyone who buys within ${p.cookieDays} days of clicking counts as yours.`,
+      when: `${p.holdDays} days later`,
+      title: "It clears",
+      text: "The refund window ends and your commission is approved.",
+      amount: `${money(earns)} yours`,
+      yours: true,
     },
     {
-      title: "Get paid",
-      text: `Commissions clear after a ${p.holdDays}-day refund window and go out ${scheduleLabel(p).toLowerCase()} once you're owed ${formatMoney(p.minPayout, p.currency)}.`,
+      when: scheduleLabel(p),
+      title: "You get paid",
+      text: `Payouts go out ${schedule} once you're owed ${money(p.minPayout)}.`,
     },
   ];
+
+  // What that adds up to. Skipped when the rate changes part-way: one number would mislead.
+  const payments = !percent
+    ? 1
+    : p.commissionDuration === "months"
+      ? p.commissionMonths
+      : p.commissionDuration === "lifetime"
+        ? 12
+        : 1;
+  const span = !percent
+    ? "per customer"
+    : p.commissionDuration === "months"
+      ? `over ${p.commissionMonths} months`
+      : p.commissionDuration === "lifetime"
+        ? "every year"
+        : "on first payments";
+  const totals = p.commissionAfterValue ? [] : [1, 10, 50].map((n) => [n, n * earns * payments] as const);
+  const link = { rel: "nofollow ugc noopener" }; // the founder typed this URL: it earns no ranking credit from us
+
   return (
-    <div className="md:p-2">
-      <main className="flex min-h-dvh flex-col bg-surface md:min-h-[calc(100dvh-16px)] md:rounded-[14px] md:border md:border-border">
-        <header className="flex h-16 items-center justify-between border-b border-border px-4 sm:px-8">
-          <Link href={p.websiteUrl} className="flex min-w-0 items-center gap-2.5">
-            <BrandMark name={p.name} logoUrl={p.brand.logoUrl ?? null} size={28} />
-            <span className="truncate text-[15px] font-medium tracking-[-0.01em] text-fg">{p.name}</span>
-            <span className="hidden text-[13px] text-subtle sm:inline">Partner program</span>
-          </Link>
-          <Button asChild variant="secondary">
-            <Link href={`${base}/portal`}>Partner login</Link>
-          </Button>
-        </header>
+    <div className="min-h-dvh lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(400px,0.8fr)]">
+      <div className="lg:py-2 lg:pl-2">
+        <main className="flex min-h-dvh flex-col bg-surface lg:min-h-[calc(100dvh-16px)] lg:rounded-[14px] lg:border lg:border-border">
+          <header className="flex h-16 items-center justify-between px-4 sm:px-10">
+            <a href={p.websiteUrl} {...link} className="flex min-w-0 items-center gap-2.5">
+              <BrandMark name={p.name} logoUrl={p.brand.logoUrl ?? null} size={26} />
+              <span className="truncate text-[15px] font-medium tracking-[-0.01em] text-fg">{p.name}</span>
+            </a>
+            <Button asChild variant="secondary">
+              <Link href={`${base}/portal`}>Partner login</Link>
+            </Button>
+          </header>
 
-        <section className="mx-auto grid w-full max-w-[1160px] gap-12 px-4 pt-12 pb-16 sm:px-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16 lg:pt-20 lg:pb-24">
-          <div className="flex flex-col justify-center">
-            <span className="eyebrow">[ Partner program ]</span>
-            <h1 className="mt-5 max-w-[17ch] text-[40px] leading-[44px] font-medium tracking-[-0.035em] text-balance text-fg sm:text-[52px] sm:leading-[56px]">
-              {p.brand.headline ?? `Earn by recommending ${p.name}`}
-            </h1>
-            <p className="mt-5 max-w-[54ch] text-[16px] leading-7 text-muted">
-              {p.brand.description ??
-                `Refer customers to ${p.name} and earn a share of what they pay. Every sale is tracked straight from billing.`}
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              {p.visibility === "invite_only" ? (
-                <p className="rounded-md border border-dashed border-border-strong px-3 py-2 text-[14px] text-muted">
-                  This program is invite-only. Ask the {p.name} team for an invitation link.
-                </p>
-              ) : (
-                <Button asChild variant="primary" size="lg" className="h-11 px-5 text-[14px]">
-                  <Link href={`${base}/apply`}>
-                    Become a partner <ArrowRight />
-                  </Link>
-                </Button>
-              )}
-              <Button asChild variant="ghost" size="lg" className="h-11 text-[14px]">
-                <a href={p.websiteUrl} target="_blank" rel="noreferrer">
-                  Visit {host} <ArrowUpRight />
-                </a>
-              </Button>
-            </div>
-            <dl className="mt-12 grid max-w-[480px] grid-cols-3 gap-4 border-t border-border pt-5">
-              {[
-                ["Approval", p.autoApprove.enabled ? "Instant" : "By the team"],
-                ["Cookie", `${p.cookieDays} days`],
-                ["Paid", scheduleLabel(p)],
-              ].map(([k, v]) => (
-                <div key={k}>
-                  <dt className="eyebrow">{k}</dt>
-                  <dd className="mt-1 text-[14px] font-medium text-fg">{v}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-          <div className="relative">
-            <div
-              aria-hidden
-              className="absolute -inset-3 rounded-[22px] bg-canvas bg-[radial-gradient(var(--dot)_1.2px,transparent_1.4px)] bg-[length:10px_10px] sm:-inset-5"
-            />
-            <OfferStatement p={p} className="relative" />
-          </div>
-        </section>
-
-        <section className="border-t border-border">
-          <div className="mx-auto w-full max-w-[1160px] px-4 py-14 sm:px-8">
-            <span className="eyebrow">How it works</span>
-            <ol className="mt-6 grid gap-8 sm:grid-cols-3 sm:gap-10">
-              {steps.map((s, i) => (
-                <li key={s.title} className="border-t border-border-strong pt-4">
-                  <span className="font-mono text-[12px] text-accent-text">0{i + 1}</span>
-                  <h2 className="mt-3 text-[16px] font-medium tracking-[-0.01em] text-fg">{s.title}</h2>
-                  <p className="mt-1.5 text-[14px] leading-6 text-muted">{s.text}</p>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-
-        {p.terms ? (
-          <section id="terms" className="border-t border-border">
-            <details className="group mx-auto w-full max-w-[1160px] px-4 py-6 sm:px-8">
-              <summary className="flex cursor-pointer list-none items-center justify-between text-[14px] font-medium text-fg">
-                Program terms
-                <span className="text-[13px] font-normal text-subtle group-open:hidden">Read</span>
-                <span className="hidden text-[13px] font-normal text-subtle group-open:inline">Hide</span>
-              </summary>
-              <p className="mt-4 max-w-[72ch] text-[14px] leading-6 whitespace-pre-line text-muted">
-                {p.terms}
+          <div className="mx-auto w-full max-w-[640px] flex-1 px-4 sm:px-10">
+            <section className="pt-12 pb-14 sm:pt-20 sm:pb-20">
+              <p className="eyebrow">Partner program</p>
+              <h1 className="mt-4 text-[38px] leading-[42px] font-medium tracking-[-0.035em] text-balance text-fg sm:text-[50px] sm:leading-[54px]">
+                {p.brand.headline ?? `Earn by recommending ${p.name}`}
+              </h1>
+              <p className="mt-5 max-w-[52ch] text-[16px] leading-7 text-muted">
+                {p.brand.description ??
+                  `Refer customers to ${p.name} and earn a share of what they pay. Every sale is tracked straight from billing.`}
               </p>
-            </details>
-          </section>
-        ) : null}
+              <div className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2">
+                {p.visibility === "invite_only" ? (
+                  <p className="rounded-md border border-dashed border-border-strong px-3 py-2 text-[14px] text-muted">
+                    This program is invite-only. Ask the {p.name} team for an invitation link.
+                  </p>
+                ) : (
+                  <Button asChild variant="primary" size="lg" className="h-11 px-5 text-[14px]">
+                    <Link href={`${base}/apply`}>
+                      Become a partner <ArrowRight />
+                    </Link>
+                  </Button>
+                )}
+                <Button asChild variant="ghost" size="lg" className="h-11 text-[14px]">
+                  <a href={p.websiteUrl} target="_blank" {...link}>
+                    Visit {host} <ArrowUpRight />
+                  </a>
+                </Button>
+              </div>
+              {p.visibility === "invite_only" ? null : (
+                <p className="mt-4 text-[13px] leading-5 text-subtle">
+                  {instant
+                    ? "Applying takes a minute and most partners are approved on the spot."
+                    : "Applying takes a minute. The team reviews every application."}
+                </p>
+              )}
+            </section>
 
-        <footer className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-4 text-xs text-subtle sm:px-8">
-          <span>
-            {p.name} partner program · {host}
-          </span>
-          {hosted && plan.id === "free" ? (
+            {/* phones and tablets: the offer sits in the flow; on desktop it stays beside the page */}
+            <OfferStatement p={p} className="mb-14 lg:hidden" />
+
+            <section aria-labelledby="sale-h" className="border-t border-border py-12">
+              <h2 id="sale-h" className="text-[20px] leading-7 font-medium tracking-[-0.02em] text-fg">
+                Follow one sale
+              </h2>
+              <p className="mt-1 text-[14px] leading-6 text-muted">
+                {percent
+                  ? `What happens when someone you send pays ${money(sale)}.`
+                  : "What happens when someone you send becomes a customer."}
+              </p>
+              <ol className="mt-6">
+                {sale_steps.map((x) => (
+                  <li
+                    key={x.title}
+                    className="grid grid-cols-[1fr_auto] gap-x-4 border-t border-border py-4 sm:grid-cols-[132px_1fr_auto]"
+                  >
+                    <span className="col-span-2 font-mono text-[12px] leading-6 text-subtle sm:col-span-1">
+                      {x.when}
+                    </span>
+                    <span>
+                      <span className="block text-[15px] leading-6 font-medium text-fg">{x.title}</span>
+                      <span className="block text-[14px] leading-6 text-muted">{x.text}</span>
+                    </span>
+                    <span
+                      className={`num text-right text-[14px] leading-6 ${x.yours ? "font-medium text-accent-text" : "text-muted"}`}
+                    >
+                      {x.amount}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+
+            {totals.length ? (
+              <section aria-labelledby="sum-h" className="border-t border-border py-12">
+                <h2 id="sum-h" className="text-[20px] leading-7 font-medium tracking-[-0.02em] text-fg">
+                  What it adds up to
+                </h2>
+                <p className="mt-1 text-[14px] leading-6 text-muted">
+                  {percent
+                    ? `An example for customers who pay ${money(sale)}${payments > 1 ? " a month" : ""}.`
+                    : "A fixed amount for every customer you refer."}
+                </p>
+                <dl className="mt-6 grid grid-cols-3 border-y border-border">
+                  {totals.map(([n, total], i) => (
+                    <div key={n} className={`min-w-0 py-5 ${i ? "border-l border-border pl-3 sm:pl-6" : ""}`}>
+                      <dt className="text-[13px] leading-5 text-muted">
+                        {n} {n === 1 ? "customer" : "customers"}
+                      </dt>
+                      <dd className="figure mt-1 text-[20px] leading-7 text-fg sm:text-[30px] sm:leading-9">
+                        {money(total).replace(/\.00$/, "")}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="mt-3 text-[13px] leading-5 text-subtle">You earn this {span}.</p>
+              </section>
+            ) : null}
+
+            {p.terms ? (
+              <section id="terms" className="border-t border-border">
+                <details className="group py-6">
+                  <summary className="flex cursor-pointer list-none items-center justify-between text-[14px] font-medium text-fg">
+                    Program terms
+                    <span className="text-[13px] font-normal text-subtle group-open:hidden">Read</span>
+                    <span className="hidden text-[13px] font-normal text-subtle group-open:inline">Hide</span>
+                  </summary>
+                  <p className="mt-4 max-w-[72ch] text-[14px] leading-6 whitespace-pre-line text-muted">
+                    {p.terms}
+                  </p>
+                </details>
+              </section>
+            ) : null}
+          </div>
+
+          <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-4 text-xs text-subtle sm:px-10">
             <span>
-              Powered by{" "}
-              <a href="https://openpromoter.com" className="text-muted hover:text-fg">
-                OpenPromoter
-              </a>
+              {p.name} partner program · {host}
             </span>
-          ) : null}
-        </footer>
-      </main>
+            {hosted && plan.id === "free" ? (
+              <span>
+                Powered by{" "}
+                <a href="https://openpromoter.com" className="text-muted hover:text-fg">
+                  OpenPromoter
+                </a>
+              </span>
+            ) : null}
+          </footer>
+        </main>
+      </div>
+      <aside className="hidden lg:block">
+        <div className="sticky top-0 flex h-dvh flex-col justify-center px-10 xl:px-16">
+          <div className="mx-auto w-full max-w-[400px]">
+            <p className="eyebrow">The offer</p>
+            <OfferStatement p={p} className="mt-3" />
+          </div>
+        </div>
+      </aside>
     </div>
   );
 }

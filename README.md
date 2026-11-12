@@ -13,12 +13,20 @@
 
 A self-hosted alternative to Rewardful, FirstPromoter and Tolt. Track referrals from Stripe, stop affiliate fraud and pay partners with 0% payout fees.
 
-[Website](https://openpromoter.com) · [Live demo](https://openpromoter.com/demo/) · [Docs](https://openpromoter.com/docs/) · [Self-hosting](https://openpromoter.com/docs/self-hosting/) · [API](https://openpromoter.com/docs/api/) · [Discussions](https://github.com/openpromoter/openpromoter/discussions)
+[Website](https://openpromoter.com) · [Watch the film (1:20)](https://www.youtube.com/watch?v=PUepd2ts-mM) · [Live demo](https://openpromoter.com/demo/) · [Docs](https://openpromoter.com/docs/) · [Self-hosting](https://openpromoter.com/docs/self-hosting/) · [API](https://openpromoter.com/docs/api/) · [Discussions](https://github.com/openpromoter/openpromoter/discussions)
 
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-2442F5)](LICENSE)
 [![Self-host with Docker](https://img.shields.io/badge/self--host-docker%20compose%20up-16171A)](#quick-start)
 [![Payout fees: 0%](https://img.shields.io/badge/payout%20fees-0%25-2442F5)](#pricing)
 [![MCP server](https://img.shields.io/badge/MCP-openpromoter--mcp-16171A)](packages/mcp)
+
+<a href="https://www.youtube.com/watch?v=PUepd2ts-mM" title="Watch the OpenPromoter launch film on YouTube">
+  <img src="docs/screenshots/launch-film.jpg" alt="OpenPromoter launch film: 0% payout fees. Play the 80-second film on YouTube" width="900">
+</a>
+
+<sub>▶ Watch OpenPromoter in 80 seconds: one sale from a partner link to a paid payout.</sub>
+
+<br><br>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/app-dashboard-desktop-dark.png">

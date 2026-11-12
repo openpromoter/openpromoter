@@ -14,7 +14,8 @@ import { BrandMark } from "../brand";
 import { OfferStatement } from "../offer";
 import { ApplyForm } from "./form";
 
-export const metadata: Metadata = { title: "Apply" };
+// a sign-up form, not a page worth a search result
+export const metadata: Metadata = { title: "Apply", robots: { index: false } };
 
 export default async function ApplyPage({
   params,

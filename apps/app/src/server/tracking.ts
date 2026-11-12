@@ -184,6 +184,8 @@ export async function redirectClick(
       Location: dest.toString(),
       "Cache-Control": "no-store",
       "Referrer-Policy": "no-referrer-when-downgrade",
+      // a tracking link is a redirect, never a page: keep it out of search results
+      "X-Robots-Tag": "noindex, nofollow",
     },
   });
 }
