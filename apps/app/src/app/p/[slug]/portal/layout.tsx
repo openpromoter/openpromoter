@@ -31,6 +31,7 @@ export default async function PortalLayout({
       name={ctx.program.name}
       logo={<BrandMark name={ctx.program.name} logoUrl={ctx.program.brand.logoUrl ?? null} size={28} />}
       user={ctx.user.name}
+      avatar={ctx.partner.avatarUrl ?? ctx.user.image ?? null}
       email={ctx.user.email}
       programs={others}
       recruiting={ctx.program.overrideRate > 0}

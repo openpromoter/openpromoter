@@ -129,6 +129,8 @@ const NAMES = [
   "Theo Laurent",
 ];
 
+const FACES = new Set(["maya", "leo", "priya", "nora", "omar", "ella", "olivia", "ethan"]);
+
 /**
  * `publicDemo`: the hosted demo anyone can open (demo.ts). No password (visitors get in through the demo
  * button), autopilot off (no AI spend) and kept out of the partner marketplace, which lists real programs.
@@ -298,6 +300,8 @@ export async function seed({
       name,
       website: `https://${first}.example`,
       country: ["US", "GB", "DE", "IN", "BR", "FR", "JP", "CA", "NL", "ES"][i % 10],
+      // some sample partners have a photo (Pexels License, public/demo/people); the rest show initials
+      avatarUrl: FACES.has(first) ? `/demo/people/${first}.webp` : null,
       status: status as "approved",
       groupId: groups[i < 3 ? 2 : i < 9 ? 1 : 0]!.id,
       code: first,

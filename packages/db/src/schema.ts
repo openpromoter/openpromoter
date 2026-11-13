@@ -484,6 +484,8 @@ export const partner = pgTable(
     email: text("email").notNull(),
     name: text("name").notNull(),
     website: text("website"),
+    /** A photo shown in place of the initials. Only the demo's sample partners set it today. */
+    avatarUrl: text("avatar_url"),
     country: text("country"),
     status: text("status").$type<PartnerStatus>().notNull().default("pending"),
     groupId: text("group_id").references(() => partnerGroup.id, { onDelete: "set null" }),

@@ -60,6 +60,7 @@ export function PortalShell({
   name,
   logo,
   user,
+  avatar,
   email,
   programs,
   banner,
@@ -74,6 +75,7 @@ export function PortalShell({
   name: string;
   logo: React.ReactNode;
   user: string;
+  avatar?: string | null;
   email: string;
   programs: { slug: string; name: string }[];
   banner?: React.ReactNode;
@@ -145,7 +147,7 @@ export function PortalShell({
             <ArrowUpRight className="size-[18px] text-subtle" aria-hidden />
             Program page
           </Link>
-          <AccountMenu slug={slug} home={home} user={user} email={email} programs={programs} />
+          <AccountMenu slug={slug} home={home} user={user} avatar={avatar} email={email} programs={programs} />
         </div>
       </aside>
 
@@ -160,7 +162,7 @@ export function PortalShell({
                 <span className="truncate font-medium text-fg">{current?.[1] ?? "Portal"}</span>
               </nav>
               <div className="ml-auto lg:hidden">
-                <AccountMenu slug={slug} home={home} user={user} email={email} programs={programs} compact />
+                <AccountMenu slug={slug} home={home} user={user} avatar={avatar} email={email} programs={programs} compact />
               </div>
             </div>
             <nav
@@ -197,6 +199,7 @@ function AccountMenu({
   slug,
   home,
   user,
+  avatar,
   email,
   programs,
   compact,
@@ -204,6 +207,7 @@ function AccountMenu({
   slug: string;
   home: string;
   user: string;
+  avatar?: string | null;
   email: string;
   programs: { slug: string; name: string }[];
   compact?: boolean;
@@ -214,14 +218,14 @@ function AccountMenu({
     <DropdownMenu>
       {compact ? (
         <DropdownMenuTrigger aria-label="Account" className="rounded-full">
-          <Avatar name={user} size={28} />
+          <Avatar name={user} src={avatar} size={28} />
         </DropdownMenuTrigger>
       ) : (
         <DropdownMenuTrigger
           aria-label="Account"
           className="flex w-full items-center gap-2.5 rounded-lg border border-border bg-surface p-2 text-left transition-colors hover:border-border-strong dark:bg-surface-2"
         >
-          <Avatar name={user} size={30} />
+          <Avatar name={user} src={avatar} size={30} />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[13px] leading-4 font-medium text-fg">{user}</span>
             <span className="block truncate text-xs leading-4 text-subtle">{email}</span>

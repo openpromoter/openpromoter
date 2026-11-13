@@ -123,7 +123,7 @@ export default async function PartnerPage({
     <>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <Avatar name={p.name} size={44} />
+          <Avatar name={p.name} src={p.avatarUrl} size={44} />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="truncate text-[22px] font-medium tracking-tight text-fg">{p.name}</h1>

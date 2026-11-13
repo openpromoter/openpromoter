@@ -162,6 +162,13 @@
       "when": 1794489283098,
       "tag": "0022_email_preview",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794569552405,
+      "tag": "0023_partner_avatar",
+      "breakpoints": true
     }
   ]
 }

@@ -25,6 +25,7 @@ import { invitePartnerAction, setPartnerStatusAction } from "../actions";
 type Row = {
   id: string;
   name: string;
+  avatarUrl: string | null;
   email: string;
   status: string;
   code: string;
@@ -64,7 +65,7 @@ export function PartnersTable({
       mobile: "title",
       render: (r) => (
         <span className="flex min-w-0 items-center gap-2.5">
-          <Avatar name={r.name} size={24} />
+          <Avatar name={r.name} src={r.avatarUrl} size={24} />
           <span className="min-w-0">
             <span className="block truncate font-medium text-fg">{r.name}</span>
             <span className="block truncate text-xs text-subtle">{r.email}</span>

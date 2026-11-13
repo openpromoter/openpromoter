@@ -74,7 +74,7 @@ export default async function Dashboard({
 
   const cardsFor = (status: (typeof COLUMNS)[number]["status"]) =>
     db()
-      .select({ c: commission, name: partner.name, customer: referral.email })
+      .select({ c: commission, name: partner.name, avatar: partner.avatarUrl, customer: referral.email })
       .from(commission)
       .innerJoin(partner, eq(partner.id, commission.partnerId))
       .leftJoin(referral, eq(referral.id, commission.referralId))
@@ -402,7 +402,7 @@ export default async function Dashboard({
                             href={`${base}/partners/${t.id}`}
                             className="flex items-center gap-2.5 text-fg"
                           >
-                            <Avatar name={t.name} size={26} />
+                            <Avatar name={t.name} src={t.avatarUrl} size={26} />
                             <span className="min-w-0">
                               <span className="block truncate hover:underline">{t.name}</span>
                               <span className="block truncate text-xs text-subtle">
@@ -479,13 +479,13 @@ export default async function Dashboard({
                   <span className="num ml-auto text-xs text-subtle">{mw(Number(t?.total ?? 0))}</span>
                 </div>
                 <ul className="flex flex-1 flex-col gap-1.5">
-                  {cards.map(({ c, name, customer }) => (
+                  {cards.map(({ c, name, avatar, customer }) => (
                     <li key={c.id}>
                       <Link
                         href={`${base}/commissions?q=${encodeURIComponent(name)}`}
                         className="flex items-center gap-3 rounded-md bg-surface p-3 hover:bg-surface/70 dark:bg-surface-3"
                       >
-                        <Avatar name={name} size={28} />
+                        <Avatar name={name} src={avatar} size={28} />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[13px] text-fg">{name}</span>
                           <span className="block truncate text-[11px] text-subtle">

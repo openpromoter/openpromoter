@@ -299,6 +299,7 @@ export async function topPartners(programId: string, r: Range, limit = 10) {
     .select({
       id: partner.id,
       name: partner.name,
+      avatarUrl: partner.avatarUrl,
       email: partner.email,
       status: partner.status,
       revenue: sql<number>`coalesce(${c.revenue},0)::bigint`,

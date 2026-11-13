@@ -50,6 +50,7 @@ type Q = {
   id: string;
   partnerId: string;
   name: string;
+  avatarUrl?: string | null;
   email: string;
   amount: number;
   currency: string;
@@ -122,7 +123,7 @@ export function ApprovalQueue({
                 aria-label={`Select payout to ${r.name}`}
               />
             ) : null}
-            <Avatar name={r.name} size={30} />
+            <Avatar name={r.name} src={r.avatarUrl} size={30} />
             <div className="min-w-0 flex-1">
               <Link
                 href={`/app/${programId}/partners/${r.partnerId}`}

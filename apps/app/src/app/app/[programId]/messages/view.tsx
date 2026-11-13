@@ -34,6 +34,7 @@ type M = {
 type Convo = {
   partnerId: string;
   partnerName: string;
+  partnerAvatar: string | null;
   preview: string;
   fromPartner: boolean;
   unread: boolean;
@@ -42,6 +43,7 @@ type Convo = {
 type Context = {
   id: string;
   name: string;
+  avatarUrl: string | null;
   email: string;
   website: string | null;
   country: string | null;
@@ -105,7 +107,7 @@ export function MessagesView({
 }: {
   programId: string;
   canWrite: boolean;
-  partners: { id: string; name: string }[];
+  partners: { id: string; name: string; avatarUrl: string | null }[];
   selected: string | null;
   /** On phones the list and the thread are separate screens. */
   paneOpen: boolean;
@@ -197,7 +199,7 @@ export function MessagesView({
                   onClick={() => setPicking(false)}
                   className="flex h-10 items-center gap-2.5 rounded-md px-2 text-[13px] text-fg hover:bg-surface-2"
                 >
-                  <Avatar name={p.name} size={24} />
+                  <Avatar name={p.name} src={p.avatarUrl} size={24} />
                   <span className="truncate">{p.name}</span>
                 </Link>
               </li>
@@ -263,7 +265,7 @@ export function MessagesView({
                       selected === c.partnerId ? "bg-surface-3" : "hover:bg-surface-2",
                     )}
                   >
-                    <Avatar name={c.partnerName} size={32} />
+                    <Avatar name={c.partnerName} src={c.partnerAvatar} size={32} />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline gap-2">
                         <span
@@ -332,7 +334,7 @@ export function MessagesView({
           </Button>
           {context ? (
             <>
-              <Avatar name={context.name} size={30} />
+              <Avatar name={context.name} src={context.avatarUrl} size={30} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="truncate text-[14px] font-medium text-fg">{context.name}</span>
@@ -384,7 +386,7 @@ export function MessagesView({
                       ) : null}
                       {context ? (
                         <li className={cn("flex gap-2.5", mine && "flex-row-reverse")}>
-                          {mine ? null : <Avatar name={who} size={28} className="mt-5" />}
+                          {mine ? null : <Avatar name={who} src={context.avatarUrl} size={28} className="mt-5" />}
                           <div
                             className={cn(
                               "flex min-w-0 max-w-[min(560px,85%)] flex-col gap-1",
@@ -559,7 +561,7 @@ function PartnerPanel({ programId, p }: { programId: string; p: Context }) {
     >
       <section className="rounded-lg bg-surface p-4">
         <div className="flex items-start gap-3">
-          <Avatar name={p.name} size={40} />
+          <Avatar name={p.name} src={p.avatarUrl} size={40} />
           <div className="min-w-0 flex-1">
             <div className="truncate text-[14px] font-medium text-fg">{p.name}</div>
             <div className="mt-1">

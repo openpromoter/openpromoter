@@ -43,7 +43,7 @@ export default async function MessagesPage({
       );
   }
   const partners = await db()
-    .select({ id: partner.id, name: partner.name })
+    .select({ id: partner.id, name: partner.name, avatarUrl: partner.avatarUrl })
     .from(partner)
     .where(and(eq(partner.programId, programId), eq(partner.status, "approved")))
     .orderBy(partner.name)
@@ -53,6 +53,7 @@ export default async function MessagesPage({
     .select({
       partnerId: message.partnerId,
       partnerName: partner.name,
+      partnerAvatar: partner.avatarUrl,
       body: message.body,
       subject: message.subject,
       fromPartner: message.fromPartner,
@@ -100,6 +101,7 @@ export default async function MessagesPage({
     context = {
       id: sel.id,
       name: sel.name,
+      avatarUrl: sel.avatarUrl,
       email: sel.email,
       website: sel.website,
       country: sel.country,
@@ -131,6 +133,7 @@ export default async function MessagesPage({
         convos={convos.map((c) => ({
           partnerId: c.partnerId!,
           partnerName: c.partnerName,
+          partnerAvatar: c.partnerAvatar,
           preview: c.subject || c.body,
           fromPartner: c.fromPartner,
           unread: c.fromPartner && !c.readAt,

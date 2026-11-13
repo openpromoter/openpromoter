@@ -43,6 +43,7 @@ export default async function PartnersPage({
       .select({
         id: partner.id,
         name: partner.name,
+        avatarUrl: partner.avatarUrl,
         email: partner.email,
         status: partner.status,
         code: partner.code,

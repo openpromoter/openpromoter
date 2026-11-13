@@ -24,6 +24,7 @@ export default async function PayoutsPage({ params }: { params: Promise<{ progra
       .select({
         po: payout,
         name: partner.name,
+        avatarUrl: partner.avatarUrl,
         email: partner.email,
         ready: partner.stripePayoutsEnabled,
         paypal: partner.paypalEmail,
@@ -129,6 +130,7 @@ export default async function PayoutsPage({ params }: { params: Promise<{ progra
             id: q.po.id,
             partnerId: q.po.partnerId,
             name: q.name,
+            avatarUrl: q.avatarUrl,
             email: q.email,
             amount: q.po.amount,
             currency: q.po.currency,
