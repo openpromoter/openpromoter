@@ -246,6 +246,21 @@ export async function importStripe(workspaceId: string) {
   return { prices, customers, invoices, activeSubscriptions: active.size, backfilled };
 }
 
+/**
+ * Where Stripe Connect can move money across a border: between the US, Canada, the UK, the EEA and
+ * Switzerland, under the normal (full) service agreement. Outside these regions the platform and the
+ * partner must be in the same country. https://docs.stripe.com/connect/cross-border-payouts
+ */
+const CONNECT_CROSS_BORDER = new Set(
+  "US CA GB CH IS LI NO AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU MT NL PL PT RO SK SI ES SE".split(
+    " ",
+  ),
+);
+
+/** True when a founder's Stripe in `from` can pay a partner's Connect account in `to`. */
+export const connectCanPay = (from: string, to: string) =>
+  from === to || (CONNECT_CROSS_BORDER.has(from) && CONNECT_CROSS_BORDER.has(to));
+
 /** Partner payouts: Express account under the founder's Stripe (founder is the Connect platform). */
 export async function partnerOnboardingLink(programId: string, partnerId: string, returnPath: string) {
   const [row] = await db()
@@ -256,18 +271,31 @@ export async function partnerOnboardingLink(programId: string, partnerId: string
   if (!row) throw new Error("Partner not found");
   const s = await stripeFor(row.prog.workspaceId);
   if (!s) throw new Error("This program doesn't pay through Stripe yet");
+  const platform = await s.stripe.accounts.retrieveCurrent();
+  const from = (platform.country ?? "US").toUpperCase();
   let accountId = row.p.stripeAccountId;
+  if (accountId) {
+    // Accounts made before 2026-11-13 abroad were put under the recipient agreement, which Stripe
+    // can't pay across borders (only through Global Payouts). The agreement can't be changed once
+    // accepted, so such a partner gets a fresh account here.
+    const old = await s.stripe.accounts.retrieve(accountId);
+    if (old.tos_acceptance?.service_agreement === "recipient" && (old.country ?? from).toUpperCase() !== from)
+      accountId = null;
+  }
   if (!accountId) {
-    const platform = await s.stripe.accounts.retrieveCurrent();
-    const country = (row.p.country ?? platform.country ?? "US").toUpperCase();
+    const country = (row.p.country ?? from).toUpperCase();
+    if (!connectCanPay(from, country))
+      throw new Error(
+        `Stripe can't send payouts from this program's Stripe account to ${country}. Choose PayPal, Wise or another payout method in your payout settings.`,
+      );
     const acct = await s.stripe.accounts
       .create({
         type: "express",
         country,
         email: row.p.email,
         capabilities: { transfers: { requested: true } },
-        // partners outside the platform's country can only receive transfers under the recipient agreement
-        ...(country !== platform.country ? { tos_acceptance: { service_agreement: "recipient" } } : {}),
+        // the normal (full) agreement: Stripe pays it across borders between its supported regions,
+        // which the recipient agreement can't
         business_profile: {
           url: row.p.website ?? undefined,
           product_description: `Affiliate partner of ${row.prog.name}`,
@@ -286,7 +314,7 @@ export async function partnerOnboardingLink(programId: string, partnerId: string
     accountId = acct.id;
     await db()
       .update(partner)
-      .set({ stripeAccountId: acct.id, payoutMethod: "stripe" })
+      .set({ stripeAccountId: acct.id, payoutMethod: "stripe", stripePayoutsEnabled: false })
       .where(eq(partner.id, partnerId));
   }
   const link = await s.stripe.accountLinks.create({
