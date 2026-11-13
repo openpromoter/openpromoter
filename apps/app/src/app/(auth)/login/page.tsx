@@ -9,7 +9,8 @@ import { partnerProgram } from "@/server/partner-auth";
 import { programBase } from "@/server/program-base";
 import { LoginForm } from "./login-form";
 
-export const metadata: Metadata = { title: "Sign in" };
+// Utility pages stay out of search: /login also answers on every program's portal subdomain.
+export const metadata: Metadata = { title: "Sign in", robots: { index: false, follow: true } };
 
 /** Errors better-auth sends back to /login?error=..., in plain words. */
 const OAUTH_ERROR: Record<string, string> = {
