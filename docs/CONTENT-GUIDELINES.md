@@ -118,3 +118,18 @@ These rules were set for OpenPromoter in November 2026.
 3. Split any sentence over 25 words.
 4. Run the comma linter on every new or changed string.
 5. For design changes, send before and after screenshots of each changed area.
+
+## 7. Blog and docs images, callouts and links
+
+- **Our own screenshots take no caption.** The alt text says what the image shows. A repeated credit
+  line tells readers and Google nothing (Google reads captions as context for the image). A third-party
+  image takes `Source: X (November 2026)`. Docs screenshots keep their short location caption
+  (`Settings > Program > Tracking`).
+- **Callouts:** a paragraph that opens with **Tip:**, **Note:**, **Worth knowing:**, **Worth checking:**
+  or **Important:** renders as a soft blue box, as on WPReturns and DevDiggers. Use one for a side fact
+  the reader must not miss, about one per section at most.
+- **Links:** cited sources and our own pages (including app.openpromoter.com) are normal followed links.
+  Competitors' sites and share or "summarize with AI" buttons are `nofollow` (one helper:
+  `outboundRel()` in the site's `lib/config.ts`). Paid or affiliate links take `sponsored`. Links people
+  submit, such as a founder's website, take `ugc nofollow`. Never nofollow our own pages: robots.txt
+  keeps app pages out of search.
