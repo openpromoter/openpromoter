@@ -1,5 +1,4 @@
 import { Beacon, type BeaconPose } from "@openpromoter/ui";
-import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { PRODUCT } from "@/lib/config";
 import { AuthScene, type SceneKind } from "./product-fragment";
@@ -53,9 +52,10 @@ export function AuthCard({
   return (
     <div className="min-h-dvh bg-surface lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
       <main className="flex min-h-dvh flex-col px-6 py-6 sm:px-10">
-        <Link href="/" aria-label="OpenPromoter home" className="self-start">
+        {/* The app's "/" only redirects back here, so the logo goes to the website, like most sign-in pages. */}
+        <a href={`https://${PRODUCT.domain}/`} aria-label={`${PRODUCT.name} website`} className="self-start">
           <Logo />
-        </Link>
+        </a>
         <div className="mx-auto flex w-full max-w-[380px] flex-1 flex-col justify-center py-12">
           <Beacon pose={s.pose} size={56} className="mb-5 lg:hidden" />
           <h1 className="text-[28px] leading-9 font-medium tracking-[-0.03em] text-fg">{title}</h1>
