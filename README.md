@@ -37,13 +37,19 @@ A self-hosted alternative to Rewardful, FirstPromoter and Tolt. Track referrals 
 
 ## Why OpenPromoter
 
-Affiliate software for SaaS usually costs $49 to $99 a month, and some tools also take a share of every payout. OpenPromoter is open source and free to self-host. Every feature ships in this repository.
+Affiliate software for SaaS usually costs $49 to $99 a month, and some tools also take a share of every payout. OpenPromoter is open-source affiliate software that you can self-host for free. Every feature ships in this repository.
+
+Use it for an affiliate program with creators, a referral program for your customers or a partner program with agencies. Partners share a link or a coupon. OpenPromoter turns each paid sale into a commission and pays it out.
 
 - **0% of your payouts** on every plan, self-hosted or Cloud.
 - **Every billing system at once:** Stripe, Paddle, Lemon Squeezy, Polar and Chargebee.
 - **Fraud checks before money moves:** risky commissions are held for review.
 - **AI with an undo button:** it designs the program and drafts the work. A person approves every payout.
 - **Your data on your server:** one `docker compose up` and Postgres.
+
+## Open-source alternative to Rewardful and FirstPromoter
+
+Here is how OpenPromoter compares with the paid affiliate tools most SaaS founders look at first.
 
 | | Entry price | Fee on payouts | Open source |
 |---|---|---|---|
@@ -52,8 +58,11 @@ Affiliate software for SaaS usually costs $49 to $99 a month, and some tools als
 | FirstPromoter | $49/mo | None listed | No |
 | Tolt | $99/mo | 2% of payouts | No |
 | Dub Partners | $81/mo | 5%, or 8% card-funded | Partner code is closed |
+| PartnerStack | Quote after a demo | Unpublished processing fee | No |
 
-<sub>List prices from each vendor's pricing page as of November 2026. Sources and full comparisons: [Rewardful](https://openpromoter.com/vs/rewardful/), [FirstPromoter](https://openpromoter.com/vs/firstpromoter/), [Tolt](https://openpromoter.com/vs/tolt/) and [Dub Partners](https://openpromoter.com/vs/dub-partners/).</sub>
+<sub>List prices from each vendor's pricing page as of November 2026. Sources and full comparisons: [Rewardful](https://openpromoter.com/vs/rewardful/), [FirstPromoter](https://openpromoter.com/vs/firstpromoter/), [Tolt](https://openpromoter.com/vs/tolt/), [Dub Partners](https://openpromoter.com/vs/dub-partners/) and [PartnerStack](https://openpromoter.com/vs/partnerstack/). See every [alternative](https://openpromoter.com/alternatives/).</sub>
+
+Switching is a CSV import. Links that use `?via=`, `?fpr=`, `?ref=` or `?gspk=` keep working. Partners don't have to change anything.
 
 ## Try the live demo
 
@@ -106,9 +115,13 @@ The container refuses to start on a public URL with the placeholder secrets. Eve
 - Short links, deep links, sub-IDs, UTM capture, QR codes and custom domains such as `partners.yourapp.com`.
 - Trials, upgrades, refunds, chargebacks and cancellations adjust commissions automatically.
 
+Read more: [affiliate tracking](https://openpromoter.com/features/affiliate-tracking/).
+
 ### Fraud detection
 
 Every referral gets a risk score from 0 to 100. It checks self-referral, shared networks, duplicate accounts, coupon leaks and paid ads on your brand. It also catches click spam, bots, refunds after payout, fast churn, shared payout accounts and self-recruiting. Commissions above your threshold are held until you review them.
+
+Read more: [affiliate fraud detection](https://openpromoter.com/features/fraud-detection/).
 
 ### Partner and affiliate management
 
@@ -121,6 +134,8 @@ Every referral gets a risk score from 0 to 100. It checks self-referral, shared 
 - A public partner marketplace that founders opt into.
 - CSV import from Rewardful, FirstPromoter, Tolt or PartnerStack. Old `?via=`, `?fpr=`, `?ref=` and `?gspk=` links keep working.
 
+Read more: [partner portal](https://openpromoter.com/features/partner-portal/).
+
 ### Payouts and tax
 
 - A ledger that moves each commission from pending to approved to paid, or to held and reversed.
@@ -128,6 +143,8 @@ Every referral gets a risk score from 0 to 100. It checks self-referral, shared 
 - Pay through Stripe Connect Express, PayPal Payouts, Wise or a CSV export.
 - Every batch waits for a person to approve it. Large batches ask for a fresh 2FA code.
 - W-9 and W-8BEN collection, a 1099-NEC export and self-billed invoices with EU reverse charge and VIES checks.
+
+Read more: [affiliate payouts](https://openpromoter.com/features/affiliate-payouts/).
 
 ### AI that you can undo
 
@@ -141,6 +158,8 @@ AI features run on Anthropic by default. OpenAI and any OpenAI-compatible endpoi
 - **Assistant** answers questions about your program in plain English.
 
 AI never moves money. API keys, the MCP server and AI can prepare payouts, and only a signed-in person can approve them.
+
+Read more: [AI Autopilot](https://openpromoter.com/features/ai-autopilot/).
 
 ### Analytics
 
@@ -166,13 +185,13 @@ AI never moves money. API keys, the MCP server and AI can prepare payouts, and o
 
 | Billing | Payouts | Tracking | Alerts |
 |---|---|---|---|
-| Stripe | Stripe Connect Express | Script tag (`op.js`) | Slack |
-| Paddle | PayPal Payouts | TypeScript SDK | Discord |
-| Lemon Squeezy | Wise | REST API | Signed webhooks |
-| Polar | CSV export | Stripe metadata | Email reports |
-| Chargebee | | Coupon codes | |
+| [Stripe](https://openpromoter.com/integrations/stripe/) | Stripe Connect Express | Script tag (`op.js`) | Slack |
+| [Paddle](https://openpromoter.com/integrations/paddle/) | PayPal Payouts | TypeScript SDK | Discord |
+| [Lemon Squeezy](https://openpromoter.com/integrations/lemon-squeezy/) | Wise | REST API | Signed webhooks |
+| [Polar](https://openpromoter.com/integrations/polar/) | CSV export | Stripe metadata | Email reports |
+| [Chargebee](https://openpromoter.com/integrations/chargebee/) | | Coupon codes | |
 
-Any other billing system can report payments through `POST /api/v1/conversions`.
+Any other billing system can report payments through `POST /api/v1/conversions`. Setup guides for each one are on the [integrations page](https://openpromoter.com/integrations/).
 
 ## For developers and AI agents
 
@@ -200,6 +219,28 @@ Any other billing system can report payments through `POST /api/v1/conversions`.
 **Self-host:** free, with every feature and no limits on partners or revenue.
 
 **[OpenPromoter Cloud](https://openpromoter.com/pricing/):** free up to $1,000 a month in partner revenue. Above that, plans cost $29, $79 or $199 a month, or 2 months free when you pay yearly ($290, $790 or $1,990), with AI included. No plan takes a percentage of your payouts.
+
+## FAQ
+
+### Is OpenPromoter free?
+
+Yes. Self-hosting is free, with every feature and no limit on partners or revenue. OpenPromoter Cloud is also free until your partners bring in $1,000 a month.
+
+### Is there an open-source alternative to Rewardful?
+
+OpenPromoter is one. It tracks Stripe and Paddle sales like Rewardful does and adds Lemon Squeezy, Polar and Chargebee. You can import your Rewardful partners from a CSV, and old `?via=` links keep working.
+
+### Does it work without Stripe?
+
+Yes. Paddle, Lemon Squeezy, Polar and Chargebee each connect directly. Any other billing system can send sales to the REST API.
+
+### Do I need cookies to track referrals?
+
+No. A cookieless mode is built in, and Stripe sales are credited on the server through checkout and customer metadata. A renewal months later still pays the right partner.
+
+### What do I need to self-host it?
+
+A server that runs Docker and a Postgres 16 database. The [self-hosting guide](https://openpromoter.com/docs/self-hosting/) covers Render, Railway and a plain VPS.
 
 ## Tech stack
 
