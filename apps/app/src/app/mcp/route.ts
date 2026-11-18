@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       baseUrl: appUrl(),
       fetch: inProcess,
     });
-    const server = new McpServer({ name: "openpromoter", version: "0.1.2" });
+    const server = new McpServer({ name: "openpromoter", version: "0.1.3" });
     // the API checks each call's scope too; this only hides tools the key can't use
     registerTools(server, op, ctx.scopes.includes("partners:write"));
     const transport = new WebStandardStreamableHTTPServerTransport({

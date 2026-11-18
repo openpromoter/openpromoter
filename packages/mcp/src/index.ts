@@ -4,7 +4,7 @@ import { OpenPromoter } from "openpromoter";
 import { registerTools } from "./tools";
 
 if (process.argv.includes("--version")) {
-  console.log("0.1.2");
+  console.log("0.1.3");
   process.exit(0);
 }
 if (process.argv.includes("--help")) {
@@ -31,7 +31,7 @@ const op = new OpenPromoter({
 });
 const allowWrite = process.env.OPENPROMOTER_MCP_WRITE === "true";
 
-const server = new McpServer({ name: "openpromoter", version: "0.1.2" });
+const server = new McpServer({ name: "openpromoter", version: "0.1.3" });
 
 registerTools(server, op, allowWrite);
 

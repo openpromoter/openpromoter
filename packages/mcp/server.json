@@ -10,13 +10,15 @@
     "id": "1448241306",
     "subfolder": "packages/mcp"
   },
-  "version": "0.1.2",
+  "version": "0.1.3",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "openpromoter-mcp",
-      "version": "0.1.2",
-      "transport": { "type": "stdio" },
+      "version": "0.1.3",
+      "transport": {
+        "type": "stdio"
+      },
       "environmentVariables": [
         {
           "name": "OPENPROMOTER_API_KEY",
@@ -37,6 +39,12 @@
           "default": "false"
         }
       ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://app.openpromoter.com/mcp"
     }
   ]
 }
