@@ -1,5 +1,5 @@
 import { link, partner, partnerGroup, program, promoCode } from "@openpromoter/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { createCode, createId, slugify } from "@/lib/id";
 import { type Actor, audit } from "./audit";
 import { db } from "./db";
@@ -60,6 +60,30 @@ const ALIASES: Record<string, string[]> = {
   country: ["country", "country_code"],
 };
 
+/** A referral code as the old tool wrote it: letters, digits, dash, underscore and dot, at most 64 (attribution reads 64). */
+export function cleanCode(raw: string): string {
+  return raw.trim().replace(/[^A-Za-z0-9_.-]/g, "").slice(0, 64);
+}
+
+/** The partner a migration row points at: by email first, then by code. */
+export async function findPartnerByRef(programId: string, ref: { email?: string; code?: string }) {
+  if (ref.email) {
+    const [p] = await db()
+      .select()
+      .from(partner)
+      .where(and(eq(partner.programId, programId), sql`lower(${partner.email}) = lower(${ref.email})`));
+    if (p) return p;
+  }
+  if (ref.code) {
+    const [p] = await db()
+      .select()
+      .from(partner)
+      .where(and(eq(partner.programId, programId), sql`lower(${partner.code}) = lower(${ref.code})`));
+    if (p) return p;
+  }
+  return null;
+}
+
 export function mapHeaders(header: string[]): Record<string, number> {
   const norm = header.map((h) => h.trim().toLowerCase().replace(/\s+/g, "_"));
   const out: Record<string, number> = {};
@@ -84,6 +108,7 @@ export async function importPartners(programId: string, csv: string, actor: Acto
     .where(and(eq(partnerGroup.programId, programId), eq(partnerGroup.isDefault, true)));
   let created = 0;
   let skipped = 0;
+  const conflicts: string[] = [];
   const get = (r: string[], k: string) => (cols[k] != null ? (r[cols[k]!] ?? "").trim() : "");
   for (const r of rows.slice(1, 5001)) {
     const email = get(r, "email").toLowerCase();
@@ -93,15 +118,19 @@ export async function importPartners(programId: string, csv: string, actor: Acto
     }
     const name =
       get(r, "name") || [get(r, "first"), get(r, "last")].filter(Boolean).join(" ") || email.split("@")[0]!;
-    // keep the partner's old code so links already in the wild keep attributing (op.js reads via/fpr/ref/gspk)
-    let code =
-      slugify(get(r, "code")).replace(/-/g, "") ||
-      slugify(name).replace(/-/g, "").slice(0, 12) ||
-      createCode();
+    // keep the partner's old code exactly so links already in the wild keep attributing (op.js reads via/fpr/ref/gspk)
+    const own = cleanCode(get(r, "code"));
+    let code = own || slugify(name).replace(/-/g, "").slice(0, 12) || createCode();
     const [taken] = await db()
-      .select({ id: partner.id })
+      .select({ id: partner.id, email: partner.email })
       .from(partner)
-      .where(and(eq(partner.programId, programId), eq(partner.code, code)));
+      .where(and(eq(partner.programId, programId), sql`lower(${partner.code}) = lower(${code})`));
+    if (taken && own) {
+      // renaming would break every link this partner already shared, so leave it to the founder
+      if (taken.email.toLowerCase() !== email) conflicts.push(`${email}: code ${own} belongs to another partner`);
+      skipped++;
+      continue;
+    }
     if (taken) code = `${code}${createCode(3)}`;
     const [p] = await db()
       .insert(partner)
@@ -152,5 +181,5 @@ export async function importPartners(programId: string, csv: string, actor: Acto
     { type: "program", id: programId },
     { created, skipped },
   );
-  return { created, skipped, columns: Object.keys(cols) };
+  return { created, skipped, columns: Object.keys(cols), conflicts };
 }
