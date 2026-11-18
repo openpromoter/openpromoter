@@ -62,7 +62,7 @@ Here is how OpenPromoter compares with the paid affiliate tools most SaaS founde
 
 <sub>List prices from each vendor's pricing page as of November 2026. Sources and full comparisons: [Rewardful](https://openpromoter.com/vs/rewardful/), [FirstPromoter](https://openpromoter.com/vs/firstpromoter/), [Tolt](https://openpromoter.com/vs/tolt/), [Dub Partners](https://openpromoter.com/vs/dub-partners/) and [PartnerStack](https://openpromoter.com/vs/partnerstack/). See every [alternative](https://openpromoter.com/alternatives/).</sub>
 
-Switching is a CSV import of your partners, the customers they referred and their balances. Links that use `?via=`, `?fpr=`, `?ref=` or `?gspk=` keep working, renewals keep paying the same partner, and unpaid balances go into the next payout. Partners don't have to change anything.
+Switching is a CSV import of your partners, the customers they referred and their balances. Links that use `?via=`, `?fpr=`, `?ref=` or `?gspk=` keep working. Renewals keep paying the same partner and unpaid balances go into the next payout. Partners don't have to change anything. See [switching from another affiliate tool](#switching-from-another-affiliate-tool).
 
 ## Try the live demo
 
@@ -132,9 +132,19 @@ Read more: [affiliate fraud detection](https://openpromoter.com/features/fraud-d
 - Messages, announcements, campaigns, bounties and contests.
 - Two-tier commissions, one level deep and off by default.
 - A public partner marketplace that founders opt into.
-- CSV import from Rewardful, FirstPromoter, Tolt or PartnerStack: partners, referred customers and balances. Old `?via=`, `?fpr=`, `?ref=` and `?gspk=` links keep working.
 
 Read more: [partner portal](https://openpromoter.com/features/partner-portal/).
+
+### Switching from another affiliate tool
+
+- Import three CSV files in Settings > Import: partners, the customers they referred and their balances.
+- Partners keep their codes exactly as exported. Old `?via=`, `?fpr=`, `?ref=` and `?gspk=` links keep working.
+- Each customer stays with the partner who brought them. Renewals keep paying that partner and a one-time commission is never paid twice.
+- Files that name partners only by the old tool's ID still match. Tolt exports work this way.
+- Unpaid balances join the next payout. Totals already paid count toward each partner's lifetime earnings.
+- Lists of single commissions, amounts in cents and exports split across files all work. Running a file twice adds nothing.
+
+Read more: [the import guide](https://openpromoter.com/docs/team-and-access/#import-partners-from-another-tool).
 
 ### Payouts and tax
 
@@ -228,7 +238,11 @@ Yes. Self-hosting is free, with every feature and no limit on partners or revenu
 
 ### Is there an open-source alternative to Rewardful?
 
-OpenPromoter is one. It tracks Stripe and Paddle sales like Rewardful does and adds Lemon Squeezy, Polar and Chargebee. You can import your Rewardful partners from a CSV, and old `?via=` links keep working.
+OpenPromoter is one. It tracks Stripe and Paddle sales like Rewardful does and adds Lemon Squeezy, Polar and Chargebee. You can import your Rewardful partners, their referred customers and their commissions from CSV files.
+
+### How do I switch from another affiliate tool?
+
+Export partners, referred customers and balances from Rewardful, FirstPromoter, Tolt or PartnerStack as CSV. Import them in that order in Settings > Import. Old links keep working and renewals keep paying the same partner.
 
 ### Does it work without Stripe?
 
