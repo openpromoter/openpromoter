@@ -62,7 +62,7 @@ Here is how OpenPromoter compares with the paid affiliate tools most SaaS founde
 
 <sub>List prices from each vendor's pricing page as of November 2026. Sources and full comparisons: [Rewardful](https://openpromoter.com/vs/rewardful/), [FirstPromoter](https://openpromoter.com/vs/firstpromoter/), [Tolt](https://openpromoter.com/vs/tolt/), [Dub Partners](https://openpromoter.com/vs/dub-partners/) and [PartnerStack](https://openpromoter.com/vs/partnerstack/). See every [alternative](https://openpromoter.com/alternatives/).</sub>
 
-Switching is a CSV import. Links that use `?via=`, `?fpr=`, `?ref=` or `?gspk=` keep working. Partners don't have to change anything.
+Switching is a CSV import of your partners, the customers they referred and their balances. Links that use `?via=`, `?fpr=`, `?ref=` or `?gspk=` keep working, renewals keep paying the same partner, and unpaid balances go into the next payout. Partners don't have to change anything.
 
 ## Try the live demo
 
@@ -132,7 +132,7 @@ Read more: [affiliate fraud detection](https://openpromoter.com/features/fraud-d
 - Messages, announcements, campaigns, bounties and contests.
 - Two-tier commissions, one level deep and off by default.
 - A public partner marketplace that founders opt into.
-- CSV import from Rewardful, FirstPromoter, Tolt or PartnerStack. Old `?via=`, `?fpr=`, `?ref=` and `?gspk=` links keep working.
+- CSV import from Rewardful, FirstPromoter, Tolt or PartnerStack: partners, referred customers and balances. Old `?via=`, `?fpr=`, `?ref=` and `?gspk=` links keep working.
 
 Read more: [partner portal](https://openpromoter.com/features/partner-portal/).
 
