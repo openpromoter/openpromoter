@@ -75,6 +75,12 @@ async function followRefunds(
 }
 
 /** Pending → approved once the hold ends, 5,000 rows per statement (the literal status hits the partial index). */
+/**
+ * Balances brought over from another tool (Settings > Import) were earned there, before the switch. Every
+ * figure that reads as "earned in this period" leaves them out; balances, payouts and statements keep them.
+ */
+export const notImported = sql`${commission.sourceKey} not like 'import:%'`;
+
 export async function matureCommissions(now = new Date()): Promise<number> {
   let total = 0;
   for (;;) {

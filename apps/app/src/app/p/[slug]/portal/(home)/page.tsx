@@ -11,7 +11,7 @@ import { formatMoney, formatNumber } from "@/lib/money";
 import { durationLabel, rateLabel } from "@/lib/program-labels";
 import { partnerCtx } from "@/server/context";
 import { db } from "@/server/db";
-import { balanceAcross, balances, mainBalance, moneyAcross, otherOwed } from "@/server/ledger";
+import { balanceAcross, balances, mainBalance, moneyAcross, notImported, otherOwed } from "@/server/ledger";
 import { timeseriesForPartner } from "@/server/partner-stats";
 import { programBase } from "@/server/program-base";
 import { codeUrl, linkUrl } from "@/server/ref-link";
@@ -71,6 +71,7 @@ export default async function PortalHome({ params }: { params: Promise<{ slug: s
         eq(commission.partnerId, pt.id),
         gte(commission.createdAt, new Date(Date.now() - 30 * 86_400_000)),
         sql`${commission.status} <> 'reversed'`,
+        notImported,
       ),
     )
     .groupBy(commission.currency);

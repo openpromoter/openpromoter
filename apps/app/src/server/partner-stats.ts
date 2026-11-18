@@ -2,6 +2,7 @@ import { commission } from "@openpromoter/db";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "./db";
 import { baseAmount } from "./fx";
+import { notImported } from "./ledger";
 
 export async function timeseriesForPartner(partnerId: string, days: number) {
   const from = new Date(Date.now() - days * 86_400_000);
@@ -16,6 +17,7 @@ export async function timeseriesForPartner(partnerId: string, days: number) {
         eq(commission.partnerId, partnerId),
         gte(commission.createdAt, from),
         sql`${commission.status} <> 'reversed'`,
+        notImported,
       ),
     )
     .groupBy(sql`1`);

@@ -992,14 +992,21 @@ export async function importAction(
   programId: string,
   kind: "partners" | "referrals" | "balances",
   csv: string,
+  opts: { cents?: boolean } = {},
 ) {
   return safe(async () => {
-    const ctx = await actionCtx(programId, "partners.write");
+    if (kind !== "partners" && kind !== "referrals" && kind !== "balances") throw new Error("Unknown import");
+    if (typeof csv !== "string" || !csv.trim()) throw new Error("Pick a CSV file to import");
+    // balances create money owed to partners, so they need the same right as adding a commission by hand
+    const ctx = await actionCtx(programId, kind === "balances" ? "money.write" : "partners.write");
     if (csv.length > 5_000_000) throw new Error("File too large (5 MB max)");
     const im = await import("@/server/importer");
-    const fn =
-      kind === "referrals" ? im.importReferrals : kind === "balances" ? im.importBalances : im.importPartners;
-    const r = await fn(programId, csv, ctx.actor);
+    const r =
+      kind === "referrals"
+        ? await im.importReferrals(programId, csv, ctx.actor)
+        : kind === "balances"
+          ? await im.importBalances(programId, csv, ctx.actor, { cents: opts?.cents === true })
+          : await im.importPartners(programId, csv, ctx.actor);
     rv(programId);
     return r;
   });

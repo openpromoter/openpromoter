@@ -492,6 +492,8 @@ export const partner = pgTable(
     status: text("status").$type<PartnerStatus>().notNull().default("pending"),
     groupId: text("group_id").references(() => partnerGroup.id, { onDelete: "set null" }),
     code: text("code").notNull(),
+    /** The partner's id in the tool they were imported from, so that tool's customer files can point at them. */
+    externalId: text("external_id"),
     answers: jsonb("answers").$type<Record<string, string>>().notNull().default({}),
     source: text("source")
       .$type<"application" | "invite" | "recruiter" | "import" | "api">()
@@ -538,6 +540,7 @@ export const partner = pgTable(
     // click path and attribution look codes up case-insensitively
     index("partner_program_lower_code").on(t.programId, sql`lower(${t.code})`),
     index("partner_program_status").on(t.programId, t.status),
+    index("partner_program_external").on(t.programId, t.externalId).where(sql`external_id is not null`),
     index("partner_recruited_by").on(t.recruitedBy).where(sql`recruited_by is not null`),
     uniqueIndex("partner_id_program").on(t.id, t.programId),
   ],
@@ -656,7 +659,10 @@ export const referral = pgTable(
     name: text("name"),
     externalCustomerId: text("external_customer_id"),
     externalSubscriptionId: text("external_subscription_id"),
-    via: text("via").$type<"link" | "coupon" | "metadata" | "manual" | "api">().notNull().default("link"),
+    via: text("via")
+      .$type<"link" | "coupon" | "metadata" | "manual" | "api" | "import">()
+      .notNull()
+      .default("link"),
     status: text("status").$type<ReferralStatus>().notNull().default("lead"),
     ipHash: text("ip_hash"),
     mrr: integer("mrr").notNull().default(0),

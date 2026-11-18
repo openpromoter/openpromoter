@@ -3,6 +3,10 @@ import { and, desc, eq, gte, inArray, isNull, lt, type SQL, sql } from "drizzle-
 import { cache } from "react";
 import { db, query } from "./db";
 import { baseAmount, baseSale } from "./fx";
+import { notImported } from "./ledger";
+
+/** Customers brought over from another tool joined it there: they are not new leads in any range here. */
+const importedRef = sql`${referral.via} <> 'import'`;
 
 export interface Range {
   from: Date;
@@ -11,8 +15,6 @@ export interface Range {
 
 const DAY = 86_400_000;
 
-/** Balances brought over from another tool were earned there, not in the range being reported. */
-const notImported = sql`${commission.sourceKey} not like 'import:%'`;
 /** Longest range any report will scan or zero-fill (10 years). */
 const MAX_SPAN = 3660 * DAY;
 
@@ -125,7 +127,12 @@ const overviewCached = cache(async (programId: string, fromMs: number, toMs: num
       })
       .from(referral)
       .where(
-        and(eq(referral.programId, programId), gte(referral.createdAt, r.from), lt(referral.createdAt, r.to)),
+        and(
+          eq(referral.programId, programId),
+          gte(referral.createdAt, r.from),
+          lt(referral.createdAt, r.to),
+          importedRef,
+        ),
       ),
     db()
       .select({ n: sql<number>`count(*)::int` })
@@ -212,7 +219,12 @@ export async function timeseries(programId: string, r: Range) {
       .select({ d: utcDay(referral.createdAt), n: sql<number>`count(*)::int` })
       .from(referral)
       .where(
-        and(eq(referral.programId, programId), gte(referral.createdAt, r.from), lt(referral.createdAt, r.to)),
+        and(
+          eq(referral.programId, programId),
+          gte(referral.createdAt, r.from),
+          lt(referral.createdAt, r.to),
+          importedRef,
+        ),
       )
       .groupBy(sql`1`),
     db()
@@ -344,6 +356,7 @@ export async function funnel(programId: string, r: Range) {
         eq(referral.programId, programId),
         gte(referral.createdAt, r.from),
         lt(referral.createdAt, r.to),
+        importedRef,
         sql`(${referral.status} = 'trialing' or ${referral.convertedAt} is not null)`,
       ),
     );

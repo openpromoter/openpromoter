@@ -1,0 +1,2 @@
+ALTER TABLE "partner" ADD COLUMN "external_id" text;--> statement-breakpoint
+CREATE INDEX "partner_program_external" ON "partner" USING btree ("program_id","external_id") WHERE external_id is not null;
