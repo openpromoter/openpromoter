@@ -85,6 +85,8 @@ describe("balance import", () => {
     expect(parseAmount("$1,234.50")).toBe(1234.5);
     expect(parseAmount("1234.5")).toBe(1234.5);
     expect(parseAmount("€ 99")).toBe(99);
+    expect(parseAmount("1.234,50 €")).toBe(1234.5);
+    expect(parseAmount("12,5")).toBe(12.5);
     expect(parseAmount("abc")).toBeNull();
     expect(parseAmount("")).toBeNull();
   });

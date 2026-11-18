@@ -304,9 +304,11 @@ export async function importReferrals(programId: string, csv: string, actor: Act
   return { created, skipped, columns: Object.keys(cols), missing };
 }
 
-/** "$1,234.50" or "1234.5" → 1234.5 (major units); null when it is not a number. */
+/** "$1,234.50", "1234.5" or "1.234,50 €" → 1234.5 (major units); null when it is not a number. */
 export function parseAmount(raw: string): number | null {
-  const s = raw.replace(/[^0-9.-]/g, "");
+  let s = raw.replace(/[^0-9.,-]/g, "");
+  // "1.234,50" and "12,5": a comma followed by one or two digits at the end is the decimal mark
+  s = /,\d{1,2}$/.test(s) ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
   if (!s) return null;
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
