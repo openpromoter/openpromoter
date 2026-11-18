@@ -1,0 +1,26 @@
+# Publishes packages/mcp/server.json to the official MCP Registry (registry.modelcontextprotocol.io).
+# GitHub OIDC proves the run belongs to the openpromoter org, so no token is stored.
+# Run it by hand after publishing a new openpromoter-mcp version to npm and bumping server.json.
+name: MCP Registry
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          sudo mv mcp-publisher /usr/local/bin/
+      - name: Publish
+        working-directory: packages/mcp
+        run: |
+          mcp-publisher login github-oidc
+          mcp-publisher publish

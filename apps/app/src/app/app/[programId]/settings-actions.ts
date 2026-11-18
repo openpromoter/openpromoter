@@ -28,6 +28,7 @@ import { API_SCOPES } from "@/lib/scopes";
 import { subdomainRoot } from "@/lib/subdomain";
 import { HTTP_URL } from "@/lib/url";
 import { assertPublicUrl, emailSafeImage, fetchSite } from "@/server/ai/brand";
+import { mintApiKey } from "@/server/api-keys";
 import { audit } from "@/server/audit";
 import { planStatus } from "@/server/billing-plans";
 import { actionCtx, currentUser, safe, userPrograms } from "@/server/context";
@@ -748,25 +749,13 @@ export async function createApiKeyAction(programId: string, input: { name: strin
       .parse(input);
     // an API key can add partners, and each gets an email from our sender: same guard as invites
     await assertFounderVerified(ctx.user);
-    const raw = `op_${env.HOSTED_MODE === "true" ? "live" : "sk"}_${randomToken(24)}`;
-    await db()
-      .insert(apiKey)
-      .values({
-        id: createId("key"),
-        workspaceId: ctx.program.workspaceId,
-        name: v.name,
-        prefix: raw.slice(0, 12),
-        hash: sha256(raw),
-        scopes: v.scopes,
-        createdBy: ctx.user.id,
-      });
-    await audit(
-      ctx.program.workspaceId,
-      ctx.actor,
-      "api_key.create",
-      { type: "api_key", id: raw.slice(0, 12) },
-      { scopes: v.scopes },
-    );
+    const raw = await mintApiKey({
+      workspaceId: ctx.program.workspaceId,
+      name: v.name,
+      scopes: v.scopes,
+      userId: ctx.user.id,
+      actor: ctx.actor,
+    });
     rv(programId);
     return { key: raw };
   }, "API key created. Copy it now; it won't be shown again.");

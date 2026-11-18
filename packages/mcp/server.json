@@ -1,0 +1,42 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.openpromoter/openpromoter-mcp",
+  "title": "OpenPromoter",
+  "description": "Affiliate program data and actions from OpenPromoter. No tool can send money.",
+  "websiteUrl": "https://openpromoter.com/docs/mcp/",
+  "repository": {
+    "url": "https://github.com/openpromoter/openpromoter",
+    "source": "github",
+    "id": "1448241306",
+    "subfolder": "packages/mcp"
+  },
+  "version": "0.1.2",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "openpromoter-mcp",
+      "version": "0.1.2",
+      "transport": { "type": "stdio" },
+      "environmentVariables": [
+        {
+          "name": "OPENPROMOTER_API_KEY",
+          "description": "API key from Settings > API & webhooks",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "OPENPROMOTER_URL",
+          "description": "Your OpenPromoter URL (defaults to https://app.openpromoter.com)",
+          "isRequired": false,
+          "default": "https://app.openpromoter.com"
+        },
+        {
+          "name": "OPENPROMOTER_MCP_WRITE",
+          "description": "Set to true to turn on write tools. No tool can send money.",
+          "isRequired": false,
+          "default": "false"
+        }
+      ]
+    }
+  ]
+}

@@ -18,7 +18,9 @@ FROM deps AS build
 COPY . .
 # build-only placeholders: modules are imported during `next build`, nothing connects
 ENV NEXT_TELEMETRY_DISABLED=1 DATABASE_URL=postgres://build:build@127.0.0.1:1/build BETTER_AUTH_SECRET=build-only-placeholder
-RUN pnpm --filter @openpromoter/app build \
+# the app imports the SDK's built dist (the remote MCP endpoint), so build it first
+RUN pnpm --filter openpromoter build \
+ && pnpm --filter @openpromoter/app build \
  && pnpm --filter @openpromoter/app exec esbuild scripts/docker-start.ts --bundle --platform=node --format=esm --target=node22 \
       --outfile=/repo/start.mjs --external:../server.js \
       --banner:js="import{createRequire}from'module';const require=createRequire(import.meta.url);"

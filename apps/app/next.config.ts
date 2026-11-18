@@ -79,7 +79,7 @@ export function securityHeaders(opts: { appUrl: string; dev: boolean }) {
 const config: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: new URL("../../", import.meta.url).pathname,
-  transpilePackages: ["@openpromoter/ui", "@openpromoter/emails", "@openpromoter/db"],
+  transpilePackages: ["@openpromoter/ui", "@openpromoter/emails", "@openpromoter/db", "openpromoter-mcp"],
   poweredByHeader: false,
   devIndicators: false,
   serverExternalPackages: ["@electric-sql/pglite"],
