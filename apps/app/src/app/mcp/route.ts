@@ -54,7 +54,11 @@ export async function POST(req: Request) {
   }
 }
 
-/** Stateless: no server-sent stream to open and no session to end. */
-const notAllowed = () => new Response(null, { status: 405, headers: { Allow: "POST" } });
+/** Stateless: no server-sent stream to open and no session to end. A browser visit gets a short note. */
+const notAllowed = () =>
+  new Response(
+    "This is the OpenPromoter MCP server for AI apps. Add this URL as a connector in Claude, ChatGPT or another MCP app. Then sign in with your OpenPromoter account. Setup: https://openpromoter.com/docs/mcp/\n",
+    { status: 405, headers: { Allow: "POST", "Content-Type": "text/plain; charset=utf-8" } },
+  );
 
 export { notAllowed as GET, notAllowed as DELETE };
