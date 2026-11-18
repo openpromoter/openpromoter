@@ -10,6 +10,9 @@ export interface Range {
 }
 
 const DAY = 86_400_000;
+
+/** Balances brought over from another tool were earned there, not in the range being reported. */
+const notImported = sql`${commission.sourceKey} not like 'import:%'`;
 /** Longest range any report will scan or zero-fill (10 years). */
 const MAX_SPAN = 3660 * DAY;
 
@@ -145,6 +148,7 @@ const overviewCached = cache(async (programId: string, fromMs: number, toMs: num
           eq(commission.programId, programId),
           gte(commission.createdAt, r.from),
           lt(commission.createdAt, r.to),
+          notImported,
         ),
       ),
     programBalances(programId),
@@ -234,6 +238,7 @@ export async function timeseries(programId: string, r: Range) {
           eq(commission.programId, programId),
           gte(commission.createdAt, r.from),
           lt(commission.createdAt, r.to),
+          notImported,
         ),
       )
       .groupBy(sql`1`),
@@ -284,6 +289,7 @@ export async function topPartners(programId: string, r: Range, limit = 10) {
         eq(commission.programId, programId),
         gte(commission.createdAt, r.from),
         lt(commission.createdAt, r.to),
+        notImported,
       ),
     )
     .groupBy(commission.partnerId)

@@ -1,6 +1,7 @@
-import { commission, partner, referral } from "@openpromoter/db";
+import { commission, partner, program, referral } from "@openpromoter/db";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
+import { overview, timeseries, topPartners } from "@/server/analytics";
 import { SYSTEM } from "@/server/audit";
 import { db } from "@/server/db";
 import { importBalances, importPartners, importReferrals, parseAmount } from "@/server/importer";
@@ -75,6 +76,41 @@ describe("referral import", () => {
     expect((await importReferrals(f.program.id, csv, SYSTEM)).created).toBe(0);
   });
 
+  it("does not pay a one-time commission again for an imported customer", async () => {
+    const f = await fixture({ commissionDuration: "once" });
+    const p = await addPartner(f.program.id, f.ws.id);
+    await importReferrals(
+      f.program.id,
+      `partner_email,customer_id,status\n${p.email},cus_once,active`,
+      SYSTEM,
+    );
+    await ingest(f.ws.id, "stripe", evt([payment("cus_once")]));
+    const rows = await db().select().from(commission).where(eq(commission.partnerId, p.id));
+    expect(rows).toHaveLength(0);
+  });
+
+  it("leaves the converted date empty when the file has none", async () => {
+    const f = await fixture();
+    const p = await addPartner(f.program.id, f.ws.id);
+    await importReferrals(f.program.id, `partner_email,customer_id\n${p.email},cus_nodate`, SYSTEM);
+    const [ref] = await db().select().from(referral).where(eq(referral.externalCustomerId, "cus_nodate"));
+    expect(ref).toMatchObject({ convertedAt: null, paidInvoices: 1 });
+  });
+
+  it("skips a customer another program in the workspace already has", async () => {
+    const f = await fixture();
+    const p = await addPartner(f.program.id, f.ws.id);
+    const [other] = await db()
+      .insert(program)
+      .values({ ...f.program, id: `prg_other_${Date.now()}`, slug: `other-${Date.now()}` })
+      .returning();
+    const q = await addPartner(other!.id, f.ws.id);
+    await importReferrals(other!.id, `partner_email,customer_id\n${q.email},cus_shared`, SYSTEM);
+    const r = await importReferrals(f.program.id, `partner_email,customer_id\n${p.email},cus_shared`, SYSTEM);
+    expect(r.created).toBe(0);
+    expect(r.missing).toEqual(["row 2: customer cus_shared already belongs to another program"]);
+  });
+
   it("sends no lead commission on import", async () => {
     const f = await fixture({ leadCommission: 500 });
     const p = await addPartner(f.program.id, f.ws.id);
@@ -107,10 +143,38 @@ describe("balance import", () => {
     expect(payable.find((b) => b.partnerId === p.id)?.approved).toBe(12000);
   });
 
+  it("reads an empty amount cell as zero", async () => {
+    const f = await fixture();
+    const p = await addPartner(f.program.id, f.ws.id);
+    const r = await importBalances(f.program.id, `email,unpaid,total_paid\n${p.email},120.00,`, SYSTEM);
+    expect(r.created).toBe(1);
+  });
+
+  it("refuses amounts it cannot read for sure", () => {
+    expect(parseAmount("(120.00)")).toBe(-120);
+    expect(parseAmount("1.234")).toBeNull();
+  });
+
   it("skips a row whose amount does not parse and lists a missing partner", async () => {
     const f = await fixture();
     const p = await addPartner(f.program.id, f.ws.id);
     const r = await importBalances(f.program.id, `email,unpaid\n${p.email},n/a\nghost@x.io,10`, SYSTEM);
-    expect(r).toMatchObject({ created: 0, skipped: 2, missing: ["row 3: no partner ghost@x.io"] });
+    expect(r).toMatchObject({
+      created: 0,
+      skipped: 2,
+      missing: ["row 2: amount not readable", "row 3: no partner ghost@x.io"],
+    });
+  });
+
+  it("keeps imported totals out of the period's commission figures", async () => {
+    const f = await fixture();
+    const p = await addPartner(f.program.id, f.ws.id);
+    await importBalances(f.program.id, `email,unpaid,total_paid\n${p.email},120,900`, SYSTEM);
+    const allTime = { from: new Date(0), to: new Date(Date.now() + 86_400_000) };
+    expect((await overview(f.program.id, allTime)).commissions).toBe(0);
+    expect((await timeseries(f.program.id, allTime)).reduce((n, d) => n + d.commissions, 0)).toBe(0);
+    expect(
+      (await topPartners(f.program.id, allTime)).find((x) => x.id === p.id)?.commissions ?? 0,
+    ).toBe(0);
   });
 });

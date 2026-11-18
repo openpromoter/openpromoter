@@ -280,7 +280,19 @@ export async function importReferrals(programId: string, csv: string, actor: Act
       note(missing, `row ${i + 2}: no partner ${ref.email || ref.code || "given"}`);
       continue;
     }
-    if (!customerId) {
+    if (customerId) {
+      // renewals look the customer up across the workspace's programs, so one customer must have one partner
+      const [elsewhere] = await db()
+        .select({ programId: referral.programId })
+        .from(referral)
+        .innerJoin(program, eq(program.id, referral.programId))
+        .where(and(eq(program.workspaceId, prog.workspaceId), eq(referral.externalCustomerId, customerId)));
+      if (elsewhere && elsewhere.programId !== programId) {
+        skipped++;
+        note(missing, `row ${i + 2}: customer ${customerId} already belongs to another program`);
+        continue;
+      }
+    } else {
       // no billing id to make it unique, so the email is the key: a second run must not add it twice
       const [seen] = await db()
         .select({ id: referral.id })
@@ -292,7 +304,8 @@ export async function importReferrals(programId: string, csv: string, actor: Act
       }
     }
     const status = referralStatus(get(r, "status"), !!customerId);
-    const when = new Date(get(r, "convertedAt"));
+    const when = get(r, "convertedAt") ? new Date(get(r, "convertedAt")) : null;
+    const converted = status !== "lead";
     const [row] = await db()
       .insert(referral)
       .values({
@@ -304,12 +317,10 @@ export async function importReferrals(programId: string, csv: string, actor: Act
         externalCustomerId: customerId || null,
         via: "manual",
         status,
-        convertedAt:
-          status === "lead"
-            ? null
-            : Number.isNaN(when.getTime()) || !get(r, "convertedAt")
-              ? new Date()
-              : when,
+        // unknown date stays empty: the first renewal here sets it, and that starts any months window
+        convertedAt: converted && when && !Number.isNaN(when.getTime()) ? when : null,
+        // the old tool already paid the first sale, so a one-time plan or a first-sale bounty must not pay again
+        paidInvoices: converted ? 1 : 0,
         canceledAt: status === "canceled" ? new Date() : null,
       })
       .onConflictDoNothing()
@@ -329,12 +340,16 @@ export async function importReferrals(programId: string, csv: string, actor: Act
 
 /** "$1,234.50", "1234.5" or "1.234,50 €" → 1234.5 (major units); null when it is not a number. */
 export function parseAmount(raw: string): number | null {
+  // accounting style "(120.00)" is a negative amount
+  const neg = /^\s*\(.*\)\s*$/.test(raw);
   let s = raw.replace(/[^0-9.,-]/g, "");
+  // "1.234" could be one thousand or one point two: too risky to guess with money
+  if (/^\d{1,3}(\.\d{3})+$/.test(s)) return null;
   // "1.234,50" and "12,5": a comma followed by one or two digits at the end is the decimal mark
   s = /,\d{1,2}$/.test(s) ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
   if (!s) return null;
   const n = Number(s);
-  return Number.isFinite(n) ? n : null;
+  return Number.isFinite(n) ? (neg ? -Math.abs(n) : n) : null;
 }
 
 const BALANCE_ALIASES: Record<string, string[]> = {
@@ -365,11 +380,14 @@ export async function importBalances(programId: string, csv: string, actor: Acto
   const missing: string[] = [];
   for (const [i, r] of rows.slice(1, 5001).entries()) {
     const ref = { email: get(r, "partnerEmail").toLowerCase(), code: get(r, "partnerCode") };
-    const unpaid = cols.unpaid != null ? parseAmount(get(r, "unpaid")) : 0;
-    const paid = cols.paid != null ? parseAmount(get(r, "paid")) : 0;
-    // a value we cannot read is skipped, never booked as zero
+    // an empty cell means nothing owed; a value we cannot read skips the row, never books zero
+    const amount = (k: string) => (get(r, k) ? parseAmount(get(r, k)) : 0);
+    const unpaid = amount("unpaid");
+    const paid = amount("paid");
     if (unpaid == null || paid == null || unpaid < 0 || paid < 0) {
       skipped++;
+      const why = unpaid == null || paid == null ? "not readable" : "below zero, add it under Commissions";
+      note(missing, `row ${i + 2}: amount ${why}`);
       continue;
     }
     const p = await findPartnerByRef(programId, ref);
