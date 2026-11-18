@@ -23,6 +23,9 @@ export const EVENT_TYPES = [
 ] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 
+/** Self-hosters who post to their own private network opt in with ALLOW_PRIVATE_WEBHOOKS=true (never on Cloud). */
+export const privateWebhooksAllowed = () => !isHosted() && process.env.ALLOW_PRIVATE_WEBHOOKS === "true";
+
 /** Fan out an event to every subscribed endpoint; delivery runs in the job queue with retries. */
 export async function emitEvent(workspaceId: string, event: string, data: Record<string, unknown>) {
   // ids sort by time, so the API/CLI stream can page with ?after=
@@ -107,8 +110,8 @@ export async function deliver(deliveryId: string) {
   let status = 0;
   let error: string | null = null;
   try {
-    if (isHosted()) {
-      // cloud: tenants' URLs are untrusted, so the address is checked at connect time (no DNS rebinding)
+    if (!privateWebhooksAllowed()) {
+      // tenants' URLs are untrusted (anyone may sign up), so the address is checked at connect time (no DNS rebinding)
       const res = await safeFetch(ep.url, {
         method: "POST",
         headers,

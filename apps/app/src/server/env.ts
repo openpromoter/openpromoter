@@ -50,8 +50,16 @@ const schema = z.object({
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(500).optional(),
   /** postgres (default, shared by replicas) or memory (single instance). Read in ratelimit.ts. */
   RATE_LIMIT_STORE: z.enum(["postgres", "memory"]).optional(),
-  /** Header holding the client IP set by your proxy/CDN (e.g. cf-connecting-ip). Read in ratelimit.ts. */
+  /** Header holding the client IP set by your proxy/CDN (e.g. cf-connecting-ip). Read in lib/client-ip.ts. */
   TRUSTED_IP_HEADER: z.string().optional(),
+  /** Header your platform's edge overwrites with the connecting address (x-real-ip on Railway). */
+  PEER_IP_HEADER: z.string().optional(),
+  /** Comma-separated CIDRs allowed to set TRUSTED_IP_HEADER; Cloudflare's ranges by default for cf-connecting-ip. */
+  TRUSTED_PROXY_CIDRS: z.string().optional(),
+  /** true lets self-hosted webhook endpoints point at private addresses (your own network). */
+  ALLOW_PRIVATE_WEBHOOKS: z.enum(["true", "false"]).optional(),
+  /** Comma-separated emails allowed to create workspaces. Unset: anyone who signs up can. */
+  WORKSPACE_CREATORS: z.string().optional(),
 });
 
 export const env = schema.parse(process.env);

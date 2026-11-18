@@ -1,4 +1,4 @@
-import { billingPrice, member, partnerGroup, program, workspace } from "@openpromoter/db";
+import { billingPrice, member, partnerGroup, program, user, workspace } from "@openpromoter/db";
 import { and, asc, eq } from "drizzle-orm";
 import { createCode, createId, slugify } from "@/lib/id";
 import { RESERVED_SUBDOMAINS } from "@/lib/subdomain";
@@ -19,12 +19,32 @@ async function uniqueSlug(table: typeof program | typeof workspace, base: string
   return `${slug}-${createCode(6)}`;
 }
 
+/** WORKSPACE_CREATORS, lower-cased; empty means anyone who signs up may create a workspace. */
+export const workspaceCreators = () =>
+  (process.env.WORKSPACE_CREATORS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+
+/** Whether this account may start a new workspace on this server. */
+export function canCreateWorkspace(email: string): boolean {
+  const allowed = workspaceCreators();
+  return allowed.length === 0 || allowed.includes(email.trim().toLowerCase());
+}
+
 /** Step 1: one URL in, a branded workspace + program out. */
 export async function createProgramFromUrl(
   userId: string,
   websiteUrl: string,
   opts: { workspaceId?: string; name?: string } = {},
 ) {
+  if (!opts.workspaceId) {
+    const [u] = await db().select({ email: user.email }).from(user).where(eq(user.id, userId));
+    if (!u || !canCreateWorkspace(u.email))
+      throw new Error(
+        "This server only lets its owner create programs. Ask them to invite you to their team.",
+      );
+  }
   const site = await fetchSite(websiteUrl);
   const name = opts.name?.trim() || site.name;
   let wsId = opts.workspaceId;

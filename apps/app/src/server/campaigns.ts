@@ -260,6 +260,9 @@ export async function createCampaign(
   return c!;
 }
 
+/** Hold reason on a first-sale bounty whose sale is held; releasing or approving the sale releases it. */
+export const BOUNTY_HELD = "The sale that earned this bounty is held. It's released with that sale.";
+
 async function grant(
   prog: typeof program.$inferSelect,
   partnerId: string,
@@ -267,7 +270,8 @@ async function grant(
   amount: number,
   key: string,
   description: string,
-  held = false,
+  held: boolean | string = false,
+  parentId: string | null = null,
 ) {
   await db()
     .insert(commission)
@@ -282,18 +286,29 @@ async function grant(
       currency: prog.currency,
       fxRate: 1,
       status: held ? "held" : "pending",
-      heldReason: held
-        ? "Signup reported by the browser script. Approve it once you know the signup is real."
-        : null,
+      heldReason:
+        typeof held === "string"
+          ? held
+          : held
+            ? "Signup reported by the browser script. Approve it once you know the signup is real."
+            : null,
       holdUntil: new Date(Date.now() + prog.holdDays * 86_400_000),
       campaignId: c.id,
+      // a first-sale bounty follows the sale that earned it: a refund or reversal of that sale undoes it
+      parentId,
       description,
     })
     .onConflictDoNothing();
 }
 
 /** Called after signups and sales: pays any bounty the partner just earned. Idempotent via sourceKey. */
-export async function evaluateBounties(programId: string, partnerId: string, trigger: string, held = false) {
+export async function evaluateBounties(
+  programId: string,
+  partnerId: string,
+  trigger: string,
+  held = false,
+  sale: { id: string; held: boolean } | null = null,
+) {
   const [prog] = await db().select().from(program).where(eq(program.id, programId));
   const [p] = await db().select().from(partner).where(eq(partner.id, partnerId));
   if (!prog || !p || p.status !== "approved") return 0;
@@ -333,6 +348,12 @@ export async function evaluateBounties(programId: string, partnerId: string, tri
       }
     }
     if (r.trigger === "first_sale" && trigger === "first_sale") {
+      // the job runs after the payment's transaction: a refund replayed in it may already have reversed
+      // the sale, and a hold may have been placed or lifted since, so read the sale as it is now
+      const [current] = sale
+        ? await db().select({ status: commission.status }).from(commission).where(eq(commission.id, sale.id))
+        : [];
+      if (sale && (!current || current.status === "reversed")) continue;
       await grant(
         prog,
         partnerId,
@@ -340,6 +361,8 @@ export async function evaluateBounties(programId: string, partnerId: string, tri
         r.reward ?? 0,
         `bounty:${c.id}:${partnerId}`,
         `${c.name}: first paying customer`,
+        current?.status === "held" ? BOUNTY_HELD : false,
+        sale?.id ?? null,
       );
       granted++;
     }
@@ -353,6 +376,8 @@ export async function evaluateBounties(programId: string, partnerId: string, tri
             eq(commission.partnerId, partnerId),
             gte(commission.createdAt, c.startsAt),
             ne(commission.status, "reversed"),
+            // held sales (fraud review, unconfirmed browser signups) don't count until they're released
+            ne(commission.status, "held"),
             eq(commission.test, false),
           ),
         );
@@ -499,7 +524,13 @@ export async function evaluateTiers(programId: string, partnerId: string) {
     .select({ rev: sql<number>`coalesce(sum(${baseSale}),0)::int` })
     .from(commission)
     .where(
-      and(eq(commission.partnerId, partnerId), ne(commission.status, "reversed"), eq(commission.test, false)),
+      and(
+        eq(commission.partnerId, partnerId),
+        ne(commission.status, "reversed"),
+        // held sales (fraud review, unconfirmed browser signups) don't promote a partner until released
+        ne(commission.status, "held"),
+        eq(commission.test, false),
+      ),
     );
   const rev = row?.rev ?? 0;
   const current = groups.find((g) => g.id === p.groupId);

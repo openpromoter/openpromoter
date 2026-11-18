@@ -664,6 +664,8 @@ export const referral = pgTable(
       .notNull()
       .default("link"),
     status: text("status").$type<ReferralStatus>().notNull().default("lead"),
+    /** Reported by the browser script and not yet confirmed by a checkout carrying its click: sales are held. */
+    browserLead: boolean("browser_lead").notNull().default(false),
     ipHash: text("ip_hash"),
     mrr: integer("mrr").notNull().default(0),
     revenue: integer("revenue").notNull().default(0),

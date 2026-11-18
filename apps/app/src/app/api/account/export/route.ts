@@ -11,8 +11,13 @@ export async function GET() {
   const data = {
     user: me,
     memberships: await db().select().from(member).where(eq(member.userId, u.id)),
+    // the founder's private notes, the fraud score and the signup IP hash are the program's records, not
+    // the partner's: handing back the risk score would show a partner how close they are to a fraud hold
     partnerAccounts: (await db().select().from(partner).where(eq(partner.userId, u.id))).map(
-      ({ taxIdEnc, ...rest }) => ({ ...rest, taxId: taxIdEnc ? "stored (encrypted)" : null }),
+      ({ taxIdEnc, notes: _notes, riskScore: _risk, signupIpHash: _ip, externalId: _ext, ...rest }) => ({
+        ...rest,
+        taxId: taxIdEnc ? "stored (encrypted)" : null,
+      }),
     ),
     sessions: (await db().select().from(session).where(eq(session.userId, u.id))).map((s) => ({
       createdAt: s.createdAt,

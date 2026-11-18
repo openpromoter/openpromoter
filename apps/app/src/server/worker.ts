@@ -54,7 +54,13 @@ export function registerJobs() {
   });
   defineJob("webhook.deliver", async (p) => deliver(String(p.deliveryId)));
   defineJob("campaigns.evaluate", async (p) => {
-    await evaluateBounties(String(p.programId), String(p.partnerId), String(p.trigger), p.held === true);
+    await evaluateBounties(
+      String(p.programId),
+      String(p.partnerId),
+      String(p.trigger),
+      p.held === true,
+      typeof p.saleId === "string" ? { id: p.saleId, held: p.saleHeld === true } : null,
+    );
   });
   defineJob("tiers.evaluate", async (p) => {
     await evaluateTiers(String(p.programId), String(p.partnerId));

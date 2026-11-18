@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { CLIENT_IP_HEADER, clientIp } from "./lib/client-ip";
 import { subdomainRoot, subdomainSlug } from "./lib/subdomain";
 
 /**
@@ -67,18 +68,32 @@ async function programFor(host: string): Promise<{ slug: string | null; home: st
   return r;
 }
 
+/**
+ * Every request carries the resolved client IP in CLIENT_IP_HEADER (client-ip.ts decides which headers to
+ * believe). A value the client sent itself is overwritten, so Better Auth's limiter can't be keyed on a lie.
+ */
+function forwarded(req: NextRequest): Headers {
+  const headers = new Headers(req.headers);
+  const ip = clientIp(req);
+  if (ip) headers.set(CLIENT_IP_HEADER, ip);
+  else headers.delete(CLIENT_IP_HEADER);
+  return headers;
+}
+
 /** Custom domains (partners.yourapp.com) and free subdomains (acme.openpromoter.com) → program page, portal and short links. */
 export async function proxy(req: NextRequest) {
+  const request = { headers: forwarded(req) };
+  const pass = () => NextResponse.next({ request });
   const host = req.headers.get("host") ?? "";
   if (!host || host === appHost() || host.startsWith("localhost") || host.startsWith("127.0.0.1"))
-    return NextResponse.next();
+    return pass();
   const name = host.split(":")[0]!.toLowerCase();
-  if (!/^[a-z0-9.-]{1,253}$/.test(name)) return NextResponse.next();
+  if (!/^[a-z0-9.-]{1,253}$/.test(name)) return pass();
   const { slug, home } = await programFor(name);
   // under the subdomain root, only programs answer: a typo or a reserved name is not the app
   const root = subdomainRoot();
   if (!slug && root && name.endsWith(`.${root}`)) return new NextResponse("Not found", { status: 404 });
-  if (!slug) return NextResponse.next();
+  if (!slug) return pass();
   const path = req.nextUrl.pathname;
   if (home) return NextResponse.redirect(new URL(path + req.nextUrl.search, `https://${home}`), 308);
   // the program lives at this domain's root: old /p/<slug>/... links land on the clean path. Built from the
@@ -90,13 +105,13 @@ export async function proxy(req: NextRequest) {
       req.headers.get("x-forwarded-proto")?.split(",")[0] ?? req.nextUrl.protocol.replace(":", "");
     return NextResponse.redirect(new URL(own + req.nextUrl.search, `${proto}://${host}`), 307);
   }
-  if (/^\/(api|_next|op\.js|favicon|login|signup|forgot|reset)/.test(path)) return NextResponse.next();
+  if (/^\/(api|_next|op\.js|favicon|login|signup|forgot|reset)/.test(path)) return pass();
   const url = req.nextUrl.clone();
   if (path === "/" || /^\/(apply|portal)(\/|$)/.test(path))
     url.pathname = `/p/${slug}${path === "/" ? "" : path}`;
   else if (/^\/[\w-]{1,64}$/.test(path)) url.pathname = `/r/${slug}/l${path}`;
-  else return NextResponse.next();
-  return NextResponse.rewrite(url);
+  else return pass();
+  return NextResponse.rewrite(url, { request });
 }
 
 export const config = { matcher: ["/((?!_next/static|_next/image).*)"] };

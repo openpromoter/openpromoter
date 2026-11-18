@@ -16,6 +16,7 @@ import { nextCookies } from "better-auth/next-js";
 import { captcha, twoFactor as twoFactorPlugin } from "better-auth/plugins";
 import { and, eq, isNotNull, ne } from "drizzle-orm";
 import { headers } from "next/headers";
+import { CLIENT_IP_HEADER } from "@/lib/client-ip";
 import { PRODUCT } from "@/lib/config";
 import { subdomainOrigin, subdomainSlug } from "@/lib/subdomain";
 import { cancelPlan } from "./billing-plans";
@@ -168,7 +169,8 @@ export const auth = betterAuth({
       },
     },
   },
-  session: { cookieCache: { enabled: true, maxAge: 300 } },
+  // short, so a session revoked by a password reset stops working within a minute
+  session: { cookieCache: { enabled: true, maxAge: 60 } },
   rateLimit: {
     enabled: true,
     window: 60,
@@ -186,9 +188,8 @@ export const auth = betterAuth({
   },
   advanced: {
     database: { generateId: () => crypto.randomUUID() },
-    ...(process.env.TRUSTED_IP_HEADER
-      ? { ipAddress: { ipAddressHeaders: [process.env.TRUSTED_IP_HEADER.toLowerCase()] } }
-      : {}),
+    // proxy.ts resolves the client IP (lib/client-ip.ts) and overwrites this header on every request
+    ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
   },
   hooks: {
     // better-auth's two-factor check only runs on email sign-in. An account with two-factor on must

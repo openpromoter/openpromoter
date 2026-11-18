@@ -146,9 +146,24 @@ export async function resolveReferral(
     .select()
     .from(referral)
     .where(and(inArray(referral.programId, ids), eq(referral.externalCustomerId, customerId)));
-  if (existing) return existing;
-
   const hints = hintsFromStripe({ ...attribution, email: who.email ?? attribution.email ?? null });
+  // a checkout that carries the lead's own click or visitor came through the partner's link: that confirms
+  // a signup the browser script reported, which on its own only shows someone typed this email
+  const vouched = (r: Referral) =>
+    (!!hints.clickId && hints.clickId === r.clickId) ||
+    (!!hints.visitorId && hints.visitorId === r.visitorId);
+  if (existing) {
+    if (existing.browserLead && vouched(existing)) {
+      const [confirmed] = await tx
+        .update(referral)
+        .set({ browserLead: false })
+        .where(eq(referral.id, existing.id))
+        .returning();
+      return confirmed ?? existing;
+    }
+    return existing;
+  }
+
   const found = await findPartner(tx, programs, hints);
   if (!found) return null;
   const { partner: p, program: prog, via, clickId, visitorId, lead } = found;
@@ -156,7 +171,11 @@ export async function resolveReferral(
   if (lead) {
     const [updated] = await tx
       .update(referral)
-      .set({ externalCustomerId: customerId, name: lead.name ?? who.name })
+      .set({
+        externalCustomerId: customerId,
+        name: lead.name ?? who.name,
+        browserLead: lead.browserLead && !vouched(lead),
+      })
       .where(eq(referral.id, lead.id))
       .returning();
     return updated ?? null;
@@ -502,7 +521,9 @@ async function handlePayment(
       ? `Risk score ${risk.score}: ${risk.reasons.join(", ") || "partner risk"}`
       : p.status !== "approved"
         ? `Partner is ${p.status}`
-        : null;
+        : r.browserLead
+          ? "The signup was reported by the browser script and the checkout didn't carry the partner's click. Approve it once you know this customer came from the partner."
+          : null;
   const [c] = await tx
     .insert(commission)
     .values({
@@ -547,7 +568,13 @@ async function handlePayment(
   await tx.update(partner).set({ lastActiveAt: new Date() }).where(eq(partner.id, p.id));
   await enqueue(
     "campaigns.evaluate",
-    { programId: prog.id, partnerId: p.id, trigger: r.paidInvoices === 0 ? "first_sale" : "sale" },
+    {
+      programId: prog.id,
+      partnerId: p.id,
+      trigger: r.paidInvoices === 0 ? "first_sale" : "sale",
+      saleId: c.id,
+      saleHeld: !!hold,
+    },
     {},
     tx,
   );
@@ -838,6 +865,20 @@ async function salesForCharge(tx: Tx, provider: Provider, programs: Program[], c
   return [...sales, ...overrides];
 }
 
+/** A first-sale bounty follows the sale that earned it (parentId): reverse it, or claw it back once paid. */
+export async function reverseBounties(tx: Tx | AppDb, saleId: string, reason: string): Promise<string[]> {
+  const bounties = await tx
+    .select()
+    .from(commission)
+    .where(and(eq(commission.parentId, saleId), eq(commission.kind, "bounty")));
+  const out: string[] = [];
+  for (const b of bounties) {
+    const r = await reverseFor(tx, b, 1, 1, `sale:${saleId}`, reason);
+    if (r) out.push(r);
+  }
+  return out;
+}
+
 export async function reverseFor(
   tx: Tx | AppDb,
   c: typeof commission.$inferSelect,
@@ -927,6 +968,17 @@ async function handleRefund(
     const charged = ev.charged > 0 ? ev.charged : (c.chargedAmount ?? c.saleAmount);
     let refunded = ev.refunded;
     if (ev.incremental) {
+      // one refund reported again (Paddle's adjustment.created then .updated) is already in the sum below
+      const [same] = await tx
+        .select({ id: commission.id })
+        .from(commission)
+        .where(
+          and(
+            eq(commission.programId, c.programId),
+            eq(commission.sourceKey, `refund:${c.id}:${ev.refundKey}`),
+          ),
+        );
+      if (same) continue;
       // add the refunds already booked on this commission, scaled from sale units to the charge's units
       const [prior] = await tx
         .select({ sale: sql<number>`coalesce(sum(${commission.saleAmount}), 0)::int` })
@@ -942,6 +994,8 @@ async function handleRefund(
       ev.refundKey,
       refunded >= charged ? "Refunded" : "Partially refunded",
     );
+    if (r && c.kind === "sale" && refunded >= charged)
+      out.push(...(await reverseBounties(tx, c.id, "The sale that earned this bounty was refunded")));
     if (r) {
       out.push(r);
       await enqueue(
@@ -992,6 +1046,8 @@ async function handleDispute(
         "Chargeback lost",
       );
       if (r) out.push(r);
+      if (r && c.kind === "sale")
+        out.push(...(await reverseBounties(tx, c.id, "The sale that earned this bounty was charged back")));
     }
   }
   return out;

@@ -27,6 +27,7 @@ import {
   setPartnerStatus,
 } from "@/server/partners";
 import { approvePayouts, cancelPayout, createPayoutBatch, markPaid } from "@/server/payouts";
+import { limit } from "@/server/ratelimit";
 import { stripeFor } from "@/server/stripe-service";
 
 const ids = z.array(z.string().max(40)).min(1).max(500);
@@ -332,6 +333,10 @@ export async function approvePayoutsAction(programId: string, payoutIds: string[
           `Turn on two-factor authentication (Settings > Account) to approve more than ${formatMoney(ctx.program.payoutTwoFactorAbove, ctx.program.currency)} at once.`,
         );
       if (!code) throw new Error("2FA_CODE_REQUIRED");
+      // better-auth only counts failed codes at sign-in; a signed-in session could otherwise guess forever
+      // 10 tries per 15 minutes: room for a busy approval session, ~240 days to guess a code
+      if (!(await limit(`payout-2fa:${ctx.user.id}`, 10, 15 * 60_000)).ok)
+        throw new Error("Too many two-factor attempts. Try again in 15 minutes.");
       try {
         await auth.api.verifyTOTP({
           body: {

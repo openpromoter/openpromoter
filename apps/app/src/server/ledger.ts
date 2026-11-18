@@ -1,8 +1,9 @@
-import { commission, partner, payout, program } from "@openpromoter/db";
+import { commission, partner, payout, program, referral } from "@openpromoter/db";
 import { and, eq, inArray, isNull, like, lte, or, type SQL, sql } from "drizzle-orm";
 import { createId } from "@/lib/id";
 import { formatMoney } from "@/lib/money";
 import { type Actor, audit } from "./audit";
+import { BOUNTY_HELD } from "./campaigns";
 import { type AppDb, db, type Tx } from "./db";
 import { reverseFor } from "./ingest";
 import { enqueue } from "./jobs";
@@ -44,9 +45,48 @@ export async function followOverrides(
         .returning({ id: commission.id })
     ).length;
   let n = 0;
-  for (const o of await db().select().from(commission).where(inParents))
+  // a reversed sale also takes back the first-sale bounty it earned
+  const followers = and(
+    inArray(commission.parentId, parentIds),
+    inArray(commission.kind, ["override", "bounty"]),
+  );
+  for (const o of await db().select().from(commission).where(followers))
     if (await reverseFor(db(), o, 1, 1, "reversed", reason || "Sub-partner commission reversed")) n++;
   return n;
+}
+
+/**
+ * A founder releasing or approving a sale vouches for its customer: a browser-reported signup is confirmed
+ * (its renewals stop being held) and the first-sale bounty held with the sale is released too.
+ */
+async function confirmSales(rows: (typeof commission.$inferSelect)[]) {
+  const sales = rows.filter((r) => r.kind === "sale");
+  if (sales.length === 0) return;
+  const referralIds = [...new Set(sales.map((s) => s.referralId).filter((id): id is string => !!id))];
+  if (referralIds.length)
+    await db()
+      .update(referral)
+      .set({ browserLead: false })
+      .where(and(inArray(referral.id, referralIds), eq(referral.browserLead, true)));
+  const now = new Date();
+  await db()
+    .update(commission)
+    .set({
+      status: sql`case when ${commission.holdUntil} is null or ${commission.holdUntil} <= ${now.toISOString()}::timestamptz then 'approved' else 'pending' end`,
+      heldReason: null,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        inArray(
+          commission.parentId,
+          sales.map((s) => s.id),
+        ),
+        eq(commission.kind, "bounty"),
+        eq(commission.status, "held"),
+        eq(commission.heldReason, BOUNTY_HELD),
+      ),
+    );
 }
 
 /**
@@ -161,6 +201,7 @@ export async function releaseCommissions(programId: string, ids: string[], actor
     rows.map((r) => r.id),
     "release",
   );
+  await confirmSales(rows);
   if (rows[0])
     await audit(
       rows[0].workspaceId,
@@ -195,6 +236,7 @@ export async function approveCommissions(programId: string, ids: string[], actor
     rows.map((r) => r.id),
     "release",
   );
+  await confirmSales(rows);
   if (rows[0])
     await audit(
       rows[0].workspaceId,
