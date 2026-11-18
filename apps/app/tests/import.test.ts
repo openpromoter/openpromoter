@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { SYSTEM } from "@/server/audit";
 import { db } from "@/server/db";
-import { importPartners, importReferrals } from "@/server/importer";
+import { importBalances, importPartners, importReferrals, parseAmount } from "@/server/importer";
+import { balances, mainBalance, payableBalances } from "@/server/ledger";
 import { ingest } from "@/server/ingest";
 import { addPartner, evt, fixture, payment } from "./helpers";
 
@@ -76,5 +77,34 @@ describe("referral import", () => {
     await importReferrals(f.program.id, `partner_email,customer_email\n${p.email},c5@x.io`, SYSTEM);
     const rows = await db().select().from(commission).where(eq(commission.partnerId, p.id));
     expect(rows).toHaveLength(0);
+  });
+});
+
+describe("balance import", () => {
+  it("parses money the way exports write it", () => {
+    expect(parseAmount("$1,234.50")).toBe(1234.5);
+    expect(parseAmount("1234.5")).toBe(1234.5);
+    expect(parseAmount("€ 99")).toBe(99);
+    expect(parseAmount("abc")).toBeNull();
+    expect(parseAmount("")).toBeNull();
+  });
+
+  it("brings over unpaid and paid totals once", async () => {
+    const f = await fixture();
+    const p = await addPartner(f.program.id, f.ws.id);
+    const csv = `email,unpaid,total_paid\n${p.email},"$120.00",900`;
+    expect((await importBalances(f.program.id, csv, SYSTEM)).created).toBe(2);
+    expect((await importBalances(f.program.id, csv, SYSTEM)).created).toBe(0);
+    const bal = await balances(f.program.id, [p.id]);
+    expect(mainBalance(bal, f.program.currency)).toMatchObject({ approved: 12000, paid: 90000 });
+    const payable = await payableBalances(f.program.id);
+    expect(payable.find((b) => b.partnerId === p.id)?.approved).toBe(12000);
+  });
+
+  it("skips a row whose amount does not parse and lists a missing partner", async () => {
+    const f = await fixture();
+    const p = await addPartner(f.program.id, f.ws.id);
+    const r = await importBalances(f.program.id, `email,unpaid\n${p.email},n/a\nghost@x.io,10`, SYSTEM);
+    expect(r).toMatchObject({ created: 0, skipped: 2, missing: ["row 3: no partner ghost@x.io"] });
   });
 });

@@ -1,6 +1,7 @@
-import { link, partner, partnerGroup, program, promoCode, type ReferralStatus, referral } from "@openpromoter/db";
+import { commission, link, partner, partnerGroup, program, promoCode, type ReferralStatus, referral } from "@openpromoter/db";
 import { and, eq, sql } from "drizzle-orm";
 import { createCode, createId, slugify } from "@/lib/id";
+import { toMinor } from "@/lib/money";
 import { type Actor, audit } from "./audit";
 import { db } from "./db";
 
@@ -300,5 +301,90 @@ export async function importReferrals(programId: string, csv: string, actor: Act
     else skipped++;
   }
   await audit(prog.workspaceId, actor, "referral.import", { type: "program", id: programId }, { created, skipped });
+  return { created, skipped, columns: Object.keys(cols), missing };
+}
+
+/** "$1,234.50" or "1234.5" → 1234.5 (major units); null when it is not a number. */
+export function parseAmount(raw: string): number | null {
+  const s = raw.replace(/[^0-9.-]/g, "");
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+const BALANCE_ALIASES: Record<string, string[]> = {
+  partnerEmail: ["email", "partner_email", "affiliate_email", "promoter_email"],
+  partnerCode: REFERRAL_ALIASES.partnerCode!,
+  unpaid: ["unpaid", "balance", "unpaid_balance", "amount_due", "pending_balance", "current_balance"],
+  paid: ["paid", "total_paid", "paid_out", "lifetime_paid"],
+};
+
+/**
+ * What each partner was owed and had been paid in the old tool, in the program's currency. Unpaid becomes
+ * an approved adjustment that rides in the next payout; paid becomes a paid adjustment that only counts
+ * toward the lifetime total. Fixed source keys make a second run of the same file a no-op.
+ */
+export async function importBalances(programId: string, csv: string, actor: Actor) {
+  const [prog] = await db().select().from(program).where(eq(program.id, programId));
+  if (!prog) throw new Error("Program not found");
+  const rows = parseCsv(csv);
+  if (rows.length < 2) throw new Error("The file needs a header row and at least one partner");
+  const cols = mapWith(BALANCE_ALIASES, rows[0]!);
+  if (cols.partnerEmail == null && cols.partnerCode == null)
+    throw new Error("No partner column found (looked for email, partner_email, referral_code…)");
+  if (cols.unpaid == null && cols.paid == null)
+    throw new Error("No amount column found (looked for unpaid, balance, total_paid…)");
+  const get = (r: string[], k: string) => (cols[k] != null ? (r[cols[k]!] ?? "").trim() : "");
+  let created = 0;
+  let skipped = 0;
+  const missing: string[] = [];
+  for (const [i, r] of rows.slice(1, 5001).entries()) {
+    const ref = { email: get(r, "partnerEmail").toLowerCase(), code: get(r, "partnerCode") };
+    const unpaid = cols.unpaid != null ? parseAmount(get(r, "unpaid")) : 0;
+    const paid = cols.paid != null ? parseAmount(get(r, "paid")) : 0;
+    // a value we cannot read is skipped, never booked as zero
+    if (unpaid == null || paid == null || unpaid < 0 || paid < 0) {
+      skipped++;
+      continue;
+    }
+    const p = await findPartnerByRef(programId, ref);
+    if (!p) {
+      skipped++;
+      note(missing, `row ${i + 2}: no partner ${ref.email || ref.code || "given"}`);
+      continue;
+    }
+    const lines = [
+      { key: "unpaid", major: unpaid, status: "approved" as const, description: "Balance brought over from your previous tool" },
+      { key: "paid", major: paid, status: "paid" as const, description: "Paid out in your previous tool" },
+    ];
+    let any = false;
+    for (const l of lines) {
+      const amount = toMinor(l.major, prog.currency);
+      if (amount <= 0) continue;
+      const [row] = await db()
+        .insert(commission)
+        .values({
+          id: createId("com"),
+          programId,
+          workspaceId: prog.workspaceId,
+          partnerId: p.id,
+          kind: "adjustment",
+          sourceKey: `import:${l.key}:${p.id}`,
+          amount,
+          currency: prog.currency,
+          fxRate: 1,
+          status: l.status,
+          description: l.description,
+        })
+        .onConflictDoNothing()
+        .returning({ id: commission.id });
+      if (row) {
+        created++;
+        any = true;
+      }
+    }
+    if (!any) skipped++;
+  }
+  await audit(prog.workspaceId, actor, "balance.import", { type: "program", id: programId }, { created, skipped });
   return { created, skipped, columns: Object.keys(cols), missing };
 }
