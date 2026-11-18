@@ -1,4 +1,4 @@
-import { link, partner, partnerGroup, program, promoCode } from "@openpromoter/db";
+import { link, partner, partnerGroup, program, promoCode, type ReferralStatus, referral } from "@openpromoter/db";
 import { and, eq, sql } from "drizzle-orm";
 import { createCode, createId, slugify } from "@/lib/id";
 import { type Actor, audit } from "./audit";
@@ -182,4 +182,123 @@ export async function importPartners(programId: string, csv: string, actor: Acto
     { created, skipped },
   );
   return { created, skipped, columns: Object.keys(cols), conflicts };
+}
+
+/** Header names in referral and customer exports from the same tools, mapped to ours. */
+const REFERRAL_ALIASES: Record<string, string[]> = {
+  partnerEmail: ["partner_email", "affiliate_email", "promoter_email"],
+  partnerCode: [
+    "referral_code",
+    "ref_id",
+    "token",
+    "via",
+    "affiliate_code",
+    "promoter_ref_id",
+    "partner_key",
+  ],
+  customerId: [
+    "stripe_customer_id",
+    "customer_id",
+    "uid",
+    "external_id",
+    "paddle_customer_id",
+    "customer_key",
+  ],
+  email: ["email", "customer_email", "lead_email"],
+  name: ["name", "customer_name"],
+  status: ["status", "state"],
+  convertedAt: ["converted_at", "conversion_date", "became_customer_at", "first_payment_at", "created_at"],
+};
+
+/** Finds each alias group's column in a header row. */
+function mapWith(aliases: Record<string, string[]>, header: string[]): Record<string, number> {
+  const norm = header.map((h) => h.trim().toLowerCase().replace(/\s+/g, "_"));
+  const out: Record<string, number> = {};
+  for (const [key, names] of Object.entries(aliases)) {
+    const i = norm.findIndex((h) => names.includes(h));
+    if (i >= 0) out[key] = i;
+  }
+  return out;
+}
+
+function referralStatus(raw: string, hasCustomer: boolean): ReferralStatus {
+  const s = raw.toLowerCase();
+  if (/^(canceled|cancelled|churned)$/.test(s)) return "canceled";
+  if (/^(trialing|trial)$/.test(s)) return "trialing";
+  return hasCustomer ? "active" : "lead";
+}
+
+/** One line per row the import could not place, capped so a bad file does not flood the page. */
+const note = (list: string[], line: string) => {
+  if (list.length < 50) list.push(line);
+};
+
+/**
+ * Customers a partner brought in before the switch. A row with the billing customer id makes renewals
+ * pay that partner (ingest looks the customer up first); a row with only an email is matched on the
+ * customer's next payment. No lead commission, bounty or email fires, since these are old referrals.
+ */
+export async function importReferrals(programId: string, csv: string, actor: Actor) {
+  const [prog] = await db().select().from(program).where(eq(program.id, programId));
+  if (!prog) throw new Error("Program not found");
+  const rows = parseCsv(csv);
+  if (rows.length < 2) throw new Error("The file needs a header row and at least one customer");
+  const cols = mapWith(REFERRAL_ALIASES, rows[0]!);
+  if (cols.partnerEmail == null && cols.partnerCode == null)
+    throw new Error("No partner column found (looked for partner_email, affiliate_email, referral_code…)");
+  if (cols.customerId == null && cols.email == null)
+    throw new Error("No customer column found (looked for stripe_customer_id, customer_id, customer_email…)");
+  const get = (r: string[], k: string) => (cols[k] != null ? (r[cols[k]!] ?? "").trim() : "");
+  let created = 0;
+  let skipped = 0;
+  const missing: string[] = [];
+  for (const [i, r] of rows.slice(1, 5001).entries()) {
+    const ref = { email: get(r, "partnerEmail").toLowerCase(), code: get(r, "partnerCode") };
+    const customerId = get(r, "customerId").slice(0, 200);
+    const email = get(r, "email").toLowerCase();
+    if (!customerId && !/^\S+@\S+\.\S+$/.test(email)) {
+      skipped++;
+      continue;
+    }
+    const p = await findPartnerByRef(programId, ref);
+    if (!p) {
+      skipped++;
+      note(missing, `row ${i + 2}: no partner ${ref.email || ref.code || "given"}`);
+      continue;
+    }
+    if (!customerId) {
+      // no billing id to make it unique, so the email is the key: a second run must not add it twice
+      const [seen] = await db()
+        .select({ id: referral.id })
+        .from(referral)
+        .where(and(eq(referral.programId, programId), sql`lower(${referral.email}) = ${email}`));
+      if (seen) {
+        skipped++;
+        continue;
+      }
+    }
+    const status = referralStatus(get(r, "status"), !!customerId);
+    const when = new Date(get(r, "convertedAt"));
+    const [row] = await db()
+      .insert(referral)
+      .values({
+        id: createId("ref"),
+        programId,
+        partnerId: p.id,
+        email: email || null,
+        name: get(r, "name").slice(0, 120) || null,
+        externalCustomerId: customerId || null,
+        via: "manual",
+        status,
+        convertedAt:
+          status === "lead" ? null : Number.isNaN(when.getTime()) || !get(r, "convertedAt") ? new Date() : when,
+        canceledAt: status === "canceled" ? new Date() : null,
+      })
+      .onConflictDoNothing()
+      .returning({ id: referral.id });
+    if (row) created++;
+    else skipped++;
+  }
+  await audit(prog.workspaceId, actor, "referral.import", { type: "program", id: programId }, { created, skipped });
+  return { created, skipped, columns: Object.keys(cols), missing };
 }

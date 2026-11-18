@@ -1,4 +1,5 @@
 import { member, partner, partnerGroup, program, user, workspace } from "@openpromoter/db";
+import type { BillingEvent, ParsedWebhook } from "@/server/billing/types";
 import { createCode, createId } from "@/lib/id";
 import { db } from "@/server/db";
 
@@ -58,3 +59,33 @@ export async function addPartner(
     .returning();
   return p!;
 }
+
+let evtN = 0;
+/** A parsed webhook carrying these billing events. */
+export const evt = (events: BillingEvent[]): ParsedWebhook => ({
+  eventId: `evt_${++evtN}_${Math.random()}`,
+  eventType: "test",
+  livemode: false,
+  events,
+});
+
+/** A paid invoice for this billing customer. */
+export const payment = (
+  customerId: string,
+  o: Partial<Extract<BillingEvent, { type: "payment" }>> = {},
+): Extract<BillingEvent, { type: "payment" }> => ({
+  type: "payment",
+  paymentId: `in_${Math.random()}`,
+  chargeIds: [`ch_${Math.random()}`],
+  customerId,
+  email: null,
+  subscriptionId: "sub_1",
+  amount: 10000,
+  currency: "usd",
+  interval: "month",
+  intervalCount: 1,
+  paidAt: new Date(),
+  attribution: {},
+  description: "Pro plan",
+  ...o,
+});
