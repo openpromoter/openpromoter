@@ -190,6 +190,13 @@
       "when": 1795033614740,
       "tag": "0026_referral_browser_lead",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1795036676303,
+      "tag": "0027_browser_confirmed_address_proven",
+      "breakpoints": true
     }
   ]
 }

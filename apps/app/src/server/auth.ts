@@ -89,6 +89,14 @@ export const auth = betterAuth({
     // sign-up doesn't verify email, so someone could register an address first and keep that session;
     // the real owner's password reset must sign every other session out
     revokeSessionsOnPasswordReset: true,
+    // the reset link reached this inbox and every other session is gone, so the address is now proven.
+    // A verification link alone would also verify an account someone else registered under this address.
+    onPasswordReset: async ({ user: u }) => {
+      await db()
+        .update(user)
+        .set({ emailVerified: true, addressProvenAt: new Date() })
+        .where(eq(user.id, u.id));
+    },
     sendResetPassword: async ({ user: u, url }) => {
       await sendNotice(
         u.email,

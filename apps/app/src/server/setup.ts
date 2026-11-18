@@ -26,10 +26,14 @@ export const workspaceCreators = () =>
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 
-/** Whether this account may start a new workspace on this server. */
-export function canCreateWorkspace(email: string): boolean {
+/**
+ * Whether this account may start a new workspace on this server. A listed address counts only once a
+ * password reset proved it: sign-up doesn't verify email, and anyone can ask for a verification link to be
+ * sent to an address they registered first, so emailVerified alone doesn't prove the owner.
+ */
+export function canCreateWorkspace(email: string, addressProven: boolean): boolean {
   const allowed = workspaceCreators();
-  return allowed.length === 0 || allowed.includes(email.trim().toLowerCase());
+  return allowed.length === 0 || (addressProven && allowed.includes(email.trim().toLowerCase()));
 }
 
 /** Step 1: one URL in, a branded workspace + program out. */
@@ -39,8 +43,11 @@ export async function createProgramFromUrl(
   opts: { workspaceId?: string; name?: string } = {},
 ) {
   if (!opts.workspaceId) {
-    const [u] = await db().select({ email: user.email }).from(user).where(eq(user.id, userId));
-    if (!u || !canCreateWorkspace(u.email))
+    const [u] = await db()
+      .select({ email: user.email, verified: user.addressProvenAt })
+      .from(user)
+      .where(eq(user.id, userId));
+    if (!u || !canCreateWorkspace(u.email, !!u.verified))
       throw new Error(
         "This server only lets its owner create programs. Ask them to invite you to their team.",
       );

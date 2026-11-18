@@ -59,7 +59,7 @@ export function registerJobs() {
       String(p.partnerId),
       String(p.trigger),
       p.held === true,
-      typeof p.saleId === "string" ? { id: p.saleId, held: p.saleHeld === true } : null,
+      typeof p.saleId === "string" ? { id: p.saleId } : null,
     );
   });
   defineJob("tiers.evaluate", async (p) => {

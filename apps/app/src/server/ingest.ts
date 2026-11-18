@@ -16,6 +16,7 @@ import { and, desc, eq, gte, inArray, isNull, like, lt, sql } from "drizzle-orm"
 import { createId } from "@/lib/id";
 import { ATTRIBUTION_ORDER, type AttributionHints, hintsFromStripe, pickClick } from "./attribution";
 import type { Attribution, BillingEvent, ParsedWebhook, Provider } from "./billing/types";
+import { BOUNTY_HELD } from "./campaigns";
 import {
   computeCommission,
   overrideAmount,
@@ -156,7 +157,7 @@ export async function resolveReferral(
     if (existing.browserLead && vouched(existing)) {
       const [confirmed] = await tx
         .update(referral)
-        .set({ browserLead: false })
+        .set({ browserLead: false, browserConfirmedAt: new Date() })
         .where(eq(referral.id, existing.id))
         .returning();
       return confirmed ?? existing;
@@ -175,6 +176,7 @@ export async function resolveReferral(
         externalCustomerId: customerId,
         name: lead.name ?? who.name,
         browserLead: lead.browserLead && !vouched(lead),
+        ...(lead.browserLead && vouched(lead) ? { browserConfirmedAt: new Date() } : {}),
       })
       .where(eq(referral.id, lead.id))
       .returning();
@@ -573,7 +575,6 @@ async function handlePayment(
       partnerId: p.id,
       trigger: r.paidInvoices === 0 ? "first_sale" : "sale",
       saleId: c.id,
-      saleHeld: !!hold,
     },
     {},
     tx,
@@ -865,6 +866,43 @@ async function salesForCharge(tx: Tx, provider: Provider, programs: Program[], c
   return [...sales, ...overrides];
 }
 
+/** Hold the unpaid first-sale bounties of sales that were just held, so they can't mature during the review. */
+export async function holdBounties(tx: Tx | AppDb, saleIds: string[]) {
+  if (saleIds.length === 0) return;
+  await tx
+    .update(commission)
+    .set({ status: "held", heldReason: BOUNTY_HELD, updatedAt: new Date() })
+    .where(
+      and(
+        inArray(commission.parentId, saleIds),
+        eq(commission.kind, "bounty"),
+        inArray(commission.status, ["pending", "approved"]),
+        isNull(commission.payoutId),
+      ),
+    );
+}
+
+/** Release the bounties held with these sales: pending inside the hold window, approved after it. */
+export async function releaseBounties(tx: Tx | AppDb, saleIds: string[]) {
+  if (saleIds.length === 0) return;
+  const now = new Date();
+  await tx
+    .update(commission)
+    .set({
+      status: sql`case when ${commission.holdUntil} is null or ${commission.holdUntil} <= ${now.toISOString()}::timestamptz then 'approved' else 'pending' end`,
+      heldReason: null,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        inArray(commission.parentId, saleIds),
+        eq(commission.kind, "bounty"),
+        eq(commission.status, "held"),
+        eq(commission.heldReason, BOUNTY_HELD),
+      ),
+    );
+}
+
 /** A first-sale bounty follows the sale that earned it (parentId): reverse it, or claw it back once paid. */
 export async function reverseBounties(tx: Tx | AppDb, saleId: string, reason: string): Promise<string[]> {
   const bounties = await tx
@@ -1029,12 +1067,14 @@ async function handleDispute(
         .update(commission)
         .set({ status: "held", heldReason: "Chargeback opened", updatedAt: new Date() })
         .where(eq(commission.id, c.id));
+      if (c.kind === "sale") await holdBounties(tx, [c.id]);
       out.push(`held ${c.id}`);
     } else if (ev.status === "won" && c.status === "held" && c.heldReason === "Chargeback opened") {
       await tx
         .update(commission)
         .set({ status: "pending", heldReason: null, updatedAt: new Date() })
         .where(eq(commission.id, c.id));
+      if (c.kind === "sale") await releaseBounties(tx, [c.id]);
       out.push(`released ${c.id}`);
     } else if (ev.status === "lost") {
       const r = await reverseFor(

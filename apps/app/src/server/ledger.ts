@@ -3,9 +3,8 @@ import { and, eq, inArray, isNull, like, lte, or, type SQL, sql } from "drizzle-
 import { createId } from "@/lib/id";
 import { formatMoney } from "@/lib/money";
 import { type Actor, audit } from "./audit";
-import { BOUNTY_HELD } from "./campaigns";
 import { type AppDb, db, type Tx } from "./db";
-import { reverseFor } from "./ingest";
+import { holdBounties, releaseBounties, reverseFor } from "./ingest";
 import { enqueue } from "./jobs";
 
 export const SUB_HELD = "Sub-partner commission held";
@@ -22,6 +21,8 @@ export async function followOverrides(
   if (parentIds.length === 0) return 0;
   const now = new Date();
   const inParents = and(inArray(commission.parentId, parentIds), eq(commission.kind, "override"));
+  if (action === "hold") await holdBounties(db(), parentIds);
+  if (action === "release") await releaseBounties(db(), parentIds);
   if (action === "hold")
     return (
       await db()
@@ -57,7 +58,7 @@ export async function followOverrides(
 
 /**
  * A founder releasing or approving a sale vouches for its customer: a browser-reported signup is confirmed
- * (its renewals stop being held) and the first-sale bounty held with the sale is released too.
+ * (its renewals stop being held). followOverrides releases the first-sale bounty held with the sale.
  */
 async function confirmSales(rows: (typeof commission.$inferSelect)[]) {
   const sales = rows.filter((r) => r.kind === "sale");
@@ -66,27 +67,15 @@ async function confirmSales(rows: (typeof commission.$inferSelect)[]) {
   if (referralIds.length)
     await db()
       .update(referral)
-      .set({ browserLead: false })
+      .set({ browserLead: false, browserConfirmedAt: new Date() })
       .where(and(inArray(referral.id, referralIds), eq(referral.browserLead, true)));
-  const now = new Date();
-  await db()
-    .update(commission)
-    .set({
-      status: sql`case when ${commission.holdUntil} is null or ${commission.holdUntil} <= ${now.toISOString()}::timestamptz then 'approved' else 'pending' end`,
-      heldReason: null,
-      updatedAt: now,
-    })
-    .where(
-      and(
-        inArray(
-          commission.parentId,
-          sales.map((s) => s.id),
-        ),
-        eq(commission.kind, "bounty"),
-        eq(commission.status, "held"),
-        eq(commission.heldReason, BOUNTY_HELD),
-      ),
-    );
+  // milestones and tiers leave held sales out, so a released sale may now earn one
+  await Promise.all(
+    [...new Map(sales.map((x) => [x.partnerId, x])).values()].flatMap((s) => [
+      enqueue("campaigns.evaluate", { programId: s.programId, partnerId: s.partnerId, trigger: "sale" }),
+      enqueue("tiers.evaluate", { programId: s.programId, partnerId: s.partnerId }),
+    ]),
+  );
 }
 
 /**

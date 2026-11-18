@@ -30,6 +30,9 @@ export const user = pgTable("user", {
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  /** Set only by a completed password reset: proof of the inbox that a verification link can't give, since
+   * anyone can ask for a link to be sent to an address they registered first. Gates WORKSPACE_CREATORS. */
+  addressProvenAt: ts("address_proven_at"),
   createdAt: created(),
   updatedAt: updated(),
 });
@@ -666,6 +669,8 @@ export const referral = pgTable(
     status: text("status").$type<ReferralStatus>().notNull().default("lead"),
     /** Reported by the browser script and not yet confirmed by a checkout carrying its click: sales are held. */
     browserLead: boolean("browser_lead").notNull().default(false),
+    /** When a checkout or the founder confirmed a browser-reported signup; it is never flagged again. */
+    browserConfirmedAt: ts("browser_confirmed_at"),
     ipHash: text("ip_hash"),
     mrr: integer("mrr").notNull().default(0),
     revenue: integer("revenue").notNull().default(0),

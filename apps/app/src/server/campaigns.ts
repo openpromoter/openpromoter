@@ -16,7 +16,7 @@ import { toMinor } from "@/lib/money";
 import { aiJson } from "./ai/provider";
 import { type Actor, audit } from "./audit";
 import { isCampaignLive } from "./commission";
-import { db } from "./db";
+import { type AppDb, db, type Tx } from "./db";
 import { baseSale } from "./fx";
 
 export interface CampaignDraft {
@@ -272,8 +272,9 @@ async function grant(
   description: string,
   held: boolean | string = false,
   parentId: string | null = null,
+  tx: AppDb | Tx = db(),
 ) {
-  await db()
+  await tx
     .insert(commission)
     .values({
       id: createId("com"),
@@ -307,7 +308,7 @@ export async function evaluateBounties(
   partnerId: string,
   trigger: string,
   held = false,
-  sale: { id: string; held: boolean } | null = null,
+  sale: { id: string } | null = null,
 ) {
   const [prog] = await db().select().from(program).where(eq(program.id, programId));
   const [p] = await db().select().from(partner).where(eq(partner.id, partnerId));
@@ -350,21 +351,31 @@ export async function evaluateBounties(
     if (r.trigger === "first_sale" && trigger === "first_sale") {
       // the job runs after the payment's transaction: a refund replayed in it may already have reversed
       // the sale, and a hold may have been placed or lifted since, so read the sale as it is now
-      const [current] = sale
-        ? await db().select({ status: commission.status }).from(commission).where(eq(commission.id, sale.id))
-        : [];
-      if (sale && (!current || current.status === "reversed")) continue;
-      await grant(
-        prog,
-        partnerId,
-        c,
-        r.reward ?? 0,
-        `bounty:${c.id}:${partnerId}`,
-        `${c.name}: first paying customer`,
-        current?.status === "held" ? BOUNTY_HELD : false,
-        sale?.id ?? null,
-      );
-      granted++;
+      // the sale row is locked until the bounty is in: a refund committing in between waits, then
+      // finds the bounty and reverses it with the sale
+      const ok = await db().transaction(async (tx) => {
+        const [current] = sale
+          ? await tx
+              .select({ status: commission.status })
+              .from(commission)
+              .where(eq(commission.id, sale.id))
+              .for("update")
+          : [];
+        if (sale && (!current || current.status === "reversed")) return false;
+        await grant(
+          prog,
+          partnerId,
+          c,
+          r.reward ?? 0,
+          `bounty:${c.id}:${partnerId}`,
+          `${c.name}: first paying customer`,
+          current?.status === "held" ? BOUNTY_HELD : false,
+          sale?.id ?? null,
+          tx,
+        );
+        return true;
+      });
+      if (ok) granted++;
     }
     if (r.trigger === "revenue_milestone" && r.milestone) {
       const [row] = await db()

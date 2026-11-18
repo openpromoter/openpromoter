@@ -72,10 +72,12 @@ describe("CSV formula guard", () => {
 
 describe("workspace creation allowlist", () => {
   it("is open when unset and limited to the listed emails when set", () => {
-    expect(canCreateWorkspace("anyone@x.test")).toBe(true);
+    expect(canCreateWorkspace("anyone@x.test", false)).toBe(true);
     process.env.WORKSPACE_CREATORS = " Owner@Acme.test , ops@acme.test";
-    expect(canCreateWorkspace("owner@acme.test")).toBe(true);
-    expect(canCreateWorkspace("stranger@x.test")).toBe(false);
+    expect(canCreateWorkspace("owner@acme.test", true)).toBe(true);
+    expect(canCreateWorkspace("stranger@x.test", true)).toBe(false);
+    // someone who registered the listed address without owning it never verified it
+    expect(canCreateWorkspace("owner@acme.test", false)).toBe(false);
   });
 });
 
@@ -137,6 +139,9 @@ describe("browser-reported signups", () => {
       .from(commission)
       .where(and(eq(commission.partnerId, p.id), eq(commission.sourceKey, "dodo:pay_v3")));
     expect(third?.status).toBe("pending");
+    const [confirmed] = await db().select().from(referral).where(eq(referral.externalCustomerId, "cus_v"));
+    expect(confirmed).toMatchObject({ browserLead: false });
+    expect(confirmed?.browserConfirmedAt).toBeInstanceOf(Date);
   });
 
   it("a checkout carrying the lead's own click confirms it, so sales are not held", async () => {
@@ -194,7 +199,7 @@ describe("refunds and bounties", () => {
       .from(commission)
       .where(and(eq(commission.partnerId, p.id), eq(commission.kind, "sale")));
     // the worker runs this job after the payment
-    await evaluateBounties(f.program.id, p.id, "first_sale", false, { id: sale!.id, held: false });
+    await evaluateBounties(f.program.id, p.id, "first_sale", false, { id: sale!.id });
     const bounty = async () =>
       (
         await db()
@@ -209,6 +214,42 @@ describe("refunds and bounties", () => {
       data: { refund_id: "rfd_b", payment_id: "pay_b", amount: 10000, is_partial: false },
     });
     expect((await bounty())?.status).toBe("reversed");
+  });
+
+  it("a chargeback holds the first-sale bounty with its sale, and winning it releases both", async () => {
+    const { f, p, click } = await partnerWithClick();
+    await db()
+      .insert(campaign)
+      .values({
+        id: `cmp_${Math.random().toString(36).slice(2)}`,
+        programId: f.program.id,
+        name: "First sale",
+        status: "active",
+        startsAt: new Date(Date.now() - 86_400_000),
+        rule: { kind: "bounty", trigger: "first_sale", reward: 5000 } as never,
+      });
+    await send(f.ws.id, paid("cus_d", "pay_d", "d@customer.test", { op_click: click.clickId }));
+    const [sale] = await db()
+      .select()
+      .from(commission)
+      .where(and(eq(commission.partnerId, p.id), eq(commission.kind, "sale")));
+    await evaluateBounties(f.program.id, p.id, "first_sale", false, { id: sale!.id });
+    const bounty = async () =>
+      (
+        await db()
+          .select()
+          .from(commission)
+          .where(and(eq(commission.partnerId, p.id), eq(commission.kind, "bounty")))
+      )[0];
+    const dispute = (status: string) =>
+      send(f.ws.id, {
+        type: `dispute.${status}`,
+        data: { dispute_id: "dsp_1", payment_id: "pay_d", dispute_status: `dispute_${status}` },
+      });
+    await dispute("opened");
+    expect((await bounty())?.status).toBe("held");
+    await dispute("won");
+    expect((await bounty())?.status).toBe("pending");
   });
 
   it("no bounty for a sale already reversed when the job runs", async () => {
@@ -232,7 +273,7 @@ describe("refunds and bounties", () => {
       .select()
       .from(commission)
       .where(and(eq(commission.partnerId, p.id), eq(commission.kind, "sale")));
-    await evaluateBounties(f.program.id, p.id, "first_sale", false, { id: sale!.id, held: false });
+    await evaluateBounties(f.program.id, p.id, "first_sale", false, { id: sale!.id });
     const bounties = await db()
       .select()
       .from(commission)
