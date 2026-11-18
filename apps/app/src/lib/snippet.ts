@@ -74,8 +74,8 @@ export function snippet(base: string): string {
   if (existing) apply(existing);
   var params = new URLSearchParams(location.search);
   var direct = params.get("op_click");
-  // also honours the link parameters of Rewardful (via), FirstPromoter (fpr), Tolt (ref) and PartnerStack (gspk) so migrated links keep working
-  var code = params.get(param) || params.get("via") || params.get("ref") || params.get("fpr") || params.get("gspk");
+  // also honours the link parameters of Rewardful (via), FirstPromoter (fpr), Tolt (ref) and PartnerStack (gspk) and Lemon Squeezy (aff) so migrated links keep working
+  var code = params.get(param) || params.get("via") || params.get("ref") || params.get("fpr") || params.get("gspk") || params.get("aff");
   if (direct && /^clk_/.test(direct)) {
     var v = { c: direct, v: params.get("op_visitor") || (existing && existing.v), p: code || (existing && existing.p) };
     var days = Number(params.get("op_days")) || 60;

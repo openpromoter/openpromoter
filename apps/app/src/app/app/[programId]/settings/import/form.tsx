@@ -23,7 +23,7 @@ const KINDS: {
     sample:
       "email,name,referral_code,coupon_code,paypal_email\nmaya@example.com,Maya Chen,maya,MAYA20,maya@example.com",
     about: () =>
-      "Partners keep their referral codes. Links already shared keep working because op.js still reads ?via=, ?fpr=, ?ref= and ?gspk=.",
+      "Partners keep their referral codes. Links already shared keep working because op.js still reads ?via=, ?fpr=, ?ref=, ?gspk= and Lemon Squeezy's ?aff=.",
     columns: (param) =>
       `Recognized columns: email, name or first and last name, referral code (token, ref_id, slug, partner_key…), the old tool's partner ID, status, coupon, PayPal or Wise email, website and country. Your program link parameter is ?${param}=.`,
     done: (n) => `${n} ${n === 1 ? "partner" : "partners"} imported`,

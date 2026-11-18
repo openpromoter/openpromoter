@@ -93,7 +93,8 @@ export function parseLanding(
     u.searchParams.get("ref") ??
     u.searchParams.get("via") ??
     u.searchParams.get("fpr") ??
-    u.searchParams.get("gspk");
+    u.searchParams.get("gspk") ??
+    u.searchParams.get("aff");
   return {
     code: code ? code.slice(0, 64) : null,
     subId: u.searchParams.get("sub")?.slice(0, 64) ?? null,

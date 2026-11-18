@@ -107,6 +107,7 @@ const CODE_ALIASES = [
   "slug",
   "partner_key",
   "gspk",
+  "aff",
   "affiliate_code",
 ];
 
@@ -282,7 +283,7 @@ const chunked = <T>(list: T[]) =>
 
 /**
  * Partners from the old tool. Codes stay exactly as exported so links already shared keep attributing
- * (op.js reads ?via=, ?fpr=, ?ref= and ?gspk=). A code another partner owns is never renamed: the row is
+ * (op.js reads ?via=, ?fpr=, ?ref=, ?gspk= and ?aff=). A code another partner owns is never renamed: the row is
  * left out and listed. The whole file goes in one transaction.
  */
 export async function importPartners(programId: string, csv: string, actor: Actor): Promise<ImportResult> {

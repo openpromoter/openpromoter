@@ -32,6 +32,7 @@ describe("attribution", () => {
     const l = parseLanding("https://acme.test/pricing?via=pat&sub=yt&utm_source=youtube&utm_campaign=launch");
     expect(l).toEqual({ code: "pat", subId: "yt", utm: { utm_source: "youtube", utm_campaign: "launch" } });
     expect(parseLanding("https://acme.test/?ref=sam", "ref").code).toBe("sam");
+    expect(parseLanding("https://acme.test/?aff=lsx9").code).toBe("lsx9"); // Lemon Squeezy links
     expect(parseLanding("not a url").code).toBeNull();
   });
 });

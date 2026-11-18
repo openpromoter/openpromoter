@@ -62,7 +62,7 @@ Here is how OpenPromoter compares with the paid affiliate tools most SaaS founde
 
 <sub>List prices from each vendor's pricing page as of November 2026. Sources and full comparisons: [Rewardful](https://openpromoter.com/vs/rewardful/), [FirstPromoter](https://openpromoter.com/vs/firstpromoter/), [Tolt](https://openpromoter.com/vs/tolt/), [Dub Partners](https://openpromoter.com/vs/dub-partners/) and [PartnerStack](https://openpromoter.com/vs/partnerstack/). See every [alternative](https://openpromoter.com/alternatives/).</sub>
 
-Switching is a CSV import of your partners, the customers they referred and their balances. Links that use `?via=`, `?fpr=`, `?ref=` or `?gspk=` keep working. Renewals keep paying the same partner and unpaid balances go into the next payout. Partners don't have to change anything. See [switching from another affiliate tool](#switching-from-another-affiliate-tool).
+Switching is a CSV import of your partners, the customers they referred and their balances. Links that use `?via=`, `?fpr=`, `?ref=`, `?gspk=` or Lemon Squeezy's `?aff=` keep working. Renewals keep paying the same partner and unpaid balances go into the next payout. Partners don't have to change anything. See [switching from another affiliate tool](#switching-from-another-affiliate-tool).
 
 ## Try the live demo
 
@@ -138,7 +138,7 @@ Read more: [partner portal](https://openpromoter.com/features/partner-portal/).
 ### Switching from another affiliate tool
 
 - Import three CSV files in Settings > Import: partners, the customers they referred and their balances.
-- Partners keep their codes exactly as exported. Old `?via=`, `?fpr=`, `?ref=` and `?gspk=` links keep working.
+- Partners keep their codes exactly as exported. Old `?via=`, `?fpr=`, `?ref=`, `?gspk=` and Lemon Squeezy's `?aff=` links keep working.
 - Each customer stays with the partner who brought them. Renewals keep paying that partner and a one-time commission is never paid twice.
 - Files that name partners only by the old tool's ID still match. Tolt exports work this way.
 - Unpaid balances join the next payout. Totals already paid count toward each partner's lifetime earnings.
