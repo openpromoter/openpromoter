@@ -87,8 +87,8 @@ export default async function InstallSettings({ params }: { params: Promise<{ pr
         code={s.prompt}
       />
       <CodeBlock
-        label="Paddle, Lemon Squeezy and Polar"
-        code={`// Pass the click id as custom data at checkout:\n// Paddle.js:      Paddle.Checkout.open({ customData: { op_click: window.openpromoter.clickId } })\n// Lemon Squeezy:  checkout URL ?checkout[custom][op_click]=<clickId>\n// Polar:          checkout metadata: { op_click: <clickId> }`}
+        label="Paddle, Lemon Squeezy, Polar and Dodo Payments"
+        code={`// Pass the click id as custom data at checkout:\n// Paddle.js:      Paddle.Checkout.open({ customData: { op_click: window.openpromoter.clickId } })\n// Lemon Squeezy:  checkout URL ?checkout[custom][op_click]=<clickId>\n// Polar:          checkout metadata: { op_click: <clickId> }\n// Dodo Payments:  checkout session metadata: { op_click: <clickId> }, or payment link ?metadata_op_click=<clickId>`}
       />
     </>
   );

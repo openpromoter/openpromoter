@@ -505,7 +505,7 @@ export async function importStripeAction(programId: string) {
 
 export async function connectProviderAction(
   programId: string,
-  provider: "paddle" | "lemonsqueezy" | "polar" | "chargebee",
+  provider: "paddle" | "lemonsqueezy" | "polar" | "chargebee" | "dodo",
   webhookSecret: string,
   sandbox = false,
 ) {
@@ -513,7 +513,7 @@ export async function connectProviderAction(
     const ctx = await actionCtx(programId, "developer.write");
     await setWebhookSecret(
       ctx.program.workspaceId,
-      z.enum(["paddle", "lemonsqueezy", "polar", "chargebee"]).parse(provider),
+      z.enum(["paddle", "lemonsqueezy", "polar", "chargebee", "dodo"]).parse(provider),
       z.string().min(8).max(300).parse(webhookSecret.trim()),
       ctx.actor,
       null,
@@ -621,7 +621,7 @@ async function verifyPayoutCredentials(
 
 export async function disconnectAction(
   programId: string,
-  provider: "stripe" | "paddle" | "lemonsqueezy" | "polar" | "chargebee" | "paypal" | "wise",
+  provider: "stripe" | "paddle" | "lemonsqueezy" | "polar" | "chargebee" | "dodo" | "paypal" | "wise",
 ) {
   return safe(async () => {
     const ctx = await actionCtx(programId, "billing.write");

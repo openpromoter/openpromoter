@@ -47,11 +47,13 @@ export function IntegrationsView({
   canBilling: boolean;
   local: boolean;
   oauthUrl: string | null;
-  urls: Record<"stripe" | "paddle" | "lemonsqueezy" | "polar" | "chargebee", string>;
+  urls: Record<"stripe" | "paddle" | "lemonsqueezy" | "polar" | "chargebee" | "dodo", string>;
   status: Record<string, S>;
 }) {
   const { pending, run } = useAction();
-  const disconnect = (p: "stripe" | "paddle" | "lemonsqueezy" | "polar" | "chargebee" | "paypal" | "wise") =>
+  const disconnect = (
+    p: "stripe" | "paddle" | "lemonsqueezy" | "polar" | "chargebee" | "dodo" | "paypal" | "wise",
+  ) =>
     status[p] && canBilling ? (
       <Button
         type="button"
@@ -182,7 +184,7 @@ export function IntegrationsView({
         </CardBody>
       </Card>
 
-      {(["paddle", "lemonsqueezy", "polar", "chargebee"] as const).map((p) => (
+      {(["paddle", "lemonsqueezy", "polar", "chargebee", "dodo"] as const).map((p) => (
         <Card key={p}>
           <CardHeader
             title={
@@ -193,6 +195,7 @@ export function IntegrationsView({
                     lemonsqueezy: "Lemon Squeezy",
                     polar: "Polar",
                     chargebee: "Chargebee",
+                    dodo: "Dodo Payments",
                   }[p]
                 }
               </BrandTitle>
@@ -205,6 +208,7 @@ export function IntegrationsView({
                 polar: "Add a webhook endpoint in Polar with this URL and paste its secret.",
                 chargebee:
                   "Add a webhook in Chargebee with this URL and basic authentication; paste the same user:password here.",
+                dodo: "Add a webhook endpoint in Dodo Payments (Developer > Webhooks) with this URL and paste its signing secret. Turn on Sandbox for a test mode endpoint.",
               }[p]
             }
             action={<Status s={status[p] ?? null} />}

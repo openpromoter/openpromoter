@@ -2,6 +2,7 @@ import { billingConnection } from "@openpromoter/db";
 import { and, eq } from "drizzle-orm";
 import { decrypt } from "@/lib/crypto";
 import { normalizeChargebee, verifyChargebee } from "@/server/billing/chargebee";
+import { normalizeDodo, verifyDodo } from "@/server/billing/dodo";
 import { normalizeLemonSqueezy, verifyLemonSqueezy } from "@/server/billing/lemonsqueezy";
 import { normalizePaddle, verifyPaddle } from "@/server/billing/paddle";
 import { normalizePolar, verifyPolar } from "@/server/billing/polar";
@@ -12,7 +13,7 @@ import { ingestAndAck, parseStripe, readCapped } from "@/server/webhook-ingest";
 
 export const runtime = "nodejs";
 
-const PROVIDERS = new Set<Provider>(["stripe", "paddle", "lemonsqueezy", "polar", "chargebee"]);
+const PROVIDERS = new Set<Provider>(["stripe", "paddle", "lemonsqueezy", "polar", "chargebee", "dodo"]);
 
 export async function POST(
   req: Request,
@@ -49,6 +50,19 @@ export async function POST(
       );
     else if (provider === "lemonsqueezy")
       parsed = normalizeLemonSqueezy(verifyLemonSqueezy(raw, req.headers.get("x-signature"), secret));
+    else if (provider === "dodo")
+      parsed = normalizeDodo(
+        verifyDodo(
+          raw,
+          {
+            id: req.headers.get("webhook-id"),
+            timestamp: req.headers.get("webhook-timestamp"),
+            signature: req.headers.get("webhook-signature"),
+          },
+          secret,
+        ),
+        conn.livemode,
+      );
     else
       parsed = normalizePolar(
         verifyPolar(

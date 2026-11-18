@@ -42,7 +42,7 @@ Affiliate software for SaaS usually costs $49 to $99 a month, and some tools als
 Use it for an affiliate program with creators, a referral program for your customers or a partner program with agencies. Partners share a link or a coupon. OpenPromoter turns each paid sale into a commission and pays it out.
 
 - **0% of your payouts** on every plan, self-hosted or Cloud.
-- **Every billing system at once:** Stripe, Paddle, Lemon Squeezy, Polar and Chargebee.
+- **Every billing system at once:** Stripe, Paddle, Lemon Squeezy, Polar, Chargebee and Dodo Payments.
 - **Fraud checks before money moves:** risky commissions are held for review.
 - **AI with an undo button:** it designs the program and drafts the work. A person approves every payout.
 - **Your data on your server:** one `docker compose up` and Postgres.
@@ -200,8 +200,18 @@ Read more: [AI Autopilot](https://openpromoter.com/features/ai-autopilot/).
 | [Lemon Squeezy](https://openpromoter.com/integrations/lemon-squeezy/) | Wise | REST API | Signed webhooks |
 | [Polar](https://openpromoter.com/integrations/polar/) | CSV export | Stripe metadata | Email reports |
 | [Chargebee](https://openpromoter.com/integrations/chargebee/) | | Coupon codes | |
+| [Dodo Payments](#dodo-payments) | | | |
 
 Any other billing system can report payments through `POST /api/v1/conversions`. Setup guides for each one are on the [integrations page](https://openpromoter.com/integrations/).
+
+### Dodo Payments
+
+1. In Settings > Integrations, copy the Dodo Payments webhook URL.
+2. In the Dodo dashboard (Developer > Webhooks), add an endpoint with that URL and subscribe to `payment.succeeded`, `refund.succeeded`, the `dispute.*` events and the `subscription.*` events.
+3. Paste the endpoint's signing secret (`whsec_...`) into OpenPromoter and save. Dodo's test mode has its own endpoints and secrets, so for a test mode endpoint turn on Sandbox before saving.
+4. Pass the click ID to checkout so the sale finds its partner. With a checkout session, set `metadata: { op_click: window.openpromoter.clickId }`. With a payment link, add `?metadata_op_click=<clickId>`. A partner's coupon code also attributes the sale.
+
+Commissions are calculated on the amount before tax. A full refund reverses the whole commission. Partial refund amounts from Dodo include tax, so a partial refund on a taxed sale reverses slightly more than its pre-tax share. Dodo sends no customer webhook, so a referral starts at the first payment.
 
 ## For developers and AI agents
 
@@ -239,7 +249,7 @@ Yes. Self-hosting is free, with every feature and no limit on partners or revenu
 
 ### Is there an open-source alternative to Rewardful?
 
-OpenPromoter is one. It tracks Stripe and Paddle sales like Rewardful does and adds Lemon Squeezy, Polar and Chargebee. You can import your Rewardful partners, their referred customers and their commissions from CSV files.
+OpenPromoter is one. It tracks Stripe and Paddle sales like Rewardful does and adds Lemon Squeezy, Polar, Chargebee and Dodo Payments. You can import your Rewardful partners, their referred customers and their commissions from CSV files.
 
 ### How do I switch from another affiliate tool?
 
@@ -247,7 +257,7 @@ Export partners, referred customers and balances from Rewardful, FirstPromoter, 
 
 ### Does it work without Stripe?
 
-Yes. Paddle, Lemon Squeezy, Polar and Chargebee each connect directly. Any other billing system can send sales to the REST API.
+Yes. Paddle, Lemon Squeezy, Polar, Chargebee and Dodo Payments each connect directly. Any other billing system can send sales to the REST API.
 
 ### Do I need cookies to track referrals?
 
