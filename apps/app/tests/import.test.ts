@@ -4,14 +4,18 @@ import { describe, expect, it } from "vitest";
 import { SYSTEM } from "@/server/audit";
 import { db } from "@/server/db";
 import { importBalances, importPartners, importReferrals, parseAmount } from "@/server/importer";
-import { balances, mainBalance, payableBalances } from "@/server/ledger";
 import { ingest } from "@/server/ingest";
+import { balances, mainBalance, payableBalances } from "@/server/ledger";
 import { addPartner, evt, fixture, payment } from "./helpers";
 
 describe("partner import keeps codes", () => {
   it("keeps dashes, underscores and dots in codes", async () => {
     const f = await fixture();
-    await importPartners(f.program.id, "email,referral_code\na@x.io,john-doe\nb@x.io,jane_s\nc@x.io,a.b", SYSTEM);
+    await importPartners(
+      f.program.id,
+      "email,referral_code\na@x.io,john-doe\nb@x.io,jane_s\nc@x.io,a.b",
+      SYSTEM,
+    );
     const codes = (await db().select().from(partner).where(eq(partner.programId, f.program.id)))
       .map((p) => p.code)
       .sort();

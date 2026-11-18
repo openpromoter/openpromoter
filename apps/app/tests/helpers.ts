@@ -1,6 +1,6 @@
 import { member, partner, partnerGroup, program, user, workspace } from "@openpromoter/db";
-import type { BillingEvent, ParsedWebhook } from "@/server/billing/types";
 import { createCode, createId } from "@/lib/id";
+import type { BillingEvent, ParsedWebhook } from "@/server/billing/types";
 import { db } from "@/server/db";
 
 export async function fixture(overrides: Partial<typeof program.$inferInsert> = {}) {

@@ -1,4 +1,13 @@
-import { commission, link, partner, partnerGroup, program, promoCode, type ReferralStatus, referral } from "@openpromoter/db";
+import {
+  commission,
+  link,
+  partner,
+  partnerGroup,
+  program,
+  promoCode,
+  type ReferralStatus,
+  referral,
+} from "@openpromoter/db";
 import { and, eq, sql } from "drizzle-orm";
 import { createCode, createId, slugify } from "@/lib/id";
 import { toMinor } from "@/lib/money";
@@ -63,7 +72,10 @@ const ALIASES: Record<string, string[]> = {
 
 /** A referral code as the old tool wrote it: letters, digits, dash, underscore and dot, at most 64 (attribution reads 64). */
 export function cleanCode(raw: string): string {
-  return raw.trim().replace(/[^A-Za-z0-9_.-]/g, "").slice(0, 64);
+  return raw
+    .trim()
+    .replace(/[^A-Za-z0-9_.-]/g, "")
+    .slice(0, 64);
 }
 
 /** The partner a migration row points at: by email first, then by code. */
@@ -128,7 +140,8 @@ export async function importPartners(programId: string, csv: string, actor: Acto
       .where(and(eq(partner.programId, programId), sql`lower(${partner.code}) = lower(${code})`));
     if (taken && own) {
       // renaming would break every link this partner already shared, so leave it to the founder
-      if (taken.email.toLowerCase() !== email) conflicts.push(`${email}: code ${own} belongs to another partner`);
+      if (taken.email.toLowerCase() !== email)
+        conflicts.push(`${email}: code ${own} belongs to another partner`);
       skipped++;
       continue;
     }
@@ -292,7 +305,11 @@ export async function importReferrals(programId: string, csv: string, actor: Act
         via: "manual",
         status,
         convertedAt:
-          status === "lead" ? null : Number.isNaN(when.getTime()) || !get(r, "convertedAt") ? new Date() : when,
+          status === "lead"
+            ? null
+            : Number.isNaN(when.getTime()) || !get(r, "convertedAt")
+              ? new Date()
+              : when,
         canceledAt: status === "canceled" ? new Date() : null,
       })
       .onConflictDoNothing()
@@ -300,7 +317,13 @@ export async function importReferrals(programId: string, csv: string, actor: Act
     if (row) created++;
     else skipped++;
   }
-  await audit(prog.workspaceId, actor, "referral.import", { type: "program", id: programId }, { created, skipped });
+  await audit(
+    prog.workspaceId,
+    actor,
+    "referral.import",
+    { type: "program", id: programId },
+    { created, skipped },
+  );
   return { created, skipped, columns: Object.keys(cols), missing };
 }
 
@@ -356,7 +379,12 @@ export async function importBalances(programId: string, csv: string, actor: Acto
       continue;
     }
     const lines = [
-      { key: "unpaid", major: unpaid, status: "approved" as const, description: "Balance brought over from your previous tool" },
+      {
+        key: "unpaid",
+        major: unpaid,
+        status: "approved" as const,
+        description: "Balance brought over from your previous tool",
+      },
       { key: "paid", major: paid, status: "paid" as const, description: "Paid out in your previous tool" },
     ];
     let any = false;
@@ -387,6 +415,12 @@ export async function importBalances(programId: string, csv: string, actor: Acto
     }
     if (!any) skipped++;
   }
-  await audit(prog.workspaceId, actor, "balance.import", { type: "program", id: programId }, { created, skipped });
+  await audit(
+    prog.workspaceId,
+    actor,
+    "balance.import",
+    { type: "program", id: programId },
+    { created, skipped },
+  );
   return { created, skipped, columns: Object.keys(cols), missing };
 }

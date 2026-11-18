@@ -988,12 +988,18 @@ export async function networkListingAction(programId: string, listed: boolean) {
   );
 }
 
-export async function importPartnersAction(programId: string, csv: string) {
+export async function importAction(
+  programId: string,
+  kind: "partners" | "referrals" | "balances",
+  csv: string,
+) {
   return safe(async () => {
     const ctx = await actionCtx(programId, "partners.write");
     if (csv.length > 5_000_000) throw new Error("File too large (5 MB max)");
-    const { importPartners } = await import("@/server/importer");
-    const r = await importPartners(programId, csv, ctx.actor);
+    const im = await import("@/server/importer");
+    const fn =
+      kind === "referrals" ? im.importReferrals : kind === "balances" ? im.importBalances : im.importPartners;
+    const r = await fn(programId, csv, ctx.actor);
     rv(programId);
     return r;
   });

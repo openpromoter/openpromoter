@@ -4,5 +4,5 @@ import { ImportForm } from "./form";
 export default async function ImportPage({ params }: { params: Promise<{ programId: string }> }) {
   const { programId } = await params;
   const { program: p } = await programCtx(programId);
-  return <ImportForm programId={programId} param={p.referralParam} />;
+  return <ImportForm programId={programId} param={p.referralParam} currency={p.currency} />;
 }
