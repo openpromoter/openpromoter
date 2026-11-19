@@ -351,7 +351,10 @@ export function DevelopersView({
             </a>{" "}
             · Program id: <span className="font-mono placeholder:font-sans">{programId}</span>
           </p>
-          <Field label="MCP connector URL (Claude, ChatGPT and other apps that connect by URL)" htmlFor="mcp-url">
+          <Field
+            label="MCP connector URL (Claude, ChatGPT and other apps that connect by URL)"
+            htmlFor="mcp-url"
+          >
             <CopyField value={`${appUrl}/mcp`} />
           </Field>
           <CodeBlock

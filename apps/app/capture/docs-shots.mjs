@@ -38,7 +38,9 @@ async function swapHosts(page) {
 
 /** Draw rings (and numbered chips) around elements. marks: [{ sel | locator, n? }] */
 async function mark(page, marks = []) {
-  await page.evaluate(() => document.querySelectorAll("[data-op-mark]").forEach((e) => e.remove()));
+  await page.evaluate(() => {
+    for (const e of document.querySelectorAll("[data-op-mark]")) e.remove();
+  });
   for (const [i, m] of marks.entries()) {
     const loc = typeof m.sel === "string" ? page.locator(m.sel).first() : m.sel;
     if (i === 0) await loc.scrollIntoViewIfNeeded().catch(() => {});
@@ -97,9 +99,16 @@ async function shoot(page, name, { marks, el, full, scrollTo } = {}) {
   if (ONLY && !name.startsWith(ONLY)) return;
   await page.waitForLoadState("load").catch(() => {});
   await page.waitForTimeout(900);
-  if (scrollTo) await page.locator(scrollTo).first().scrollIntoViewIfNeeded().catch(() => {});
+  if (scrollTo)
+    await page
+      .locator(scrollTo)
+      .first()
+      .scrollIntoViewIfNeeded()
+      .catch(() => {});
   await swapHosts(page);
-  await page.evaluate(() => document.querySelectorAll("[data-sonner-toaster], nextjs-portal").forEach((e) => e.remove()));
+  await page.evaluate(() => {
+    for (const e of document.querySelectorAll("[data-sonner-toaster], nextjs-portal")) e.remove();
+  });
   await mark(page, marks);
   const path = `${OUT}/${name}.png`;
   if (el) {
@@ -142,19 +151,33 @@ const opts = { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, col
   const A = `${B}/app/${pid}`;
   await page.goto(A);
   await shoot(page, "dashboard");
-  await shoot(page, "dashboard-checklist", { el: page.getByText("Finish setup").first().locator("xpath=ancestor::*[contains(@class,'rounded')][1]") });
+  await shoot(page, "dashboard-checklist", {
+    el: page.getByText("Finish setup").first().locator("xpath=ancestor::*[contains(@class,'rounded')][1]"),
+  });
   await page.goto(`${A}/partners`);
   await shoot(page, "partners-list");
-  await shoot(page, "partners-pending", { marks: [{ sel: page.getByText(/^Needs approval/).first(), label: "needs approval tab" }] });
+  await shoot(page, "partners-pending", {
+    marks: [{ sel: page.getByText(/^Needs approval/).first(), label: "needs approval tab" }],
+  });
   // invite a partner by email
-  await page.getByRole("button", { name: "Invite partner" }).first().click().catch(() => {});
+  await page
+    .getByRole("button", { name: "Invite partner" })
+    .first()
+    .click()
+    .catch(() => {});
   await page.waitForTimeout(700);
   await shoot(page, "invite-partners");
   await page.keyboard.press("Escape");
-  const leo = await page.locator('a[href*="/partners/prt_"]').filter({ hasText: "Leo Martins" }).first().getAttribute("href");
+  const leo = await page
+    .locator('a[href*="/partners/prt_"]')
+    .filter({ hasText: "Leo Martins" })
+    .first()
+    .getAttribute("href");
   await page.goto(`${B}${leo}`);
   await shoot(page, "partner-detail");
-  await shoot(page, "partner-rate-override", { marks: [{ sel: page.getByText(/Custom rate|Commission override|override/i).first(), label: "override" }] });
+  await shoot(page, "partner-rate-override", {
+    marks: [{ sel: page.getByText(/Custom rate|Commission override|override/i).first(), label: "override" }],
+  });
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await shoot(page, "partner-traffic", { el: sectionOf(page, "Traffic") });
 
@@ -178,8 +201,14 @@ const opts = { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, col
 
   await page.goto(`${A}/payouts`);
   await shoot(page, "payouts");
-  await shoot(page, "payouts-approve", { marks: [{ sel: page.getByRole("button", { name: /^Approve \d+ payout/ }).first(), label: "approve" }] });
-  const inv = await page.locator('a[href*="/invoice"]').first().getAttribute("href").catch(() => null);
+  await shoot(page, "payouts-approve", {
+    marks: [{ sel: page.getByRole("button", { name: /^Approve \d+ payout/ }).first(), label: "approve" }],
+  });
+  const inv = await page
+    .locator('a[href*="/invoice"]')
+    .first()
+    .getAttribute("href")
+    .catch(() => null);
   if (inv) {
     await page.goto(`${B}${inv}`);
     await shoot(page, "payout-invoice");
@@ -207,7 +236,10 @@ const opts = { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, col
     ["/settings/programs", "settings-programs"],
   ]) {
     await page.goto(`${A}${path}`);
-    await shoot(page, name, { full: name === "settings-application" || name === "settings-integrations" || name === "settings-developers" });
+    await shoot(page, name, {
+      full:
+        name === "settings-application" || name === "settings-integrations" || name === "settings-developers",
+    });
   }
   await page.goto(`${A}/settings/branding`);
   await shoot(page, "settings-custom-domain", { el: cardOf(page, "Custom domain") });
@@ -254,7 +286,9 @@ const opts = { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, col
     await shoot(page, name, { full: name === "portal-settings" });
   }
   await page.goto(P);
-  await shoot(page, "portal-copy-link", { marks: [{ sel: page.getByRole("button", { name: "Copy link" }).first(), label: "copy" }] });
+  await shoot(page, "portal-copy-link", {
+    marks: [{ sel: page.getByRole("button", { name: "Copy link" }).first(), label: "copy" }],
+  });
   await ctx.close();
 }
 
@@ -265,8 +299,15 @@ const opts = { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, col
   const id = Date.now().toString(36);
   await page.goto(`${B}/signup`);
   await shoot(page, "signup");
-  await page.getByLabel("Name").fill("Maya Patel").catch(() => {});
-  await page.getByLabel(/email/i).first().fill(`maya.${id}@docs.example`).catch(() => {});
+  await page
+    .getByLabel("Name")
+    .fill("Maya Patel")
+    .catch(() => {});
+  await page
+    .getByLabel(/email/i)
+    .first()
+    .fill(`maya.${id}@docs.example`)
+    .catch(() => {});
   await page.getByLabel("Email").fill(`maya.${id}@docs.example`);
   await page.getByLabel("Password", { exact: true }).fill("docs-password-123");
   await page.getByRole("button", { name: /Create account|Sign up/ }).click();
@@ -274,9 +315,17 @@ const opts = { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, col
   await shoot(page, "onboarding-1-product");
   // a made-up company: docs never show a real brand as our customer
   await page.getByLabel("Website URL").fill("https://northwind.example");
-  await page.getByLabel(/Product name/).fill("Northwind CRM").catch(() => {});
-  await shoot(page, "onboarding-1-product-filled", { marks: [{ sel: page.getByRole("button", { name: /Continue/ }).first(), label: "continue" }] });
-  await page.getByRole("button", { name: /Continue/ }).first().click();
+  await page
+    .getByLabel(/Product name/)
+    .fill("Northwind CRM")
+    .catch(() => {});
+  await shoot(page, "onboarding-1-product-filled", {
+    marks: [{ sel: page.getByRole("button", { name: /Continue/ }).first(), label: "continue" }],
+  });
+  await page
+    .getByRole("button", { name: /Continue/ })
+    .first()
+    .click();
   await page.waitForURL(/step=2/, { timeout: 60_000 }).catch(() => {});
   // the "Running on localhost" help only appears on a local install
   await page.evaluate(() => {
@@ -284,7 +333,9 @@ const opts = { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, col
       if (el.childElementCount < 12 && el.textContent?.startsWith("Running on localhost")) el.remove();
   });
   await page.evaluate(() => {
-    const h = [...document.querySelectorAll("*")].find((e) => e.children.length < 6 && e.textContent?.trim().startsWith("Running on localhost"));
+    const h = [...document.querySelectorAll("*")].find(
+      (e) => e.children.length < 6 && e.textContent?.trim().startsWith("Running on localhost"),
+    );
     h?.closest("div[class*='rounded']")?.remove();
   });
   await shoot(page, "onboarding-2-billing");
