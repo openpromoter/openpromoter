@@ -81,8 +81,9 @@ Open http://localhost:3000 and sign in to the demo workspace with `demo@openprom
 ### Deploy to a server
 
 <a href="https://render.com/deploy?repo=https://github.com/openpromoter/openpromoter"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render" height="40"></a>
+<a href="https://railway.com/deploy/openpromoter"><img src="https://railway.com/button.svg" alt="Deploy on Railway" height="40"></a>
 
-Render reads [render.yaml](render.yaml) and creates the app and its Postgres database. On Railway, Fly.io or your own VPS, run the [Dockerfile](Dockerfile) with Postgres 16 and set these variables:
+Render reads [render.yaml](render.yaml) and creates the app and its Postgres database. The Railway button deploys the app with Postgres from a template. On Fly.io or your own VPS, run the [Dockerfile](Dockerfile) with Postgres 16 and set these variables:
 
 | Variable | What it is |
 |---|---|
