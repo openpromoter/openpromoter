@@ -1,4 +1,4 @@
-export type Provider = "stripe" | "paddle" | "lemonsqueezy" | "polar" | "chargebee" | "api";
+export type Provider = "stripe" | "paddle" | "lemonsqueezy" | "polar" | "chargebee" | "dodo" | "api";
 
 export interface Attribution {
   clientReferenceId?: string | null;

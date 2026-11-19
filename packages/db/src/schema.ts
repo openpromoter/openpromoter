@@ -198,7 +198,7 @@ export const billingConnection = pgTable(
       .notNull()
       .references(() => workspace.id, { onDelete: "cascade" }),
     provider: text("provider")
-      .$type<"stripe" | "paddle" | "lemonsqueezy" | "polar" | "chargebee" | "paypal" | "wise">()
+      .$type<"stripe" | "paddle" | "lemonsqueezy" | "polar" | "chargebee" | "dodo" | "paypal" | "wise">()
       .notNull(),
     mode: text("mode").$type<"oauth" | "api_key">().notNull(),
     accountId: text("account_id"),

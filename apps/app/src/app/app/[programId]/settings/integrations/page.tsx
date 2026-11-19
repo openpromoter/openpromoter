@@ -39,6 +39,7 @@ export default async function IntegrationsPage({ params }: { params: Promise<{ p
         lemonsqueezy: webhookUrl("lemonsqueezy", p.workspaceId),
         polar: webhookUrl("polar", p.workspaceId),
         chargebee: webhookUrl("chargebee", p.workspaceId),
+        dodo: webhookUrl("dodo", p.workspaceId),
       }}
       status={{
         stripe: status("stripe"),
@@ -46,6 +47,7 @@ export default async function IntegrationsPage({ params }: { params: Promise<{ p
         lemonsqueezy: status("lemonsqueezy"),
         polar: status("polar"),
         chargebee: status("chargebee"),
+        dodo: status("dodo"),
         paypal: status("paypal"),
         wise: status("wise"),
       }}

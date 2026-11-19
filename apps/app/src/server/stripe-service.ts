@@ -90,7 +90,7 @@ async function registerEndpoint(
 
 export async function setWebhookSecret(
   workspaceId: string,
-  provider: "stripe" | "paddle" | "lemonsqueezy" | "polar" | "chargebee",
+  provider: "stripe" | "paddle" | "lemonsqueezy" | "polar" | "chargebee" | "dodo",
   secret: string,
   actor: Actor,
   apiKey?: string | null,
