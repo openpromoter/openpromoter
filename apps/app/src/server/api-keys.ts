@@ -6,6 +6,9 @@ import { type Actor, audit } from "./audit";
 import { db } from "./db";
 import { env } from "./env";
 
+/** Keys from the MCP sign-in start with this; their stored prefix keeps it. */
+export const OAUTH_KEY_PREFIX = "op_mcp_";
+
 /** Creates an API key and returns the raw key, shown once. Settings and the MCP OAuth flow both use it. */
 export async function mintApiKey(input: {
   workspaceId: string;
@@ -13,8 +16,11 @@ export async function mintApiKey(input: {
   scopes: ApiScope[];
   userId: string;
   actor: Actor;
+  /** Issued by the MCP sign-in: works only while its creator still has developer access to the workspace. */
+  oauth?: boolean;
 }) {
-  const raw = `op_${env.HOSTED_MODE === "true" ? "live" : "sk"}_${randomToken(24)}`;
+  const kind = input.oauth ? "mcp" : env.HOSTED_MODE === "true" ? "live" : "sk";
+  const raw = `op_${kind}_${randomToken(24)}`;
   await db()
     .insert(apiKey)
     .values({
