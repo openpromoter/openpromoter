@@ -1,0 +1,1 @@
+ALTER TABLE "program" ADD COLUMN "hold_browser_leads" boolean DEFAULT false NOT NULL;

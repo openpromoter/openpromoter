@@ -523,7 +523,7 @@ async function handlePayment(
       ? `Risk score ${risk.score}: ${risk.reasons.join(", ") || "partner risk"}`
       : p.status !== "approved"
         ? `Partner is ${p.status}`
-        : r.browserLead
+        : r.browserLead && prog.holdBrowserLeads
           ? "The signup was reported by the browser script and the checkout didn't carry the partner's click. Approve it once you know this customer came from the partner."
           : null;
   const [c] = await tx

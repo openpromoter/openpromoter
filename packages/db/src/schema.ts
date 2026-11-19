@@ -423,6 +423,8 @@ export const program = pgTable(
     autoApprove: jsonb("auto_approve").$type<AutoApproveRules>().notNull(),
     doubleSided: jsonb("double_sided").$type<DoubleSided>().notNull(),
     fraudHoldScore: integer("fraud_hold_score").notNull().default(70),
+    /** Hold sales from signups the browser script reported until a checkout carries the click or the founder approves one. */
+    holdBrowserLeads: boolean("hold_browser_leads").notNull().default(false),
     terms: text("terms"),
     /** Where partners' replies to program emails go; empty = the workspace owner's email. */
     replyTo: text("reply_to"),

@@ -1,4 +1,4 @@
-import { campaign, commission, referral } from "@openpromoter/db";
+import { campaign, commission, program, referral } from "@openpromoter/db";
 import { and, eq } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vitest";
 import { clientIp } from "@/lib/client-ip";
@@ -97,8 +97,10 @@ const paid = (customer: string, paymentId: string, email: string, metadata: Json
   },
 });
 
-async function partnerWithClick() {
+async function partnerWithClick(holdBrowserLeads = false) {
   const f = await fixture();
+  if (holdBrowserLeads)
+    await db().update(program).set({ holdBrowserLeads }).where(eq(program.id, f.program.id));
   const p = await addPartner(f.program.id, f.ws.id);
   const click = await recordClick({
     programId: f.program.id,
@@ -111,8 +113,25 @@ async function partnerWithClick() {
 }
 
 describe("browser-reported signups", () => {
-  it("a partner pre-claiming an email gets a held sale, renewals included", async () => {
+  it("is off by default: a browser-reported signup's sales are not held", async () => {
     const { f, p, click } = await partnerWithClick();
+    await recordLead({
+      programId: f.program.id,
+      email: "plain@customer.test",
+      clickId: click.clickId,
+      browser: true,
+      ip: "1.2.3.4",
+    });
+    await send(f.ws.id, paid("cus_o", "pay_o1", "plain@customer.test"));
+    const [sale] = await db()
+      .select()
+      .from(commission)
+      .where(and(eq(commission.partnerId, p.id), eq(commission.kind, "sale")));
+    expect(sale?.status).toBe("pending");
+  });
+
+  it("with the program's hold on, a partner pre-claiming an email gets a held sale, renewals included", async () => {
+    const { f, p, click } = await partnerWithClick(true);
     const lead = await recordLead({
       programId: f.program.id,
       email: "victim@customer.test",
@@ -145,7 +164,7 @@ describe("browser-reported signups", () => {
   });
 
   it("a checkout carrying the lead's own click confirms it, so sales are not held", async () => {
-    const { f, p, click } = await partnerWithClick();
+    const { f, p, click } = await partnerWithClick(true);
     await recordLead({
       programId: f.program.id,
       email: "real@customer.test",

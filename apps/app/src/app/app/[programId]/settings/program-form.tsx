@@ -322,6 +322,16 @@ export function ProgramForm({
               className="num w-32"
             />
           </Field>
+          <Field
+            label="Signups reported by the browser script"
+            htmlFor="holdBrowserLeads"
+            hint="The script can't prove the email belongs to the visitor, so a partner could report someone else's email and earn on their purchase. Holding stops that: each customer's first sale waits for you unless their checkout carries the partner's click."
+          >
+            <Select id="holdBrowserLeads" name="holdBrowserLeads" defaultValue={p.holdBrowserLeads}>
+              <option value="off">Trust them like other referrals</option>
+              <option value="on">Hold their sales for review</option>
+            </Select>
+          </Field>
         </SettingsCard>
         <SettingsCard
           title="Terms"

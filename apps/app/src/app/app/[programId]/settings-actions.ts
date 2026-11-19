@@ -79,6 +79,7 @@ const programSchema = z.object({
   minPayout: z.string().regex(/^\d+(\.\d{1,2})?$/),
   payoutSchedule: z.enum(["manual", "monthly", "weekly"]),
   fraudHoldScore: z.coerce.number().int().min(10).max(100),
+  holdBrowserLeads: z.enum(["on", "off"]).default("off"),
   visibility: z.enum(["public", "private", "invite_only"]),
   doubleSidedPercent: z.coerce.number().min(0).max(100),
   doubleSidedMonths: z.coerce.number().int().min(0).max(36),
@@ -138,6 +139,7 @@ export async function updateProgramAction(programId: string, input: Record<strin
         minPayout: toMinor(v.minPayout, cur),
         payoutSchedule: v.payoutSchedule,
         fraudHoldScore: v.fraudHoldScore,
+        holdBrowserLeads: v.holdBrowserLeads === "on",
         visibility: v.visibility,
         doubleSided: {
           enabled: v.doubleSidedPercent > 0,
