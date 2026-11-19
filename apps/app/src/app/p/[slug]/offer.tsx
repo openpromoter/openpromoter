@@ -2,6 +2,7 @@ import { billingConnection, type program } from "@openpromoter/db";
 import { cn } from "@openpromoter/ui";
 import { eq } from "drizzle-orm";
 import { formatMoney } from "@/lib/money";
+import { planPrice } from "@/lib/plan-earnings";
 import { afterLabel, rateLabel } from "@/lib/program-labels";
 import { db } from "@/server/db";
 
@@ -29,6 +30,20 @@ export async function OfferStatement({ p, className }: { p: P; className?: strin
   const example = 10_000;
   const earns =
     p.commissionType === "percent" ? Math.round((example * p.commissionValue) / 10_000) : p.commissionValue;
+  // the founder's own prices when set; otherwise a $100 payment
+  const examples: [string, string][] = p.pagePlans.length
+    ? p.pagePlans.map((plan) => {
+        const pays =
+          p.commissionType === "percent"
+            ? Math.round((plan.amount * p.commissionValue) / 10_000)
+            : p.commissionValue;
+        const each =
+          p.commissionType === "percent" && p.commissionDuration !== "once" && plan.interval !== "once"
+            ? ` a ${plan.interval}`
+            : "";
+        return [`${plan.label} · ${planPrice(plan, p.currency)}`, `${formatMoney(pays, p.currency)}${each}`];
+      })
+    : [[`A ${formatMoney(example, p.currency)} payment pays you`, formatMoney(earns, p.currency)]];
   const rows: [string, string][] = [
     // product rates first, right under the headline rate they replace
     ...p.productRates.map((r): [string, string] => [
@@ -80,12 +95,14 @@ export async function OfferStatement({ p, className }: { p: P; className?: strin
       </div>
       <div className="perforated" aria-hidden />
       <div className="bg-surface-2/70 px-5 pt-3 pb-4 dark:bg-surface-2">
-        <div className="eyebrow">Example</div>
-        <div className="mt-2 flex items-baseline text-[13px]">
-          <span className="text-muted">A {formatMoney(example, p.currency)} payment pays you</span>
-          <span className="leader" aria-hidden />
-          <span className="num font-medium text-fg">{formatMoney(earns, p.currency)}</span>
-        </div>
+        <div className="eyebrow">{examples.length > 1 ? "Examples" : "Example"}</div>
+        {examples.map(([text, pays]) => (
+          <div key={text} className="mt-2 flex items-baseline text-[13px]">
+            <span className="text-muted">{text}</span>
+            <span className="leader" aria-hidden />
+            <span className="num font-medium whitespace-nowrap text-fg">{pays}</span>
+          </div>
+        ))}
         <p className="mt-2 text-xs leading-4 text-subtle">
           Paid by{" "}
           {methods.length > 1 ? `${methods.slice(0, -1).join(", ")} or ${methods.at(-1)}` : methods[0]}.

@@ -1,10 +1,11 @@
 import { billingPrice, partnerGroup } from "@openpromoter/db";
 import { and, asc, eq } from "drizzle-orm";
 import type { Metadata } from "next";
+import { minorFactor } from "@/lib/money";
 import { priceLabel } from "@/lib/program-labels";
 import { programCtx } from "@/server/context";
 import { db } from "@/server/db";
-import { ProductRatesCard, ProgramForm, TiersCard } from "./program-form";
+import { PagePlansCard, ProductRatesCard, ProgramForm, TiersCard } from "./program-form";
 
 export const metadata: Metadata = { title: "Program settings" };
 
@@ -86,6 +87,17 @@ export default async function ProgramSettings({ params }: { params: Promise<{ pr
           rate: r.type === "percent" ? String(r.value / 100) : (r.value / 100).toFixed(2),
         }))}
         prices={prices.map((x) => ({ id: x.externalId, label: priceLabel(x) }))}
+      />
+      <PagePlansCard
+        programId={programId}
+        canWrite={canWrite}
+        currency={p.currency}
+        plans={p.pagePlans.map((x) => ({
+          id: x.id,
+          label: x.label,
+          price: String(x.amount / minorFactor(p.currency)),
+          interval: x.interval,
+        }))}
       />
     </>
   );

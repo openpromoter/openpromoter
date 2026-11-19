@@ -378,6 +378,16 @@ export interface ProductRate {
   value: number;
 }
 
+/** A price shown on the public program page, so partners see earnings from real prices. */
+export interface PagePlan {
+  id: string;
+  /** What partners see, e.g. "Lifetime". */
+  label: string;
+  /** Price before tax, in minor units of the program currency. */
+  amount: number;
+  interval: "once" | "month" | "year";
+}
+
 export const program = pgTable(
   "program",
   {
@@ -398,6 +408,8 @@ export const program = pgTable(
     commissionAfterValue: integer("commission_after_value"),
     /** Per-product rates; a payment for a listed price or product earns that rate instead of the tier or program rate. */
     productRates: jsonb("product_rates").$type<ProductRate[]>().notNull().default([]),
+    /** Up to 4 prices shown on the public program page; empty shows a $100 example. */
+    pagePlans: jsonb("page_plans").$type<PagePlan[]>().notNull().default([]),
     cookieDays: integer("cookie_days").notNull().default(60),
     attributionModel: text("attribution_model")
       .$type<"first_click" | "last_click">()
@@ -451,6 +463,17 @@ export const program = pgTable(
       .where(sql`custom_domain_verified_at is not null`),
   ],
 );
+
+/** A program's uploaded logo (PNG, JPEG or WebP), served at /api/logo/<programId>. Kept off `program` so
+ * reading a program never loads the image. brand.logoUrl points at the route. */
+export const programLogo = pgTable("program_logo", {
+  programId: text("program_id")
+    .primaryKey()
+    .references(() => program.id, { onDelete: "cascade" }),
+  data: bytea("data").notNull(),
+  type: text("type").notNull(),
+  updatedAt: updated(),
+});
 
 export const partnerGroup = pgTable(
   "partner_group",

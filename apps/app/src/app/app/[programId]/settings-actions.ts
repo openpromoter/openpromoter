@@ -22,6 +22,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { encrypt, randomToken, sha256 } from "@/lib/crypto";
 import { createId } from "@/lib/id";
+import { LOGO_MAX_BYTES } from "@/lib/logo";
 import { minorFactor, percentBp, toMinor } from "@/lib/money";
 import { priceLabel } from "@/lib/program-labels";
 import { API_SCOPES } from "@/lib/scopes";
@@ -47,6 +48,7 @@ import { EVENT_TYPES, privateWebhooksAllowed } from "@/server/events";
 import { rebaseProgram } from "@/server/fx";
 import { enqueue } from "@/server/jobs";
 import { assertFounderVerified } from "@/server/partners";
+import { removeProgramLogo, saveProgramLogo } from "@/server/program-logo";
 import { limit } from "@/server/ratelimit";
 import { createProgramFromUrl } from "@/server/setup";
 import { connectStripeKey, importStripe, setWebhookSecret } from "@/server/stripe-service";
@@ -277,6 +279,60 @@ export async function deleteProductRateAction(programId: string, id: string) {
   }, "Product rate deleted");
 }
 
+/** Saves one of the prices shown on the public program page (new when id is empty). */
+export async function savePagePlanAction(
+  programId: string,
+  input: { id?: string; label: string; price: string; interval: string },
+) {
+  return safe(async () => {
+    const ctx = await actionCtx(programId, "program.write");
+    const v = z
+      .object({
+        id: z.string().max(40).optional(),
+        label: z.string().trim().min(1, "Enter a name").max(40),
+        price: z
+          .string()
+          .trim()
+          .regex(/^\d+(\.\d{1,2})?$/, "Enter a price like 29.99"),
+        interval: z.enum(["once", "month", "year"]),
+      })
+      .parse(input);
+    const amount = toMinor(v.price, ctx.program.currency);
+    if (amount <= 0) throw new Error("Enter a price above zero");
+    const plans = ctx.program.pagePlans;
+    const id = v.id || crypto.randomUUID().slice(0, 8);
+    if (!plans.some((x) => x.id === id) && plans.length >= 4)
+      throw new Error("A program page shows up to 4 prices");
+    const next = { id, label: v.label, amount, interval: v.interval };
+    const pagePlans = plans.some((x) => x.id === id)
+      ? plans.map((x) => (x.id === id ? next : x))
+      : [...plans, next];
+    await db().update(program).set({ pagePlans }).where(eq(program.id, programId));
+    await audit(ctx.program.workspaceId, ctx.actor, "program.page_plan_save", {
+      type: "program",
+      id: programId,
+    });
+    rv(programId);
+    return true;
+  }, "Price saved");
+}
+
+export async function deletePagePlanAction(programId: string, id: string) {
+  return safe(async () => {
+    const ctx = await actionCtx(programId, "program.write");
+    await db()
+      .update(program)
+      .set({ pagePlans: ctx.program.pagePlans.filter((x) => x.id !== id) })
+      .where(eq(program.id, programId));
+    await audit(ctx.program.workspaceId, ctx.actor, "program.page_plan_delete", {
+      type: "program",
+      id: programId,
+    });
+    rv(programId);
+    return true;
+  }, "Price removed");
+}
+
 export async function updateApplicationAction(
   programId: string,
   input: {
@@ -378,6 +434,37 @@ export async function updateBrandingAction(
     rv(programId);
     return true;
   }, "Branding saved");
+}
+
+/** Uploads a logo (PNG, JPEG or WebP, up to 1 MB) and points the brand at it. Returns the new logo link. */
+export async function uploadLogoAction(programId: string, form: FormData) {
+  return safe(async () => {
+    const ctx = await actionCtx(programId, "program.write");
+    const file = form.get("logo");
+    if (!(file instanceof File) || file.size === 0) throw new Error("Choose a logo file");
+    if (file.size > LOGO_MAX_BYTES) throw new Error("Logos can be up to 1 MB");
+    const r = await saveProgramLogo(programId, Buffer.from(await file.arrayBuffer()));
+    if ("error" in r) throw new Error(r.error);
+    await audit(ctx.program.workspaceId, ctx.actor, "program.logo_upload", {
+      type: "program",
+      id: programId,
+    });
+    rv(programId);
+    return r.url;
+  }, "Logo uploaded");
+}
+
+export async function removeLogoAction(programId: string) {
+  return safe(async () => {
+    const ctx = await actionCtx(programId, "program.write");
+    await removeProgramLogo(programId);
+    await audit(ctx.program.workspaceId, ctx.actor, "program.logo_remove", {
+      type: "program",
+      id: programId,
+    });
+    rv(programId);
+    return true;
+  }, "Logo removed");
 }
 
 export async function refreshBrandingAction(programId: string) {

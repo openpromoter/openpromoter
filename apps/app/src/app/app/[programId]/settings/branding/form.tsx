@@ -1,8 +1,9 @@
 "use client";
 
 import { Badge, Button, Field, Input, Select, Switch, Textarea } from "@openpromoter/ui";
-import { CheckCircle2, ExternalLink, RefreshCw } from "@openpromoter/ui/icons";
+import { CheckCircle2, ExternalLink, RefreshCw, Upload } from "@openpromoter/ui/icons";
 import { useState } from "react";
+import { toast } from "sonner";
 import { CopyField } from "@/components/copy";
 import { SettingsCard } from "@/components/page";
 import { useAction } from "@/components/use-action";
@@ -10,8 +11,10 @@ import {
   networkCategoryAction,
   networkListingAction,
   refreshBrandingAction,
+  removeLogoAction,
   setDomainAction,
   updateBrandingAction,
+  uploadLogoAction,
   verifyDomainAction,
 } from "../../settings-actions";
 
@@ -100,7 +103,7 @@ export function BrandingForm({
           <Field
             label="Logo URL"
             htmlFor="br-logo"
-            hint="A PNG or JPG link. Square logos look best in emails."
+            hint="Paste a PNG or JPG link, or upload one up to 1 MB. Square logos look best in emails."
           >
             <Input
               id="br-logo"
@@ -108,6 +111,50 @@ export function BrandingForm({
               onChange={(e) => setB({ ...b, logoUrl: e.target.value })}
               disabled={!canWrite}
             />
+            {canWrite ? (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Button asChild variant="secondary" size="sm" loading={pending}>
+                  <label className="cursor-pointer">
+                    <Upload /> Upload logo
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      disabled={pending}
+                      className="sr-only"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!file) return;
+                        if (file.size > 1024 * 1024) return void toast.error("Logos can be up to 1 MB");
+                        const form = new FormData();
+                        form.set("logo", file);
+                        run(
+                          () => uploadLogoAction(programId, form),
+                          "Logo uploaded",
+                          (url) => url && setB((x) => ({ ...x, logoUrl: url })),
+                        );
+                      }}
+                    />
+                  </label>
+                </Button>
+                {b.logoUrl.includes(`/api/logo/${programId}`) ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    loading={pending}
+                    onClick={() =>
+                      run(
+                        () => removeLogoAction(programId),
+                        "Logo removed",
+                        () => setB((x) => ({ ...x, logoUrl: "" })),
+                      )
+                    }
+                  >
+                    Remove upload
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
           </Field>
         </div>
         <Field label="Headline" htmlFor="br-head">

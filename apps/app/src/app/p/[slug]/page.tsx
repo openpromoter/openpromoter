@@ -6,16 +6,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatMoney } from "@/lib/money";
+import { calcSpan, perCustomer, planPrice } from "@/lib/plan-earnings";
 import { planStatus } from "@/server/billing-plans";
 import { db } from "@/server/db";
 import { programBase } from "@/server/program-base";
 import { BrandMark } from "./brand";
+import { EarningsCalculator } from "./calculator";
 import { OfferStatement, scheduleLabel } from "./offer";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const [p] = await db().select().from(program).where(eq(program.slug, slug));
-  return { title: p ? `${p.name} partner program` : "Partner program", description: p?.brand.description };
+  return {
+    title: { absolute: p ? `${p.name} partner program` : "Partner program" },
+    description: p?.brand.description,
+  };
 }
 
 export default async function ProgramPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -27,7 +32,8 @@ export default async function ProgramPage({ params }: { params: Promise<{ slug: 
   const host = p.websiteUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
   const money = (cents: number) => formatMoney(cents, p.currency);
   const percent = p.commissionType === "percent";
-  const sale = 10_000; // the same $100 example the statement uses
+  // the first price the founder lists, or the same $100 example the statement uses
+  const sale = p.pagePlans[0]?.amount ?? 10_000;
   const earns = percent ? Math.round((sale * p.commissionValue) / 10_000) : p.commissionValue;
   const instant = p.autoApprove.enabled && p.visibility !== "invite_only";
   const schedule = scheduleLabel(p).toLowerCase();
@@ -159,7 +165,26 @@ export default async function ProgramPage({ params }: { params: Promise<{ slug: 
               </ol>
             </section>
 
-            {totals.length ? (
+            {p.pagePlans.length ? (
+              <section aria-labelledby="sum-h" className="border-t border-border py-12">
+                <h2 id="sum-h" className="text-[20px] leading-7 font-medium tracking-[-0.02em] text-fg">
+                  Work out your earnings
+                </h2>
+                <p className="mt-1 text-[14px] leading-6 text-muted">
+                  Drag each slider to the number of customers you expect to send.
+                </p>
+                <EarningsCalculator
+                  currency={p.currency}
+                  span={calcSpan(p)}
+                  rows={p.pagePlans.map((plan) => ({
+                    id: plan.id,
+                    label: plan.label,
+                    price: planPrice(plan, p.currency),
+                    ...perCustomer(p, plan),
+                  }))}
+                />
+              </section>
+            ) : totals.length ? (
               <section aria-labelledby="sum-h" className="border-t border-border py-12">
                 <h2 id="sum-h" className="text-[20px] leading-7 font-medium tracking-[-0.02em] text-fg">
                   What it adds up to
