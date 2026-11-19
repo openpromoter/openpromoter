@@ -9,7 +9,7 @@ import { partnerProgram } from "@/server/partner-auth";
 import { programBase } from "@/server/program-base";
 import { SignupForm } from "./signup-form";
 
-export const metadata: Metadata = { title: "Create account" };
+export const metadata: Metadata = { title: "Create account", robots: { index: false, follow: true } };
 
 export default async function SignupPage({
   searchParams,

@@ -210,7 +210,7 @@ Any other billing system can report payments through `POST /api/v1/conversions`.
 - **TypeScript SDK:** `npm install openpromoter`. See [packages/sdk](packages/sdk).
 - **CLI:** `npx openpromoter-cli`. Its `listen` command forwards events to localhost. See [packages/cli](packages/cli).
 - **MCP server** for any MCP client: Claude Desktop, Claude Code, Codex, Cursor, VS Code with GitHub Copilot, Windsurf, Gemini CLI and Zed. It is read-only by default and no tool can send money. See [packages/mcp](packages/mcp).
-- **Remote MCP server** at `/mcp` on your OpenPromoter URL (`https://app.openpromoter.com/mcp` on Cloud). Claude, ChatGPT and other apps connect with a sign-in. You pick the workspace and whether the app can make changes.
+- **Remote MCP server** at `/mcp` on your OpenPromoter URL (`https://app.openpromoter.com/mcp` on Cloud). Claude, ChatGPT and other apps connect with a sign-in. OpenPromoter is listed in [Claude's connector directory](https://claude.ai/directory/openpromoter). You pick the workspace and whether the app can make changes.
 - **Agent skill:** `npx -y openpromoter-cli skill` installs an "add an affiliate program" skill for Claude Code, Codex and Cursor. Any other coding agent works with the [one-prompt install](https://openpromoter.com/docs/agent-skill/).
 
 ```json
