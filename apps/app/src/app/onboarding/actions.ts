@@ -34,7 +34,7 @@ export async function createProgramAction(input: { websiteUrl: string; name?: st
       const [me] = await db().select({ proven: user.addressProvenAt }).from(user).where(eq(user.id, u.id));
       if (!me?.proven)
         throw new Error(
-          `Confirm you own ${u.email} first: sign out, choose "Forgot password" on the sign-in page, set a new password from the email, then sign in and try again.`,
+          `Confirm you own ${u.email} first. Sign out and choose "Forgot password" on the sign-in page. Set a new password from the email, sign in and try again.`,
         );
     }
     const p = await createProgramFromUrl(u.id, websiteUrl, { name });
