@@ -140,26 +140,42 @@ export async function seed({
   clicks = 100_000,
   conversions = 10_000,
   publicDemo = false,
+  reviewer,
+}: {
+  reset?: boolean;
+  clicks?: number;
+  conversions?: number;
+  publicDemo?: boolean;
+  /** A sign-in for outside reviewers (app-store reviews): own email, password and slug, nothing shared with the demo. */
+  reviewer?: { email: string; password: string; slug: string };
 } = {}) {
   const d = db();
-  const [existing] = await d.select().from(program).where(eq(program.slug, DEMO.slug));
+  const founderEmail = reviewer?.email ?? DEMO.email;
+  const founderPassword = reviewer?.password ?? DEMO.password;
+  const slug = reviewer?.slug ?? DEMO.slug;
+  // reviewer programs, like the public demo, stay out of the marketplace and run no autopilot (no AI spend, no mail)
+  const quiet = publicDemo || !!reviewer;
+  // row ids are global, so a reviewer seed uses its own prefix and never collides with the demo's rows
+  // (exactly 4 characters: the SQL below reads the number after "ref_" + tag)
+  const tag = reviewer ? Math.random().toString(36).slice(2, 6).padEnd(4, "x") : "seed";
+  const [existing] = await d.select().from(program).where(eq(program.slug, slug));
   if (existing && !reset) {
     console.log("Demo workspace already exists (use --reset to recreate)");
     return existing.id;
   }
   if (existing) await d.delete(workspace).where(eq(workspace.id, existing.workspaceId));
-  await d.delete(user).where(eq(user.email, DEMO.email));
-  await d.delete(user).where(eq(user.email, DEMO.partnerEmail));
+  await d.delete(user).where(eq(user.email, founderEmail));
+  if (!reviewer) await d.delete(user).where(eq(user.email, DEMO.partnerEmail));
 
   const userId = crypto.randomUUID();
-  await d.insert(user).values({ id: userId, name: "Demo Founder", email: DEMO.email, emailVerified: true });
+  await d.insert(user).values({ id: userId, name: reviewer ? "Review Founder" : "Demo Founder", email: founderEmail, emailVerified: true });
   if (!publicDemo)
     await d.insert(account).values({
       id: crypto.randomUUID(),
       accountId: userId,
       providerId: "credential",
       userId,
-      password: await hashPassword(DEMO.password),
+      password: await hashPassword(founderPassword),
     });
 
   const wsId = createId("ws");
@@ -176,7 +192,7 @@ export async function seed({
       id: programId,
       workspaceId: wsId,
       name: "Acme Analytics",
-      slug: DEMO.slug,
+      slug,
       websiteUrl: "https://acme-analytics.example",
       commissionType: "percent",
       commissionValue: 3000,
@@ -185,8 +201,8 @@ export async function seed({
       cookieDays: 90,
       // two-tier: recruiters earn 10% of their recruits' commissions; listed in the marketplace
       overrideRate: 1000,
-      listedInNetwork: !publicDemo,
-      autopilotEnabled: !publicDemo,
+      listedInNetwork: !quiet,
+      autopilotEnabled: !quiet,
       category: "Analytics",
       brand: {
         color: "#4F46E5",
@@ -323,20 +339,22 @@ export async function seed({
   // two-tier: partners 10-12 joined through partner 1's recruit link
   for (const i of [10, 11, 12]) Object.assign(partners[i]!, { recruitedBy: partners[1]!.id });
   // one partner can sign in to the portal (the public demo's partner side; no password there either)
-  const demoPartnerUser = crypto.randomUUID();
-  const dp = partners[DEMO.partnerIndex]!;
-  if (dp.email !== DEMO.partnerEmail) throw new Error(`demo partner email drifted: ${dp.email}`);
-  await d.insert(user).values({ id: demoPartnerUser, name: dp.name, email: dp.email, emailVerified: true });
-  // self-hosted demos sign in as this partner too (same demo password); the public demo has no passwords
-  if (!publicDemo)
-    await d.insert(account).values({
-      id: crypto.randomUUID(),
-      accountId: demoPartnerUser,
-      providerId: "credential",
-      userId: demoPartnerUser,
-      password: await hashPassword(DEMO.password),
-    });
-  Object.assign(dp, { userId: demoPartnerUser });
+  if (!reviewer) {
+    const demoPartnerUser = crypto.randomUUID();
+    const dp = partners[DEMO.partnerIndex]!;
+    if (dp.email !== DEMO.partnerEmail) throw new Error(`demo partner email drifted: ${dp.email}`);
+    await d.insert(user).values({ id: demoPartnerUser, name: dp.name, email: dp.email, emailVerified: true });
+    // self-hosted demos sign in as this partner too (same demo password); the public demo has no passwords
+    if (!publicDemo)
+      await d.insert(account).values({
+        id: crypto.randomUUID(),
+        accountId: demoPartnerUser,
+        providerId: "credential",
+        userId: demoPartnerUser,
+        password: await hashPassword(DEMO.password),
+      });
+    Object.assign(dp, { userId: demoPartnerUser });
+  }
   await d.insert(partner).values(partners);
   await d.insert(link).values(
     partners.map((p) => ({
@@ -374,7 +392,7 @@ export async function seed({
     const sources = ["youtube", "newsletter", "twitter", "blog", "linkedin", "reddit"];
     await tx.execute(sql`
       insert into click (id, program_id, partner_id, link_id, visitor_id, ip_hash, user_agent, referrer, landing_url, country, sub_id, utm, is_bot, created_at)
-      select 'clk_seed' || g, ${programId}, p.id, null, 'vis_seed' || g, md5('ip' || (g % 40000)), (array['Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) Mobile/15E148 Safari/604.1','Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) Safari/605.1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0','Mozilla/5.0 (Linux; Android 15; Pixel 9) Mobile Chrome/131.0','Mozilla/5.0 (iPad; CPU OS 18_1 like Mac OS X) Safari/604.1'])[1 + (g * 7) % 5],
+      select 'clk_${sql.raw(tag)}' || g, ${programId}, p.id, null, 'vis_${sql.raw(tag)}' || g, md5('ip' || (g % 40000)), (array['Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) Mobile/15E148 Safari/604.1','Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) Safari/605.1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0','Mozilla/5.0 (Linux; Android 15; Pixel 9) Mobile Chrome/131.0','Mozilla/5.0 (iPad; CPU OS 18_1 like Mac OS X) Safari/604.1'])[1 + (g * 7) % 5],
         'https://' || (array[${sql.raw(sources.map((s) => `'${s}.com'`).join(","))}])[1 + g % 6] || '/',
         ${prog!.websiteUrl} || (array['/','/pricing','/features','/blog/privacy-first-analytics','/','/signup','/','/pricing'])[1 + (g * 5) % 8] || '?via=x',
         (array['US','US','US','US','GB','GB','DE','DE','IN','IN','IN','CA','BR','FR','NL','AU','ES'])[1 + (g * 11) % 17],
@@ -387,8 +405,8 @@ export async function seed({
     const leads = Math.round(conversions / 0.7);
     await tx.execute(sql`
       insert into referral (id, program_id, partner_id, click_id, visitor_id, email, external_customer_id, via, status, mrr, revenue, paid_invoices, converted_at, canceled_at, created_at)
-      select 'ref_seed' || c.n, ${programId}, c.partner_id, c.id, c.visitor_id, 'customer' || c.n || '@example.com',
-        case when c.n <= ${conversions} then 'cus_seed' || c.n end, 'link',
+      select 'ref_${sql.raw(tag)}' || c.n, ${programId}, c.partner_id, c.id, c.visitor_id, 'customer' || c.n || '@example.com',
+        case when c.n <= ${conversions} then 'cus_${sql.raw(tag)}' || c.n end, 'link',
         (case when c.n > ${conversions} then 'lead' when c.n % 9 = 0 then 'canceled' when c.n % 31 = 0 then 'refunded' when c.n % 13 = 0 then 'trialing' else 'active' end)::text,
         case when c.n <= ${conversions} and c.n % 9 <> 0 and c.n % 31 <> 0 then (array[1900,4900,4083])[1 + c.n % 3] else 0 end, 0, 0,
         case when c.n <= ${conversions} then c.created_at + interval '2 days' end,
@@ -399,10 +417,10 @@ export async function seed({
     // one commission per paid month since conversion (cap 12), 30% (35/40% for higher tiers)
     await tx.execute(sql`
       insert into commission (id, program_id, workspace_id, partner_id, referral_id, kind, source_key, sale_amount, amount, currency, status, hold_until, external_charge_id, description, created_at, updated_at)
-      select 'com_seed' || r.id || '_' || m, ${programId}, ${wsId}, r.partner_id, r.id, 'sale', 'stripe:in_seed_' || r.id || '_' || m,
+      select 'com_${sql.raw(tag)}' || r.id || '_' || m, ${programId}, ${wsId}, r.partner_id, r.id, 'sale', 'stripe:in_${sql.raw(tag)}_' || r.id || '_' || m,
         p.price, round(p.price * coalesce(g.commission_value, 3000) / 10000.0), 'usd',
         case when r.status = 'refunded' and m = 0 then 'reversed' when r.converted_at + (m || ' months')::interval > now() - interval '30 days' then 'pending' else 'approved' end,
-        r.converted_at + (m || ' months')::interval + interval '30 days', 'ch_seed_' || r.id || '_' || m,
+        r.converted_at + (m || ' months')::interval + interval '30 days', 'ch_${sql.raw(tag)}_' || r.id || '_' || m,
         (array['Starter','Pro','Pro (annual)'])[1 + (substring(r.id from 9)::int % 3)] || ' · ' || coalesce(g.commission_value, 3000) / 100 || '% of the payment',
         r.converted_at + (m || ' months')::interval, now()
       from referral r
@@ -430,7 +448,7 @@ export async function seed({
         select partner_id, sum(amount)::int total from commission where program_id = ${programId} and status = 'approved' and created_at < now() - interval '60 days' group by partner_id
       ), ins as (
         insert into payout (id, program_id, workspace_id, partner_id, amount, currency, method, status, approved_by, approved_at, paid_at, invoice_number, external_id, created_at)
-        select 'pay_seed_' || o.partner_id, ${programId}, ${wsId}, o.partner_id, o.total, 'usd', coalesce(p.payout_method, 'manual'), 'paid', ${userId}, now() - interval '20 days', now() - interval '20 days',
+        select 'pay_${sql.raw(tag)}_' || o.partner_id, ${programId}, ${wsId}, o.partner_id, o.total, 'usd', coalesce(p.payout_method, 'manual'), 'paid', ${userId}, now() - interval '20 days', now() - interval '20 days',
           'OP-' || lpad((row_number() over ())::text, 5, '0'), 'seed_ref_' || row_number() over (), now() - interval '21 days'
         from owed o join partner p on p.id = o.partner_id
         returning partner_id, id
@@ -613,13 +631,25 @@ export async function seed({
     owed.map((o) => o.partnerId),
   );
   console.log(
-    `Seeded demo program ${programId}: ${partners.length} partners, ${clicks} clicks, ${conversions} conversions. ${publicDemo ? "Public demo: open /demo" : `Sign in as ${DEMO.email} / ${DEMO.password}`}`,
+    `Seeded demo program ${programId}: ${partners.length} partners, ${clicks} clicks, ${conversions} conversions. ${publicDemo ? "Public demo: open /demo" : reviewer ? `Reviewer sign-in: ${founderEmail}` : `Sign in as ${DEMO.email} / ${DEMO.password}`}`,
   );
   return programId;
 }
 
 if (/seed\.[tj]s$/.test(process.argv[1] ?? "")) {
-  seed({ reset: process.argv.includes("--reset") })
+  // pnpm seed --reviewer <email> <slug>, with the password in REVIEWER_PASSWORD (never on the command line)
+  const at = process.argv.indexOf("--reviewer");
+  const reviewer =
+    at > 0
+      ? {
+          email: process.argv[at + 1]!,
+          slug: process.argv[at + 2]!,
+          password: process.env.REVIEWER_PASSWORD ?? "",
+        }
+      : undefined;
+  if (reviewer && (!reviewer.email || !reviewer.slug || reviewer.password.length < 12))
+    throw new Error("--reviewer <email> <slug> needs REVIEWER_PASSWORD (12+ characters)");
+  seed({ reset: process.argv.includes("--reset"), reviewer, ...(reviewer ? { clicks: 4000, conversions: 300 } : {}) })
     .then(() => process.exit(0))
     .catch((e) => {
       console.error(e);
