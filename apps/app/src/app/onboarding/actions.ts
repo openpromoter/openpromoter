@@ -1,12 +1,12 @@
 "use server";
 
-import { program } from "@openpromoter/db";
+import { program, user } from "@openpromoter/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { ProgramDesign } from "@/server/ai/designer";
 import { actionCtx, currentUser, safe, userPrograms } from "@/server/context";
 import { db } from "@/server/db";
-import { applyDesign, createProgramFromUrl, proposeDesign } from "@/server/setup";
+import { applyDesign, createProgramFromUrl, proposeDesign, workspaceCreators } from "@/server/setup";
 import { connectStripeKey, importStripe } from "@/server/stripe-service";
 
 export async function createProgramAction(input: { websiteUrl: string; name?: string }) {
@@ -27,6 +27,16 @@ export async function createProgramAction(input: { websiteUrl: string; name?: st
         color: existing.color.color,
         logoUrl: existing.color.logoUrl ?? null,
       };
+    // a listed owner proves the address with a password reset: it reaches the inbox, sets the password and
+    // signs out every other session, so an account someone else registered under it is taken back. Read
+    // from the table: the session cookie can lag behind the reset for a minute.
+    if (workspaceCreators().includes(u.email.toLowerCase())) {
+      const [me] = await db().select({ proven: user.addressProvenAt }).from(user).where(eq(user.id, u.id));
+      if (!me?.proven)
+        throw new Error(
+          `Confirm you own ${u.email} first: sign out, choose "Forgot password" on the sign-in page, set a new password from the email, then sign in and try again.`,
+        );
+    }
     const p = await createProgramFromUrl(u.id, websiteUrl, { name });
     return { programId: p.id, name: p.name, color: p.brand.color, logoUrl: p.brand.logoUrl ?? null };
   });

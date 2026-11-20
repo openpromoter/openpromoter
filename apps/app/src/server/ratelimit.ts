@@ -82,19 +82,4 @@ export async function pruneRateLimits() {
     .where(lt(rateLimitTable.resetAt, new Date(Date.now() - 60_000)));
 }
 
-/**
- * Client IP for rate limits and fraud signals. With TRUSTED_IP_HEADER set (e.g. cf-connecting-ip behind
- * Cloudflare, fly-client-ip on Fly) only that header is read. Otherwise the right-most X-Forwarded-For entry,
- * the one written by the proxy in front of the app; left-most entries are whatever the client sent.
- */
-export function clientIp(req: Request | { headers: Headers }): string | null {
-  const h = req.headers;
-  const trusted = process.env.TRUSTED_IP_HEADER?.trim().toLowerCase();
-  if (trusted) return h.get(trusted)?.split(",")[0]?.trim() || null;
-  const xff = h
-    .get("x-forwarded-for")
-    ?.split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return xff?.at(-1) ?? h.get("x-real-ip") ?? null;
-}
+export { clientIp } from "@/lib/client-ip";

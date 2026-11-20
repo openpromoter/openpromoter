@@ -16,6 +16,7 @@ import { and, desc, eq, gte, inArray, isNull, like, lt, sql } from "drizzle-orm"
 import { createId } from "@/lib/id";
 import { ATTRIBUTION_ORDER, type AttributionHints, hintsFromStripe, pickClick } from "./attribution";
 import type { Attribution, BillingEvent, ParsedWebhook, Provider } from "./billing/types";
+import { BOUNTY_HELD } from "./campaigns";
 import {
   computeCommission,
   overrideAmount,
@@ -146,9 +147,24 @@ export async function resolveReferral(
     .select()
     .from(referral)
     .where(and(inArray(referral.programId, ids), eq(referral.externalCustomerId, customerId)));
-  if (existing) return existing;
-
   const hints = hintsFromStripe({ ...attribution, email: who.email ?? attribution.email ?? null });
+  // a checkout that carries the lead's own click or visitor came through the partner's link: that confirms
+  // a signup the browser script reported, which on its own only shows someone typed this email
+  const vouched = (r: Referral) =>
+    (!!hints.clickId && hints.clickId === r.clickId) ||
+    (!!hints.visitorId && hints.visitorId === r.visitorId);
+  if (existing) {
+    if (existing.browserLead && vouched(existing)) {
+      const [confirmed] = await tx
+        .update(referral)
+        .set({ browserLead: false, browserConfirmedAt: new Date() })
+        .where(eq(referral.id, existing.id))
+        .returning();
+      return confirmed ?? existing;
+    }
+    return existing;
+  }
+
   const found = await findPartner(tx, programs, hints);
   if (!found) return null;
   const { partner: p, program: prog, via, clickId, visitorId, lead } = found;
@@ -156,7 +172,12 @@ export async function resolveReferral(
   if (lead) {
     const [updated] = await tx
       .update(referral)
-      .set({ externalCustomerId: customerId, name: lead.name ?? who.name })
+      .set({
+        externalCustomerId: customerId,
+        name: lead.name ?? who.name,
+        browserLead: lead.browserLead && !vouched(lead),
+        ...(lead.browserLead && vouched(lead) ? { browserConfirmedAt: new Date() } : {}),
+      })
       .where(eq(referral.id, lead.id))
       .returning();
     return updated ?? null;
@@ -502,7 +523,9 @@ async function handlePayment(
       ? `Risk score ${risk.score}: ${risk.reasons.join(", ") || "partner risk"}`
       : p.status !== "approved"
         ? `Partner is ${p.status}`
-        : null;
+        : r.browserLead && prog.holdBrowserLeads
+          ? "The signup was reported by the browser script and the checkout didn't carry the partner's click. Approve it once you know this customer came from the partner."
+          : null;
   const [c] = await tx
     .insert(commission)
     .values({
@@ -547,7 +570,12 @@ async function handlePayment(
   await tx.update(partner).set({ lastActiveAt: new Date() }).where(eq(partner.id, p.id));
   await enqueue(
     "campaigns.evaluate",
-    { programId: prog.id, partnerId: p.id, trigger: r.paidInvoices === 0 ? "first_sale" : "sale" },
+    {
+      programId: prog.id,
+      partnerId: p.id,
+      trigger: r.paidInvoices === 0 ? "first_sale" : "sale",
+      saleId: c.id,
+    },
     {},
     tx,
   );
@@ -838,6 +866,57 @@ async function salesForCharge(tx: Tx, provider: Provider, programs: Program[], c
   return [...sales, ...overrides];
 }
 
+/** Hold the unpaid first-sale bounties of sales that were just held, so they can't mature during the review. */
+export async function holdBounties(tx: Tx | AppDb, saleIds: string[]) {
+  if (saleIds.length === 0) return;
+  await tx
+    .update(commission)
+    .set({ status: "held", heldReason: BOUNTY_HELD, updatedAt: new Date() })
+    .where(
+      and(
+        inArray(commission.parentId, saleIds),
+        eq(commission.kind, "bounty"),
+        inArray(commission.status, ["pending", "approved"]),
+        isNull(commission.payoutId),
+      ),
+    );
+}
+
+/** Release the bounties held with these sales: pending inside the hold window, approved after it. */
+export async function releaseBounties(tx: Tx | AppDb, saleIds: string[]) {
+  if (saleIds.length === 0) return;
+  const now = new Date();
+  await tx
+    .update(commission)
+    .set({
+      status: sql`case when ${commission.holdUntil} is null or ${commission.holdUntil} <= ${now.toISOString()}::timestamptz then 'approved' else 'pending' end`,
+      heldReason: null,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        inArray(commission.parentId, saleIds),
+        eq(commission.kind, "bounty"),
+        eq(commission.status, "held"),
+        eq(commission.heldReason, BOUNTY_HELD),
+      ),
+    );
+}
+
+/** A first-sale bounty follows the sale that earned it (parentId): reverse it, or claw it back once paid. */
+export async function reverseBounties(tx: Tx | AppDb, saleId: string, reason: string): Promise<string[]> {
+  const bounties = await tx
+    .select()
+    .from(commission)
+    .where(and(eq(commission.parentId, saleId), eq(commission.kind, "bounty")));
+  const out: string[] = [];
+  for (const b of bounties) {
+    const r = await reverseFor(tx, b, 1, 1, `sale:${saleId}`, reason);
+    if (r) out.push(r);
+  }
+  return out;
+}
+
 export async function reverseFor(
   tx: Tx | AppDb,
   c: typeof commission.$inferSelect,
@@ -927,6 +1006,17 @@ async function handleRefund(
     const charged = ev.charged > 0 ? ev.charged : (c.chargedAmount ?? c.saleAmount);
     let refunded = ev.refunded;
     if (ev.incremental) {
+      // one refund reported again (Paddle's adjustment.created then .updated) is already in the sum below
+      const [same] = await tx
+        .select({ id: commission.id })
+        .from(commission)
+        .where(
+          and(
+            eq(commission.programId, c.programId),
+            eq(commission.sourceKey, `refund:${c.id}:${ev.refundKey}`),
+          ),
+        );
+      if (same) continue;
       // add the refunds already booked on this commission, scaled from sale units to the charge's units
       const [prior] = await tx
         .select({ sale: sql<number>`coalesce(sum(${commission.saleAmount}), 0)::int` })
@@ -942,6 +1032,8 @@ async function handleRefund(
       ev.refundKey,
       refunded >= charged ? "Refunded" : "Partially refunded",
     );
+    if (r && c.kind === "sale" && refunded >= charged)
+      out.push(...(await reverseBounties(tx, c.id, "The sale that earned this bounty was refunded")));
     if (r) {
       out.push(r);
       await enqueue(
@@ -975,12 +1067,14 @@ async function handleDispute(
         .update(commission)
         .set({ status: "held", heldReason: "Chargeback opened", updatedAt: new Date() })
         .where(eq(commission.id, c.id));
+      if (c.kind === "sale") await holdBounties(tx, [c.id]);
       out.push(`held ${c.id}`);
     } else if (ev.status === "won" && c.status === "held" && c.heldReason === "Chargeback opened") {
       await tx
         .update(commission)
         .set({ status: "pending", heldReason: null, updatedAt: new Date() })
         .where(eq(commission.id, c.id));
+      if (c.kind === "sale") await releaseBounties(tx, [c.id]);
       out.push(`released ${c.id}`);
     } else if (ev.status === "lost") {
       const r = await reverseFor(
@@ -992,6 +1086,8 @@ async function handleDispute(
         "Chargeback lost",
       );
       if (r) out.push(r);
+      if (r && c.kind === "sale")
+        out.push(...(await reverseBounties(tx, c.id, "The sale that earned this bounty was charged back")));
     }
   }
   return out;

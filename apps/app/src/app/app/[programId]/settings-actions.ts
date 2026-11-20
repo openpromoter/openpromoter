@@ -17,16 +17,18 @@ import {
   webhookDelivery,
   webhookEndpoint,
 } from "@openpromoter/db";
-import { and, count, eq, isNotNull, sql } from "drizzle-orm";
+import { and, count, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { encrypt, randomToken, sha256 } from "@/lib/crypto";
 import { createId } from "@/lib/id";
+import { LOGO_MAX_BYTES } from "@/lib/logo";
 import { minorFactor, percentBp, toMinor } from "@/lib/money";
 import { priceLabel } from "@/lib/program-labels";
 import { API_SCOPES } from "@/lib/scopes";
 import { subdomainRoot } from "@/lib/subdomain";
 import { HTTP_URL } from "@/lib/url";
+import { can, membership } from "@/server/access";
 import { assertPublicUrl, emailSafeImage, fetchSite } from "@/server/ai/brand";
 import { mintApiKey } from "@/server/api-keys";
 import { audit } from "@/server/audit";
@@ -42,10 +44,11 @@ import {
 import { db } from "@/server/db";
 import { sendNotice } from "@/server/email";
 import { env, isHosted } from "@/server/env";
-import { EVENT_TYPES } from "@/server/events";
+import { EVENT_TYPES, privateWebhooksAllowed } from "@/server/events";
 import { rebaseProgram } from "@/server/fx";
 import { enqueue } from "@/server/jobs";
 import { assertFounderVerified } from "@/server/partners";
+import { removeProgramLogo, saveProgramLogo } from "@/server/program-logo";
 import { limit } from "@/server/ratelimit";
 import { createProgramFromUrl } from "@/server/setup";
 import { connectStripeKey, importStripe, setWebhookSecret } from "@/server/stripe-service";
@@ -78,6 +81,7 @@ const programSchema = z.object({
   minPayout: z.string().regex(/^\d+(\.\d{1,2})?$/),
   payoutSchedule: z.enum(["manual", "monthly", "weekly"]),
   fraudHoldScore: z.coerce.number().int().min(10).max(100),
+  holdBrowserLeads: z.enum(["on", "off"]).default("off"),
   visibility: z.enum(["public", "private", "invite_only"]),
   doubleSidedPercent: z.coerce.number().min(0).max(100),
   doubleSidedMonths: z.coerce.number().int().min(0).max(36),
@@ -137,6 +141,7 @@ export async function updateProgramAction(programId: string, input: Record<strin
         minPayout: toMinor(v.minPayout, cur),
         payoutSchedule: v.payoutSchedule,
         fraudHoldScore: v.fraudHoldScore,
+        holdBrowserLeads: v.holdBrowserLeads === "on",
         visibility: v.visibility,
         doubleSided: {
           enabled: v.doubleSidedPercent > 0,
@@ -274,6 +279,60 @@ export async function deleteProductRateAction(programId: string, id: string) {
   }, "Product rate deleted");
 }
 
+/** Saves one of the prices shown on the public program page (new when id is empty). */
+export async function savePagePlanAction(
+  programId: string,
+  input: { id?: string; label: string; price: string; interval: string },
+) {
+  return safe(async () => {
+    const ctx = await actionCtx(programId, "program.write");
+    const v = z
+      .object({
+        id: z.string().max(40).optional(),
+        label: z.string().trim().min(1, "Enter a name").max(40),
+        price: z
+          .string()
+          .trim()
+          .regex(/^\d+(\.\d{1,2})?$/, "Enter a price like 29.99"),
+        interval: z.enum(["once", "month", "year"]),
+      })
+      .parse(input);
+    const amount = toMinor(v.price, ctx.program.currency);
+    if (amount <= 0) throw new Error("Enter a price above zero");
+    const plans = ctx.program.pagePlans;
+    const id = v.id || crypto.randomUUID().slice(0, 8);
+    if (!plans.some((x) => x.id === id) && plans.length >= 4)
+      throw new Error("A program page shows up to 4 prices");
+    const next = { id, label: v.label, amount, interval: v.interval };
+    const pagePlans = plans.some((x) => x.id === id)
+      ? plans.map((x) => (x.id === id ? next : x))
+      : [...plans, next];
+    await db().update(program).set({ pagePlans }).where(eq(program.id, programId));
+    await audit(ctx.program.workspaceId, ctx.actor, "program.page_plan_save", {
+      type: "program",
+      id: programId,
+    });
+    rv(programId);
+    return true;
+  }, "Price saved");
+}
+
+export async function deletePagePlanAction(programId: string, id: string) {
+  return safe(async () => {
+    const ctx = await actionCtx(programId, "program.write");
+    await db()
+      .update(program)
+      .set({ pagePlans: ctx.program.pagePlans.filter((x) => x.id !== id) })
+      .where(eq(program.id, programId));
+    await audit(ctx.program.workspaceId, ctx.actor, "program.page_plan_delete", {
+      type: "program",
+      id: programId,
+    });
+    rv(programId);
+    return true;
+  }, "Price removed");
+}
+
 export async function updateApplicationAction(
   programId: string,
   input: {
@@ -375,6 +434,37 @@ export async function updateBrandingAction(
     rv(programId);
     return true;
   }, "Branding saved");
+}
+
+/** Uploads a logo (PNG, JPEG or WebP, up to 1 MB) and points the brand at it. Returns the new logo link. */
+export async function uploadLogoAction(programId: string, form: FormData) {
+  return safe(async () => {
+    const ctx = await actionCtx(programId, "program.write");
+    const file = form.get("logo");
+    if (!(file instanceof File) || file.size === 0) throw new Error("Choose a logo file");
+    if (file.size > LOGO_MAX_BYTES) throw new Error("Logos can be up to 1 MB");
+    const r = await saveProgramLogo(programId, Buffer.from(await file.arrayBuffer()));
+    if ("error" in r) throw new Error(r.error);
+    await audit(ctx.program.workspaceId, ctx.actor, "program.logo_upload", {
+      type: "program",
+      id: programId,
+    });
+    rv(programId);
+    return r.url;
+  }, "Logo uploaded");
+}
+
+export async function removeLogoAction(programId: string) {
+  return safe(async () => {
+    const ctx = await actionCtx(programId, "program.write");
+    await removeProgramLogo(programId);
+    await audit(ctx.program.workspaceId, ctx.actor, "program.logo_remove", {
+      type: "program",
+      id: programId,
+    });
+    rv(programId);
+    return true;
+  }, "Logo removed");
 }
 
 export async function refreshBrandingAction(programId: string) {
@@ -657,7 +747,7 @@ export async function createEndpointAction(
         events: z.array(z.enum([...EVENT_TYPES, "*"])).min(1),
       })
       .parse(input);
-    if (env.HOSTED_MODE === "true") await assertPublicUrl(v.url);
+    if (!privateWebhooksAllowed()) await assertPublicUrl(v.url);
     else if (!/^https?:\/\//.test(v.url)) throw new Error("Use an http(s) URL");
     const secret = `whsec_${randomToken(24)}`;
     await db()
@@ -852,6 +942,17 @@ export async function setMemberRoleAction(
         .update(member)
         .set({ role })
         .where(and(eq(member.workspaceId, ctx.program.workspaceId), eq(member.userId, userId)));
+    // a member who can no longer manage the team takes their unaccepted invitations with them
+    if (role === "remove" || !can(role, "team.write"))
+      await db()
+        .delete(invitation)
+        .where(
+          and(
+            eq(invitation.workspaceId, ctx.program.workspaceId),
+            eq(invitation.invitedBy, userId),
+            isNull(invitation.acceptedAt),
+          ),
+        );
     await audit(ctx.program.workspaceId, ctx.actor, "member.role", { type: "user", id: userId }, { role });
     rv(programId);
     return true;
@@ -878,6 +979,10 @@ export async function acceptInviteAction(token: string) {
     if (!inv || inv.acceptedAt || inv.expiresAt < new Date())
       throw new Error("This invitation is invalid or expired");
     if (me?.email.toLowerCase() !== inv.email) throw new Error(`This invitation is for ${inv.email}`);
+    // the invitation only stands while whoever sent it could still send it
+    const inviter = inv.invitedBy ? await membership(inv.invitedBy, inv.workspaceId) : null;
+    if (!inviter || !can(inviter.role, "team.write") || (inv.role === "owner" && inviter.role !== "owner"))
+      throw new Error("This invitation is invalid or expired");
     await db()
       .insert(member)
       .values({ workspaceId: inv.workspaceId, userId: u.id, role: inv.role })

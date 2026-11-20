@@ -7,8 +7,10 @@ import { SettingsCard } from "@/components/page";
 import { useAction } from "@/components/use-action";
 import {
   deleteGroupAction,
+  deletePagePlanAction,
   deleteProductRateAction,
   saveGroupAction,
+  savePagePlanAction,
   saveProductRateAction,
   updateProgramAction,
 } from "../settings-actions";
@@ -322,6 +324,16 @@ export function ProgramForm({
               className="num w-32"
             />
           </Field>
+          <Field
+            label="Signups reported by the browser script"
+            htmlFor="holdBrowserLeads"
+            hint="The script can't prove the email belongs to the visitor, so a partner could report someone else's email and earn on their purchase. Holding stops that: each customer's first sale waits for you unless their checkout carries the partner's click."
+          >
+            <Select id="holdBrowserLeads" name="holdBrowserLeads" defaultValue={p.holdBrowserLeads}>
+              <option value="off">Trust them like other referrals</option>
+              <option value="on">Hold their sales for review</option>
+            </Select>
+          </Field>
         </SettingsCard>
         <SettingsCard
           title="Terms"
@@ -578,6 +590,132 @@ export function ProductRatesCard({
       {!rates.length && !adding ? (
         <p className="border-t border-border px-5 py-3 text-[13px] text-muted">
           Every product earns the program rate.
+        </p>
+      ) : null}
+    </Card>
+  );
+}
+
+type PlanRow = { id: string; label: string; price: string; interval: string };
+
+function PagePlanRow({
+  programId,
+  canWrite,
+  currency,
+  r,
+  onDone,
+}: {
+  programId: string;
+  canWrite: boolean;
+  currency: string;
+  r: Partial<PlanRow>;
+  /** Set on the new row: closes it. */
+  onDone?: () => void;
+}) {
+  const { pending, run } = useAction();
+  const isNew = !r.id;
+  const key = r.id ?? "new";
+  return (
+    <form
+      className="grid grid-cols-2 items-end gap-3 border-t border-border px-5 py-3 sm:grid-cols-[1fr_130px_130px_auto]"
+      action={(f) =>
+        run(
+          () =>
+            savePagePlanAction(programId, {
+              id: r.id,
+              label: String(f.get("label")),
+              price: String(f.get("price")),
+              interval: String(f.get("interval")),
+            }),
+          "Price saved",
+          onDone,
+        )
+      }
+    >
+      <Field label="Name" htmlFor={`pp-l-${key}`} className="col-span-2 sm:col-span-1">
+        <Input
+          id={`pp-l-${key}`}
+          name="label"
+          defaultValue={r.label}
+          placeholder="Pro"
+          required
+          maxLength={40}
+          disabled={!canWrite}
+        />
+      </Field>
+      <Field label={`Price (${currency.toUpperCase()})`} htmlFor={`pp-p-${key}`}>
+        <Input
+          id={`pp-p-${key}`}
+          name="price"
+          defaultValue={r.price}
+          placeholder="29.99"
+          required
+          inputMode="decimal"
+          disabled={!canWrite}
+          className="num"
+        />
+      </Field>
+      <Field label="Billing" htmlFor={`pp-i-${key}`}>
+        <Select id={`pp-i-${key}`} name="interval" defaultValue={r.interval ?? "month"} disabled={!canWrite}>
+          <option value="once">One payment</option>
+          <option value="month">Monthly</option>
+          <option value="year">Yearly</option>
+        </Select>
+      </Field>
+      {canWrite ? (
+        <div className="flex gap-1">
+          <Button type="submit" variant="primary" loading={pending}>
+            {isNew ? "Add" : "Save"}
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            aria-label={isNew ? "Cancel" : "Remove price"}
+            onClick={() => (isNew ? onDone?.() : run(() => deletePagePlanAction(programId, r.id!)))}
+          >
+            <Trash2 />
+          </Button>
+        </div>
+      ) : null}
+    </form>
+  );
+}
+
+/** The prices partners see on the public program page. Its examples and calculator use them. */
+export function PagePlansCard({
+  programId,
+  canWrite,
+  currency,
+  plans,
+}: {
+  programId: string;
+  canWrite: boolean;
+  currency: string;
+  plans: PlanRow[];
+}) {
+  const [adding, setAdding] = useState(false);
+  const row = { programId, canWrite, currency };
+  return (
+    <Card>
+      <CardHeader
+        title="Prices on your program page"
+        description="Partners see their earnings worked out from these prices. Enter each price before tax, since commission leaves tax out."
+        action={
+          canWrite ? (
+            <Button size="sm" onClick={() => setAdding(true)} disabled={adding || plans.length >= 4}>
+              <Plus /> Add price
+            </Button>
+          ) : null
+        }
+      />
+      {plans.map((r) => (
+        <PagePlanRow key={`${r.id}:${r.label}:${r.price}:${r.interval}`} {...row} r={r} />
+      ))}
+      {adding ? <PagePlanRow {...row} r={{}} onDone={() => setAdding(false)} /> : null}
+      {!plans.length && !adding ? (
+        <p className="border-t border-border px-5 py-3 text-[13px] text-muted">
+          No prices yet. The page shows a $100 example instead.
         </p>
       ) : null}
     </Card>

@@ -362,8 +362,8 @@ function StepStripe({
         </div>
         {initial.stripeConnected || result ? null : (
           <p className="-mt-2 text-[13px] leading-5 text-muted">
-            You can connect Stripe later in Settings &gt; Integrations. Paddle, Lemon Squeezy, Polar, Chargebee
-            and Dodo Payments are there too.
+            You can connect Stripe later in Settings &gt; Integrations. Paddle, Lemon Squeezy, Polar,
+            Chargebee and Dodo Payments are there too.
           </p>
         )}
       </form>

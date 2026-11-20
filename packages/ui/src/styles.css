@@ -279,6 +279,63 @@ body {
   background-repeat: repeat-x;
   height: 10px;
 }
+/* Flat slider: a 4px hairline track filled with the accent and a small square handle. No pill. */
+.calc-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 24px;
+  background: transparent;
+  cursor: pointer;
+}
+.calc-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--accent) var(--fill), var(--border-strong) var(--fill));
+}
+.calc-range::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+.calc-range::-moz-range-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.calc-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+}
+.calc-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+}
+.calc-range:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--border-strong);
+  outline-offset: 2px;
+}
+.calc-range:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--border-strong);
+  outline-offset: 2px;
+}
+/* number fields without the browser's spin arrows */
+input[type="number"].num::-webkit-inner-spin-button,
+input[type="number"].num::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+input[type="number"].num {
+  appearance: textfield;
+}
 /*
  * No focus rings for mouse or touch. Text fields show focus with a border colour change only.
  * Keyboard users still get a quiet grey ring on links and buttons (browsers only match
