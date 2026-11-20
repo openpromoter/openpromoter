@@ -37,10 +37,7 @@ export async function OfferStatement({ p, className }: { p: P; className?: strin
           p.commissionType === "percent"
             ? Math.round((plan.amount * p.commissionValue) / 10_000)
             : p.commissionValue;
-        const each =
-          p.commissionType === "percent" && p.commissionDuration !== "once" && plan.interval !== "once"
-            ? ` a ${plan.interval}`
-            : "";
+        const each = p.commissionDuration !== "once" && plan.interval !== "once" ? ` a ${plan.interval}` : "";
         return [`${plan.label} · ${planPrice(plan, p.currency)}`, `${formatMoney(pays, p.currency)}${each}`];
       })
     : [[`A ${formatMoney(example, p.currency)} payment pays you`, formatMoney(earns, p.currency)]];

@@ -25,8 +25,8 @@ export function perCustomer(p: Terms, plan: Pick<PagePlan, "amount" | "interval"
   const perPayment = Math.round((plan.amount * p.commissionValue) / 10_000);
   return {
     revenue: plan.amount * payments,
-    // a fixed commission is paid once per customer
-    earned: p.commissionType === "percent" ? perPayment * payments : p.commissionValue,
+    // computeCommission pays a fixed amount on every payment in the term, like a percentage
+    earned: (p.commissionType === "percent" ? perPayment : p.commissionValue) * payments,
     payments,
   };
 }

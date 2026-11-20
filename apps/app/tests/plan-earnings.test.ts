@@ -45,9 +45,11 @@ describe("plan earnings", () => {
     expect(calcSpan({ ...base, commissionDuration: "lifetime" })).toBe("in their first year");
   });
 
-  it("pays a fixed amount once per customer whatever the price", () => {
+  it("pays a fixed amount on every payment in the term whatever the price", () => {
     const fixed = { ...base, commissionType: "fixed" as const, commissionValue: 2500 };
-    expect(perCustomer(fixed, monthly)).toEqual({ revenue: 5988, earned: 2500, payments: 12 });
+    expect(perCustomer(fixed, monthly)).toEqual({ revenue: 5988, earned: 30000, payments: 12 });
+    expect(perCustomer({ ...fixed, commissionDuration: "once" }, monthly).earned).toBe(2500);
+    expect(perCustomer(fixed, lifetime).earned).toBe(2500);
   });
 
   it("describes the span of the totals", () => {

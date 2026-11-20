@@ -171,7 +171,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ slug: 
                   Work out your earnings
                 </h2>
                 <p className="mt-1 text-[14px] leading-6 text-muted">
-                  Drag each slider to the number of customers you expect to send.
+                  Drag a slider or type how many customers you expect to send.
                 </p>
                 <EarningsCalculator
                   currency={p.currency}
