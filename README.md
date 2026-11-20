@@ -13,6 +13,8 @@
 
 A self-hosted alternative to [Rewardful](https://openpromoter.com/alternatives/rewardful/), [FirstPromoter](https://openpromoter.com/alternatives/firstpromoter/) and [Tolt](https://openpromoter.com/alternatives/tolt/). Track referrals from Stripe, stop affiliate fraud and pay partners with 0% payout fees.
 
+**[Try the live demo, no signup](https://openpromoter.com/demo/)**
+
 [Website](https://openpromoter.com) · [Watch the film (1:20)](https://www.youtube.com/watch?v=PUepd2ts-mM) · [Live demo](https://openpromoter.com/demo/) · [Docs](https://openpromoter.com/docs/) · [Self-hosting](https://openpromoter.com/docs/self-hosting/) · [API](https://openpromoter.com/docs/api/) · [Discussions](https://github.com/openpromoter/openpromoter/discussions)
 
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-2442F5)](LICENSE)
