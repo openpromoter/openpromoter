@@ -30,6 +30,9 @@ export const user = pgTable("user", {
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  /** Set only by a completed password reset: proof of the inbox that a verification link can't give, since
+   * anyone can ask for a link to be sent to an address they registered first. Gates WORKSPACE_CREATORS. */
+  addressProvenAt: ts("address_proven_at"),
   createdAt: created(),
   updatedAt: updated(),
 });
@@ -420,6 +423,8 @@ export const program = pgTable(
     autoApprove: jsonb("auto_approve").$type<AutoApproveRules>().notNull(),
     doubleSided: jsonb("double_sided").$type<DoubleSided>().notNull(),
     fraudHoldScore: integer("fraud_hold_score").notNull().default(70),
+    /** Hold sales from signups the browser script reported until a checkout carries the click or the founder approves one. */
+    holdBrowserLeads: boolean("hold_browser_leads").notNull().default(false),
     terms: text("terms"),
     /** Where partners' replies to program emails go; empty = the workspace owner's email. */
     replyTo: text("reply_to"),
@@ -664,6 +669,10 @@ export const referral = pgTable(
       .notNull()
       .default("link"),
     status: text("status").$type<ReferralStatus>().notNull().default("lead"),
+    /** Reported by the browser script and not yet confirmed by a checkout carrying its click: sales are held. */
+    browserLead: boolean("browser_lead").notNull().default(false),
+    /** When a checkout or the founder confirmed a browser-reported signup; it is never flagged again. */
+    browserConfirmedAt: ts("browser_confirmed_at"),
     ipHash: text("ip_hash"),
     mrr: integer("mrr").notNull().default(0),
     revenue: integer("revenue").notNull().default(0),

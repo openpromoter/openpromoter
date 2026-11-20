@@ -279,6 +279,8 @@ export async function recordLead(input: LeadInput) {
         externalCustomerId: input.externalCustomerId ?? null,
         via: clickId ? "link" : "api",
         status: "lead",
+        // nothing proves the browser caller owns this email, so its sales wait for a checkout to confirm it
+        browserLead: !!input.browser,
         ipHash: hashIp(input.ip),
       })
       .onConflictDoNothing()

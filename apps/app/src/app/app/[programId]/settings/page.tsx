@@ -55,6 +55,7 @@ export default async function ProgramSettings({ params }: { params: Promise<{ pr
           minPayout: (p.minPayout / 100).toFixed(2),
           payoutSchedule: p.payoutSchedule,
           fraudHoldScore: String(p.fraudHoldScore),
+          holdBrowserLeads: p.holdBrowserLeads ? "on" : "off",
           visibility: p.visibility,
           doubleSidedPercent: String(p.doubleSided.percentOff),
           doubleSidedMonths: String(p.doubleSided.durationMonths),

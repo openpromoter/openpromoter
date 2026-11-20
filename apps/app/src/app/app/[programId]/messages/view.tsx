@@ -386,7 +386,9 @@ export function MessagesView({
                       ) : null}
                       {context ? (
                         <li className={cn("flex gap-2.5", mine && "flex-row-reverse")}>
-                          {mine ? null : <Avatar name={who} src={context.avatarUrl} size={28} className="mt-5" />}
+                          {mine ? null : (
+                            <Avatar name={who} src={context.avatarUrl} size={28} className="mt-5" />
+                          )}
                           <div
                             className={cn(
                               "flex min-w-0 max-w-[min(560px,85%)] flex-col gap-1",

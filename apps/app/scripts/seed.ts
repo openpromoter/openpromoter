@@ -168,7 +168,12 @@ export async function seed({
   if (!reviewer) await d.delete(user).where(eq(user.email, DEMO.partnerEmail));
 
   const userId = crypto.randomUUID();
-  await d.insert(user).values({ id: userId, name: reviewer ? "Review Founder" : "Demo Founder", email: founderEmail, emailVerified: true });
+  await d.insert(user).values({
+    id: userId,
+    name: reviewer ? "Review Founder" : "Demo Founder",
+    email: founderEmail,
+    emailVerified: true,
+  });
   if (!publicDemo)
     await d.insert(account).values({
       id: crypto.randomUUID(),
@@ -649,7 +654,11 @@ if (/seed\.[tj]s$/.test(process.argv[1] ?? "")) {
       : undefined;
   if (reviewer && (!reviewer.email || !reviewer.slug || reviewer.password.length < 12))
     throw new Error("--reviewer <email> <slug> needs REVIEWER_PASSWORD (12+ characters)");
-  seed({ reset: process.argv.includes("--reset"), reviewer, ...(reviewer ? { clicks: 4000, conversions: 300 } : {}) })
+  seed({
+    reset: process.argv.includes("--reset"),
+    reviewer,
+    ...(reviewer ? { clicks: 4000, conversions: 300 } : {}),
+  })
     .then(() => process.exit(0))
     .catch((e) => {
       console.error(e);

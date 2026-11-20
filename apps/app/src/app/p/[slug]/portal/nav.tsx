@@ -147,7 +147,14 @@ export function PortalShell({
             <ArrowUpRight className="size-[18px] text-subtle" aria-hidden />
             Program page
           </Link>
-          <AccountMenu slug={slug} home={home} user={user} avatar={avatar} email={email} programs={programs} />
+          <AccountMenu
+            slug={slug}
+            home={home}
+            user={user}
+            avatar={avatar}
+            email={email}
+            programs={programs}
+          />
         </div>
       </aside>
 
@@ -162,7 +169,15 @@ export function PortalShell({
                 <span className="truncate font-medium text-fg">{current?.[1] ?? "Portal"}</span>
               </nav>
               <div className="ml-auto lg:hidden">
-                <AccountMenu slug={slug} home={home} user={user} avatar={avatar} email={email} programs={programs} compact />
+                <AccountMenu
+                  slug={slug}
+                  home={home}
+                  user={user}
+                  avatar={avatar}
+                  email={email}
+                  programs={programs}
+                  compact
+                />
               </div>
             </div>
             <nav

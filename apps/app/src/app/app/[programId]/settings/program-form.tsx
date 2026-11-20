@@ -309,19 +309,35 @@ export function ProgramForm({
         </SettingsCard>
         <SettingsCard
           title="Fraud"
-          description="Commissions from referrals or partners at or above this risk score are held automatically."
+          description="Hold risky commissions for your review before they can be paid."
         >
-          <Field label="Auto-hold at risk score" htmlFor="fraudHoldScore">
-            <Input
-              id="fraudHoldScore"
-              name="fraudHoldScore"
-              type="number"
-              min={10}
-              max={100}
-              defaultValue={p.fraudHoldScore}
-              className="num w-32"
-            />
-          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Auto-hold at risk score"
+              htmlFor="fraudHoldScore"
+              hint="Commissions from referrals or partners at or above this score are held."
+            >
+              <Input
+                id="fraudHoldScore"
+                name="fraudHoldScore"
+                type="number"
+                min={10}
+                max={100}
+                defaultValue={p.fraudHoldScore}
+                className="num w-32"
+              />
+            </Field>
+            <Field
+              label="Signups reported by the browser script"
+              htmlFor="holdBrowserLeads"
+              hint="The browser script can't prove a visitor owns the email they enter. Holding sends these sales to review until you approve one or a checkout carries the partner's click."
+            >
+              <Select id="holdBrowserLeads" name="holdBrowserLeads" defaultValue={p.holdBrowserLeads}>
+                <option value="off">Trust them like other referrals</option>
+                <option value="on">Hold their sales for review</option>
+              </Select>
+            </Field>
+          </div>
         </SettingsCard>
         <SettingsCard
           title="Terms"

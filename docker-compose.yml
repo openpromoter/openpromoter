@@ -60,6 +60,12 @@ services:
       RATE_LIMIT_STORE: ${RATE_LIMIT_STORE:-postgres}
       # header your proxy/CDN sets to the client IP, e.g. cf-connecting-ip; empty = last X-Forwarded-For hop
       TRUSTED_IP_HEADER: ${TRUSTED_IP_HEADER:-}
+      # header your platform overwrites with the connecting address; then TRUSTED_IP_HEADER is believed only from the CDN
+      PEER_IP_HEADER: ${PEER_IP_HEADER:-}
+      # outgoing webhooks go to public addresses only; true lets them reach your private network
+      ALLOW_PRIVATE_WEBHOOKS: ${ALLOW_PRIVATE_WEBHOOKS:-false}
+      # comma-separated emails that may create a workspace (verified accounts only); empty = anyone
+      WORKSPACE_CREATORS: ${WORKSPACE_CREATORS:-}
 
 volumes:
   pgdata:

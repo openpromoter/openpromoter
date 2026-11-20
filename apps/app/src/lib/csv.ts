@@ -2,7 +2,8 @@ const esc = (v: unknown) => {
   const s = v == null ? "" : v instanceof Date ? v.toISOString() : String(v);
   // guard against CSV formula injection in spreadsheet apps
   const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
-  return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+  // a bare \r starts a new row in Excel and Calc, so it is quoted like \n
+  return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 };
 
 export function toCsv(rows: Record<string, unknown>[], columns?: string[]): string {

@@ -96,6 +96,8 @@ Render reads [render.yaml](render.yaml) and creates the app and its Postgres dat
 
 The container refuses to start on a public URL with the placeholder secrets. Every setting is in [.env.example](.env.example), and the [self-hosting guide](https://openpromoter.com/docs/self-hosting/) walks through Railway, Render and upgrades.
 
+**Upgrading:** outgoing webhooks now go to public addresses only. If your webhook endpoints are on a private network (`localhost`, `10.x`, `192.168.x`, a Docker service name), set `ALLOW_PRIVATE_WEBHOOKS=true` or they will fail after the upgrade.
+
 ## How it works
 
 1. **Paste your website.** OpenPromoter pulls your logo, color and copy to brand the partner portal.

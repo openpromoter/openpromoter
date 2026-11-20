@@ -17,7 +17,7 @@ import {
   webhookDelivery,
   webhookEndpoint,
 } from "@openpromoter/db";
-import { and, count, eq, isNotNull, sql } from "drizzle-orm";
+import { and, count, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { encrypt, randomToken, sha256 } from "@/lib/crypto";
@@ -27,6 +27,7 @@ import { priceLabel } from "@/lib/program-labels";
 import { API_SCOPES } from "@/lib/scopes";
 import { subdomainRoot } from "@/lib/subdomain";
 import { HTTP_URL } from "@/lib/url";
+import { can, membership } from "@/server/access";
 import { assertPublicUrl, emailSafeImage, fetchSite } from "@/server/ai/brand";
 import { mintApiKey } from "@/server/api-keys";
 import { audit } from "@/server/audit";
@@ -42,7 +43,7 @@ import {
 import { db } from "@/server/db";
 import { sendNotice } from "@/server/email";
 import { env, isHosted } from "@/server/env";
-import { EVENT_TYPES } from "@/server/events";
+import { EVENT_TYPES, privateWebhooksAllowed } from "@/server/events";
 import { rebaseProgram } from "@/server/fx";
 import { enqueue } from "@/server/jobs";
 import { assertFounderVerified } from "@/server/partners";
@@ -78,6 +79,7 @@ const programSchema = z.object({
   minPayout: z.string().regex(/^\d+(\.\d{1,2})?$/),
   payoutSchedule: z.enum(["manual", "monthly", "weekly"]),
   fraudHoldScore: z.coerce.number().int().min(10).max(100),
+  holdBrowserLeads: z.enum(["on", "off"]).default("off"),
   visibility: z.enum(["public", "private", "invite_only"]),
   doubleSidedPercent: z.coerce.number().min(0).max(100),
   doubleSidedMonths: z.coerce.number().int().min(0).max(36),
@@ -137,6 +139,7 @@ export async function updateProgramAction(programId: string, input: Record<strin
         minPayout: toMinor(v.minPayout, cur),
         payoutSchedule: v.payoutSchedule,
         fraudHoldScore: v.fraudHoldScore,
+        holdBrowserLeads: v.holdBrowserLeads === "on",
         visibility: v.visibility,
         doubleSided: {
           enabled: v.doubleSidedPercent > 0,
@@ -657,7 +660,7 @@ export async function createEndpointAction(
         events: z.array(z.enum([...EVENT_TYPES, "*"])).min(1),
       })
       .parse(input);
-    if (env.HOSTED_MODE === "true") await assertPublicUrl(v.url);
+    if (!privateWebhooksAllowed()) await assertPublicUrl(v.url);
     else if (!/^https?:\/\//.test(v.url)) throw new Error("Use an http(s) URL");
     const secret = `whsec_${randomToken(24)}`;
     await db()
@@ -852,6 +855,17 @@ export async function setMemberRoleAction(
         .update(member)
         .set({ role })
         .where(and(eq(member.workspaceId, ctx.program.workspaceId), eq(member.userId, userId)));
+    // a member who can no longer manage the team takes their unaccepted invitations with them
+    if (role === "remove" || !can(role, "team.write"))
+      await db()
+        .delete(invitation)
+        .where(
+          and(
+            eq(invitation.workspaceId, ctx.program.workspaceId),
+            eq(invitation.invitedBy, userId),
+            isNull(invitation.acceptedAt),
+          ),
+        );
     await audit(ctx.program.workspaceId, ctx.actor, "member.role", { type: "user", id: userId }, { role });
     rv(programId);
     return true;
@@ -878,6 +892,10 @@ export async function acceptInviteAction(token: string) {
     if (!inv || inv.acceptedAt || inv.expiresAt < new Date())
       throw new Error("This invitation is invalid or expired");
     if (me?.email.toLowerCase() !== inv.email) throw new Error(`This invitation is for ${inv.email}`);
+    // the invitation only stands while whoever sent it could still send it
+    const inviter = inv.invitedBy ? await membership(inv.invitedBy, inv.workspaceId) : null;
+    if (!inviter || !can(inviter.role, "team.write") || (inv.role === "owner" && inviter.role !== "owner"))
+      throw new Error("This invitation is invalid or expired");
     await db()
       .insert(member)
       .values({ workspaceId: inv.workspaceId, userId: u.id, role: inv.role })
