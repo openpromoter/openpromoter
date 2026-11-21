@@ -1,10 +1,9 @@
 import { Button } from "@openpromoter/ui";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { AuthCard } from "@/components/auth/auth-card";
 import { can } from "@/server/access";
 import { requireUser, userPrograms } from "@/server/context";
-import { callbackUrl, readClient } from "@/server/oauth";
+import { readClient, redirectHost } from "@/server/oauth";
 import { authorizeAction } from "./actions";
 
 export const metadata: Metadata = { title: "Connect an AI app", robots: { index: false, follow: false } };
@@ -23,6 +22,12 @@ const ACCESS_OPTIONS = [
   },
 ];
 
+/** Fixed text for the codes authorizeAction sends back; anything else in the URL is ignored. */
+const ERRORS: Record<string, string> = {
+  workspace: "You can't connect apps to that workspace. Pick one where you're an owner or admin.",
+  verify: "Confirm your email before giving an app write access. We sent you a link. Open it and try again.",
+};
+
 /** OAuth consent for MCP clients (server/oauth.ts). The person picks a workspace and an access level. */
 export default async function AuthorizePage({
   searchParams,
@@ -39,10 +44,20 @@ export default async function AuthorizePage({
         </p>
       </AuthCard>
     );
+  // shown here rather than sent to redirect_uri: anyone can register a client, so redirecting before
+  // sign-in would make this page an open redirect
   if (sp.response_type !== "code" || sp.code_challenge_method !== "S256" || !sp.code_challenge)
-    redirect(callbackUrl(sp.redirect_uri, { error: "invalid_request", state: sp.state }));
+    return (
+      <AuthCard title="This link doesn't work">
+        <p className="text-[14px] leading-[22px] text-muted">
+          The app that sent you here asked in a way OpenPromoter doesn't support. Go back to it and connect
+          OpenPromoter again.
+        </p>
+      </AuthCard>
+    );
 
-  const { op_error: error, ...rest } = sp;
+  const { op_error, ...rest } = sp;
+  const error = op_error ? ERRORS[op_error] : undefined;
   const q = new URLSearchParams(rest as Record<string, string>).toString();
   const u = await requireUser(`/oauth/authorize?${q}`);
   const workspaces = new Map<string, { name: string; programs: string[] }>();
@@ -61,7 +76,7 @@ export default async function AuthorizePage({
         </p>
       </AuthCard>
     );
-  const wantsWrite = (sp.scope ?? "").split(" ").includes("write");
+  const host = redirectHost(sp.redirect_uri);
 
   return (
     <AuthCard
@@ -76,6 +91,10 @@ export default async function AuthorizePage({
     >
       <form action={authorizeAction} className="flex flex-col gap-6">
         <input type="hidden" name="q" value={q} />
+        <p className="rounded-[10px] border border-border p-3 text-[13px] leading-5 text-muted">
+          When you allow, you&rsquo;ll go to <span className="font-medium text-fg">{host}</span>. Any app can
+          call itself {client.name}, so continue only if you started this from that app.
+        </p>
         {error ? (
           <p role="alert" className="rounded-[10px] border border-border p-3 text-[13px] text-fg">
             {error}
@@ -109,7 +128,8 @@ export default async function AuthorizePage({
                 type="radio"
                 name="access"
                 value={o.value}
-                defaultChecked={(o.value === "write") === wantsWrite}
+                // read only unless the person picks more, whatever the link asks for
+                defaultChecked={o.value === "read"}
                 className="mt-1"
               />
               <span>

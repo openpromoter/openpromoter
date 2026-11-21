@@ -21,13 +21,20 @@ export async function authorizeAction(f: FormData) {
 
   const access = f.get("access") === "write" ? "write" : "read";
   const workspaceId = String(f.get("workspace") ?? "");
-  let problem: string | null = null;
+  // an error code, not a message: the page maps it to fixed text, so a crafted link can't put words there
+  let problem: "workspace" | "verify" | null = null;
   try {
     await requireWorkspace(u.id, workspaceId, "developer.write");
-    // write access can invite partners, and each invite is an email from our sender
-    if (access === "write") await assertFounderVerified(u);
-  } catch (err) {
-    problem = (err as Error).message;
+  } catch {
+    problem = "workspace";
+  }
+  // write access can invite partners, and each invite is an email from our sender
+  if (!problem && access === "write") {
+    try {
+      await assertFounderVerified(u);
+    } catch {
+      problem = "verify";
+    }
   }
   if (problem) {
     q.set("op_error", problem);

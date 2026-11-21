@@ -44,10 +44,36 @@ export function allowedRedirect(uri: string) {
     const u = new URL(uri);
     if (u.hash) return false;
     if (u.protocol === "https:") return true;
-    return u.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(u.hostname);
+    return u.protocol === "http:" && LOOPBACK.includes(u.hostname);
   } catch {
     return false;
   }
+}
+
+/**
+ * Hosts of the AI apps people know by name. A client may call itself Claude, ChatGPT or OpenPromoter only
+ * when every redirect goes to that company's own domain or to this machine, so a registration can't
+ * borrow a trusted name to send someone's code to another site.
+ */
+const KNOWN_APPS: { pattern: RegExp; hosts: string[] }[] = [
+  { pattern: /claude|anthropic/i, hosts: ["claude.ai", "claude.com"] },
+  { pattern: /chat\s*gpt|openai/i, hosts: ["chatgpt.com", "chat.openai.com"] },
+  { pattern: /open\s*promoter/i, hosts: [] },
+];
+const LOOPBACK = ["localhost", "127.0.0.1", "[::1]"];
+
+/** The host a code is sent to, shown on the consent screen. */
+export const redirectHost = (uri: string) => new URL(uri).host;
+
+function nameAllowed(name: string, uris: string[]) {
+  return KNOWN_APPS.every(
+    (app) =>
+      !app.pattern.test(name) ||
+      uris.every((u) => {
+        const h = new URL(u).hostname;
+        return LOOPBACK.includes(h) || app.hosts.includes(h);
+      }),
+  );
 }
 
 /** The client's redirect URL with the result (code or error) and its state added. */
@@ -75,6 +101,11 @@ export function registerClient(body: unknown): Client & { clientId: string } {
     typeof b.client_name === "string" && b.client_name.trim()
       ? b.client_name.trim().slice(0, 40)
       : "MCP client";
+  if (!nameAllowed(name, uris as string[]))
+    throw new OAuthError(
+      "invalid_client_metadata",
+      "This client name belongs to another app. Choose a name of your own.",
+    );
   const client: Client = { name, redirectUris: uris as string[] };
   const payload = Buffer.from(JSON.stringify(client)).toString("base64url");
   return { ...client, clientId: `${payload}.${hmacHex(secret(), payload).slice(0, 32)}` };
@@ -127,6 +158,9 @@ export async function exchangeCode(p: {
 }) {
   if (!p.code || !p.verifier || !p.clientId || !p.redirectUri)
     throw new OAuthError("invalid_request", "code, code_verifier, client_id and redirect_uri are required");
+  // RFC 7636: 43 to 128 unreserved characters
+  if (!/^[A-Za-z0-9._~-]{43,128}$/.test(p.verifier))
+    throw new OAuthError("invalid_request", "code_verifier must be 43 to 128 characters");
   const [row] = await db()
     .delete(kvStore)
     .where(eq(kvStore.key, `oauth:code:${sha256(p.code)}`))
@@ -144,8 +178,10 @@ export async function exchangeCode(p: {
     scopes: ACCESS[g.access],
     userId: g.userId,
     actor: { type: "user", id: g.userId },
+    oauth: true,
   });
-  // ponytail: no expiry and no refresh token; the key lives until it's revoked in Settings > API & webhooks
+  // ponytail: no expiry and no refresh token; the key lives until it's revoked in Settings > API & webhooks,
+  // or until the person who connected it leaves the workspace or loses developer access (api.ts authenticate)
   return { access_token: token, token_type: "Bearer", scope: g.access };
 }
 

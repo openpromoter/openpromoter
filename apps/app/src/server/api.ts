@@ -5,6 +5,7 @@ import {
   commission,
   eventLog,
   link,
+  member,
   partner,
   partnerGroup,
   payout,
@@ -16,9 +17,11 @@ import { z } from "zod";
 import { sha256 } from "@/lib/crypto";
 import type { ApiScope } from "@/lib/scopes";
 import { HTTP_URL } from "@/lib/url";
+import { can } from "./access";
 import { ask } from "./ai/assistant";
 import { applyAction } from "./ai/autopilot";
 import { overview, parseRange } from "./analytics";
+import { OAUTH_KEY_PREFIX } from "./api-keys";
 import type { Actor } from "./audit";
 import { createCampaign, draftCampaign } from "./campaigns";
 import { db } from "./db";
@@ -69,6 +72,17 @@ export async function authenticate(req: Request): Promise<ApiCtx> {
     .from(apiKey)
     .where(eq(apiKey.hash, sha256(raw)));
   if (!k || k.revokedAt) throw new ApiError(401, "unauthorized", "Invalid API key");
+  // a key from the MCP sign-in acts for the person who connected it: it stops when they lose access
+  if (k.prefix.startsWith(OAUTH_KEY_PREFIX)) {
+    const [m] = k.createdBy
+      ? await db()
+          .select({ role: member.role })
+          .from(member)
+          .where(and(eq(member.workspaceId, k.workspaceId), eq(member.userId, k.createdBy)))
+      : [];
+    if (!m || !can(m.role, "developer.write"))
+      throw new ApiError(401, "unauthorized", "The person who connected this app no longer has access");
+  }
   if (!(await limit(`api:${k.id}`, 600, 60_000)).ok)
     throw new ApiError(429, "rate_limited", "Too many requests (600/min per key)");
   if (!k.lastUsedAt || Date.now() - k.lastUsedAt.getTime() > 60_000)

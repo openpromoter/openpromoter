@@ -25,7 +25,7 @@
     "better-auth": "1.7.15",
     "cmdk": "1.1.1",
     "drizzle-orm": "0.45.4",
-    "next": "16.4.4",
+    "next": "16.4.6",
     "nodemailer": "10.1.7",
     "openpromoter": "workspace:*",
     "openpromoter-mcp": "workspace:*",
