@@ -108,10 +108,11 @@ export const TOOLS: ToolDef[] = [
   {
     name: "set_partner_status",
     title: "Set partner status",
-    description: "Approve, pause, reject or ban a partner.",
+    description:
+      "Approve, pause, reject or ban a partner. Rejecting or banning stops the partner earning, so confirm with the user first.",
     input: { partnerId: z.string(), status: z.enum(["approved", "paused", "rejected", "banned"]) },
     write: true,
-    hints: { destructive: false, openWorld: false, idempotent: true },
+    hints: { destructive: true, openWorld: false, idempotent: true },
     run: (op, a) => op.partners.update(a.partnerId, { status: a.status }),
   },
   {
@@ -123,16 +124,6 @@ export const TOOLS: ToolDef[] = [
     write: true,
     hints: { destructive: false, openWorld: false, idempotent: false },
     run: (op, a) => op.campaigns.create(a.programId, { prompt: a.prompt, launch: false }),
-  },
-  {
-    name: "apply_autopilot_action",
-    title: "Apply Autopilot suggestion",
-    description:
-      "Apply one Autopilot suggestion. Payout suggestions only prepare a batch for human approval.",
-    input: { ...program, actionId: z.string() },
-    write: true,
-    hints: { destructive: true, openWorld: true, idempotent: false },
-    run: (op, a) => op.autopilot.apply(a.programId, a.actionId),
   },
   {
     name: "prepare_payouts",
