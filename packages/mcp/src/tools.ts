@@ -8,6 +8,8 @@ export interface ToolDef {
   description: string;
   input: z.ZodRawShape;
   write: boolean;
+  /** Set only on write tools. Read tools are always read-only, closed-world, idempotent. */
+  hints?: { destructive: boolean; openWorld: boolean; idempotent: boolean };
   run: (op: OpenPromoter, args: Record<string, any>) => Promise<unknown>;
 }
 
@@ -100,6 +102,7 @@ export const TOOLS: ToolDef[] = [
     description: "Invite and approve a partner by email. They get an email with their link.",
     input: { ...program, email: z.email(), name: z.string() },
     write: true,
+    hints: { destructive: false, openWorld: true, idempotent: false },
     run: (op, a) => op.partners.create(a.programId, { email: a.email, name: a.name }),
   },
   {
@@ -108,6 +111,7 @@ export const TOOLS: ToolDef[] = [
     description: "Approve, pause, reject or ban a partner.",
     input: { partnerId: z.string(), status: z.enum(["approved", "paused", "rejected", "banned"]) },
     write: true,
+    hints: { destructive: false, openWorld: false, idempotent: true },
     run: (op, a) => op.partners.update(a.partnerId, { status: a.status }),
   },
   {
@@ -117,6 +121,7 @@ export const TOOLS: ToolDef[] = [
       "Create a DRAFT campaign from one sentence (e.g. 'double commissions for annual plans this month'). A person launches it in the dashboard.",
     input: { ...program, prompt: z.string().min(3).max(300) },
     write: true,
+    hints: { destructive: false, openWorld: false, idempotent: false },
     run: (op, a) => op.campaigns.create(a.programId, { prompt: a.prompt, launch: false }),
   },
   {
@@ -126,6 +131,7 @@ export const TOOLS: ToolDef[] = [
       "Apply one Autopilot suggestion. Payout suggestions only prepare a batch for human approval.",
     input: { ...program, actionId: z.string() },
     write: true,
+    hints: { destructive: true, openWorld: true, idempotent: false },
     run: (op, a) => op.autopilot.apply(a.programId, a.actionId),
   },
   {
@@ -135,6 +141,7 @@ export const TOOLS: ToolDef[] = [
       "Prepare payouts for partners over the minimum. This NEVER sends money: the batch waits until a person approves it in the OpenPromoter dashboard (Payouts page). Tell the user to review and approve it there.",
     input: { ...program, partnerIds: z.array(z.string()).optional() },
     write: true,
+    hints: { destructive: false, openWorld: false, idempotent: false },
     run: (op, a) => op.payouts.prepare(a.programId, { partnerIds: a.partnerIds }),
   },
 ];
@@ -152,8 +159,9 @@ export function registerTools(server: McpServer, op: OpenPromoter, allowWrite: b
         annotations: {
           title: t.title,
           readOnlyHint: !t.write,
-          destructiveHint: t.write,
-          openWorldHint: false,
+          destructiveHint: t.hints?.destructive ?? false,
+          openWorldHint: t.hints?.openWorld ?? false,
+          idempotentHint: t.hints?.idempotent ?? true,
         },
       },
       async (args: Record<string, unknown>) => {
